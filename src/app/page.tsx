@@ -13,11 +13,11 @@ import {
   BarChart3,
   Lock,
   Clock,
-  Sparkles,
   Cpu,
   TrendingUp,
   FileWarning,
-  Target
+  Target,
+  Search
 } from "lucide-react";
 import { NavBar } from "@/components/ui/tubelight-navbar";
 import { SparklesCore } from "@/components/ui/sparkles";
@@ -193,78 +193,60 @@ export default function SynthosLanding() {
 
         {/* Hero Content */}
         <div className="relative z-10 text-center px-4 max-w-6xl mx-auto">
-          {/* Eyebrow Badge - Mono font, tiny text, pill border */}
-          <motion.div
+          {/* Eyebrow Text - Uppercase, small, colored */}
+          <motion.p
+            className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-400 mb-6"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
           >
-            <div className="inline-flex items-center gap-2 border border-white/20 rounded-full px-4 py-1.5 mb-8 bg-white/[0.03] backdrop-blur-md">
-              <Sparkles className="w-3 h-3 text-cyan-400" />
-              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/70">Validation Engine v2.0</span>
-            </div>
-          </motion.div>
+            Introducing Synthos Validation
+          </motion.p>
 
-          {/* Headline - White text, tight spacing */}
+          {/* Headline - Large, bold, dark text style inspired by reference */}
           <motion.h1 
-            className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tighter mb-6 leading-[0.9]"
+            className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6 leading-[1.1]"
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
           >
             <span className="text-white">
-              Kill Model Collapse
+              Build collapse-proof
             </span>
             <br />
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400">
-              Before It Starts
+            <span className="text-white">
+              models, faster.
             </span>
           </motion.h1>
 
-          {/* Subtext - Using opacity instead of grey hex */}
+          {/* Subtext - Clean, readable */}
           <motion.p 
-            className="text-lg md:text-xl text-white/70 max-w-3xl mx-auto mb-12 leading-relaxed"
+            className="text-lg md:text-xl text-white/60 max-w-2xl mx-auto mb-10 leading-relaxed"
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
           >
-            Don&apos;t burn $100M on poisoned training data. 
-            Our validation engine predicts collapse with 90%+ accuracy — backed by performance warranties.
+            A professional validation platform for AI teams. 
+            Predict training outcomes with 90%+ accuracy.
           </motion.p>
 
-          {/* Buttons - Modern 2025 Glass styling */}
+          {/* Search Input - Inspired by reference design */}
           <motion.div 
-            className="flex flex-col sm:flex-row items-center justify-center gap-4"
+            className="flex items-center justify-center"
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
           >
-            {/* Primary Button - Squircle with inner glow and drop shadow */}
-            <button className="group relative px-8 py-3 rounded-lg font-semibold text-sm transition-all duration-300 overflow-hidden">
-              {/* Glow effect behind button */}
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg blur-xl opacity-50 group-hover:opacity-75 transition-opacity" />
-              {/* Button background with inner glow */}
-              <div className="absolute inset-0 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-lg" />
-              <div className="absolute inset-[1px] bg-gradient-to-b from-white/20 to-transparent rounded-lg opacity-50" />
-              {/* Inner top highlight */}
-              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-              <span className="relative z-10 flex items-center gap-2 text-white">
-                Start Validation
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </span>
-            </button>
-
-            {/* Secondary Button - Glass effect with gradient border */}
-            <button className="group relative px-8 py-3 rounded-lg font-semibold text-sm transition-all duration-300">
-              {/* Gradient border that fades */}
-              <div className="absolute inset-0 rounded-lg bg-gradient-to-b from-white/20 via-white/10 to-transparent p-[1px]">
-                <div className="absolute inset-[1px] rounded-lg bg-white/[0.05] backdrop-blur-xl" />
-              </div>
-              <span className="relative z-10 flex items-center gap-2 text-white/80 group-hover:text-white transition-colors">
-                Watch Demo
-                <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-              </span>
-            </button>
+            <div className="relative flex items-center w-full max-w-md">
+              <input
+                type="text"
+                placeholder="Enter your dataset URL..."
+                className="w-full px-5 py-3.5 pr-14 rounded-full bg-white/[0.08] backdrop-blur-xl border border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/50 focus:bg-white/[0.12] transition-all duration-300"
+              />
+              <button className="absolute right-1.5 w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center hover:from-cyan-500 hover:to-blue-600 transition-all duration-300 shadow-lg shadow-cyan-500/25">
+                <ArrowRight className="w-4 h-4 text-white" />
+              </button>
+            </div>
           </motion.div>
         </div>
 
