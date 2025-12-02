@@ -192,62 +192,69 @@ export default function SynthosLanding() {
         </div>
 
         {/* Hero Content */}
-        <div className="relative z-10 text-center px-4 max-w-6xl mx-auto">
-          {/* Eyebrow Text - Uppercase, small, colored */}
-          <motion.p
-            className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-400 mb-6"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-          >
-            Introducing Synthos Validation
-          </motion.p>
+        <div className="relative z-10 container mx-auto px-4 md:px-6">
+          <div className="max-w-3xl mx-auto text-center">
+            {/* Badge Pill */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.5, ease: [0.25, 0.4, 0.25, 1] }}
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] mb-8 md:mb-12"
+            >
+              <Shield className="h-2 w-2 fill-cyan-500/80 text-cyan-500" />
+              <span className="text-sm text-white/60 tracking-wide">
+                Synthos Validation
+              </span>
+            </motion.div>
 
-          {/* Headline - Large, bold, dark text style inspired by reference */}
-          <motion.h1 
-            className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6 leading-[1.1]"
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <span className="text-white">
-              Build collapse-proof
-            </span>
-            <br />
-            <span className="text-white">
-              models, faster.
-            </span>
-          </motion.h1>
+            {/* Headline - Clean gradient text */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.7, ease: [0.25, 0.4, 0.25, 1] }}
+            >
+              <h1 className="text-4xl sm:text-6xl md:text-8xl font-bold mb-6 md:mb-8 tracking-tight">
+                <span className="bg-clip-text text-transparent bg-gradient-to-b from-white to-white/80">
+                  Build collapse-proof
+                </span>
+                <br />
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-300 via-white/90 to-blue-300">
+                  models, faster.
+                </span>
+              </h1>
+            </motion.div>
 
-          {/* Subtext - Clean, readable */}
-          <motion.p 
-            className="text-lg md:text-xl text-white/60 max-w-2xl mx-auto mb-10 leading-relaxed"
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          >
-            A professional validation platform for AI teams. 
-            Predict training outcomes with 90%+ accuracy.
-          </motion.p>
+            {/* Subtext - Clean, readable */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.9, ease: [0.25, 0.4, 0.25, 1] }}
+            >
+              <p className="text-base sm:text-lg md:text-xl text-white/40 mb-8 leading-relaxed font-light tracking-wide max-w-xl mx-auto px-4">
+                A professional validation platform for AI teams.
+                Predict training outcomes with 90%+ accuracy.
+              </p>
+            </motion.div>
 
-          {/* Search Input - Inspired by reference design */}
-          <motion.div 
-            className="flex items-center justify-center"
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <div className="relative flex items-center w-full max-w-md">
-              <input
-                type="text"
-                placeholder="Enter your dataset URL..."
-                className="w-full px-5 py-3.5 pr-14 rounded-full bg-white/[0.08] backdrop-blur-xl border border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/50 focus:bg-white/[0.12] transition-all duration-300"
-              />
-              <button className="absolute right-1.5 w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center hover:from-cyan-500 hover:to-blue-600 transition-all duration-300 shadow-lg shadow-cyan-500/25">
-                <ArrowRight className="w-4 h-4 text-white" />
-              </button>
-            </div>
-          </motion.div>
+            {/* Search Input */}
+            <motion.div 
+              className="flex items-center justify-center"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 1.1, ease: [0.25, 0.4, 0.25, 1] }}
+            >
+              <div className="relative flex items-center w-full max-w-md">
+                <input
+                  type="text"
+                  placeholder="Enter your dataset URL..."
+                  className="w-full px-5 py-3.5 pr-14 rounded-full bg-white/[0.08] backdrop-blur-xl border border-white/[0.15] text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/50 focus:bg-white/[0.12] transition-all duration-300"
+                />
+                <button className="absolute right-1.5 w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center hover:from-cyan-500 hover:to-blue-600 transition-all duration-300 shadow-lg shadow-cyan-500/25">
+                  <ArrowRight className="w-4 h-4 text-white" />
+                </button>
+              </div>
+            </motion.div>
+          </div>
         </div>
 
         {/* Gradient overlay at bottom */}
