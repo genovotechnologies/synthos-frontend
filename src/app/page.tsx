@@ -246,8 +246,8 @@ export default function SynthosLanding() {
             >
               <div className="relative flex items-center w-full max-w-md">
                 <input
-                  type="text"
-                  placeholder="Enter your dataset URL..."
+                  type="email"
+                  placeholder="Join the waitlist..."
                   className="w-full px-5 py-3.5 pr-14 rounded-full bg-white/[0.08] backdrop-blur-xl border border-white/[0.15] text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/50 focus:bg-white/[0.12] transition-all duration-300"
                 />
                 <button className="absolute right-1.5 w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center hover:from-cyan-500 hover:to-blue-600 transition-all duration-300 shadow-lg shadow-cyan-500/25">
