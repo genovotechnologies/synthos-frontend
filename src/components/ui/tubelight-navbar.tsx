@@ -5,6 +5,7 @@ import { motion } from "framer-motion"
 import Link from "next/link"
 import { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { SynthosLogo } from "@/components/ui/synthos-logo"
 
 interface NavItem {
   name: string
@@ -39,6 +40,10 @@ export function NavBar({ items, className }: NavBarProps) {
       )}
     >
       <div className="flex items-center gap-3 bg-background/5 border border-border backdrop-blur-lg py-1 px-1 rounded-full shadow-lg">
+        {/* Logo */}
+        <Link href="#hero" className="pl-2 pr-1 hidden sm:block">
+          <SynthosLogo size={28} />
+        </Link>
         {items.map((item) => {
           const Icon = item.icon
           const isActive = activeTab === item.name

@@ -25,6 +25,7 @@ import { ShaderAnimation } from "@/components/ui/shader-animation";
 import { TestimonialsColumn } from "@/components/ui/testimonials-columns";
 import { GooeyText } from "@/components/ui/gooey-text-morphing";
 import RadialOrbitalTimeline, { TimelineItem } from "@/components/ui/radial-orbital-timeline";
+import { SynthosLogoWithText } from "@/components/ui/synthos-logo";
 
 const navItems = [
   { name: "Home", url: "#hero", icon: Home },
@@ -526,13 +527,7 @@ export default function SynthosLanding() {
       <footer className="py-12 border-t border-white/10">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
-                <span className="text-white font-bold text-sm">S</span>
-              </div>
-              <span className="font-semibold text-lg text-white">Synthos</span>
-              <span className="text-xs text-white/50 font-mono">A Genovo Technologies Company</span>
-            </div>
+            <SynthosLogoWithText logoSize={36} showTagline />
             <p className="text-sm text-white/50">
               © 2025 Synthos. All rights reserved.
             </p>
