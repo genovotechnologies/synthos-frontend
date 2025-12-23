@@ -356,6 +356,9 @@ export default function SynthosLanding() {
             <p className="text-white/70 max-w-2xl mx-auto">
               From upload to certification, our end-to-end validation ensures your training data is collapse-proof.
             </p>
+            <p className="text-white/50 text-xs mt-4 max-w-xl mx-auto">
+              Synthos runs on scalable cloud infrastructure leveraging AWS compute, storage, and ML pipelines to perform large-scale validation efficiently.
+            </p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
@@ -452,6 +455,9 @@ export default function SynthosLanding() {
             <p className="text-white/70 max-w-2xl mx-auto">
               See what industry leaders say about Synthos validation platform.
             </p>
+            <p className="text-white/50 text-xs mt-4 max-w-xl mx-auto italic">
+              Testimonials shown are from private beta users and enterprise pilots. Company names anonymized.
+            </p>
           </motion.div>
 
           <div className="flex justify-center gap-6 [mask-image:linear-gradient(to_bottom,transparent,black_25%,black_75%,transparent)] max-h-[700px] overflow-hidden">
@@ -526,11 +532,37 @@ export default function SynthosLanding() {
       {/* Footer */}
       <footer className="py-12 border-t border-white/10">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <SynthosLogoWithText logoSize={36} showTagline />
-            <p className="text-sm text-white/50">
-              © 2025 Synthos. All rights reserved.
-            </p>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex flex-col items-center md:items-start gap-2">
+              <SynthosLogoWithText logoSize={36} showTagline />
+              <p className="text-xs text-white/60">
+                SynthOS is a product of{" "}
+                <a 
+                  href="https://www.genovotech.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-cyan-400 hover:text-cyan-300 transition-colors underline underline-offset-2"
+                >
+                  Genovo Technologies
+                </a>
+              </p>
+            </div>
+            <div className="flex flex-col items-center md:items-end gap-2">
+              <div className="flex items-center gap-6 text-sm text-white/50">
+                <a href="/about" className="hover:text-white/80 transition-colors">About</a>
+                <a 
+                  href="https://www.genovotech.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="hover:text-white/80 transition-colors"
+                >
+                  Genovo Technologies
+                </a>
+              </div>
+              <p className="text-sm text-white/50">
+                © 2025 Genovo Technologies. All rights reserved.
+              </p>
+            </div>
           </div>
         </div>
       </footer>
