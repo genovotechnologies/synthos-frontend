@@ -1,23 +1,19 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { 
   Home, 
   Shield, 
-  FileCheck, 
   Zap, 
   Users, 
   ChevronRight, 
   CheckCircle, 
   ArrowRight,
-  BarChart3,
   Lock,
   Clock,
   Cpu,
   TrendingUp,
-  FileWarning,
-  Target,
-  Search
+  Target
 } from "lucide-react";
 import { NavBar } from "@/components/ui/tubelight-navbar";
 import { SparklesCore } from "@/components/ui/sparkles";
@@ -166,6 +162,40 @@ const featureTimelineData: TimelineItem[] = [
 ];
 
 export default function SynthosLanding() {
+  const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
+
+  const handleWaitlistSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !email.includes("@")) return;
+    
+    setIsSubmitting(true);
+    setSubmitStatus("idle");
+    
+    // Simulate API call - replace with actual endpoint when available
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setSubmitStatus("success");
+      setEmail("");
+    } catch {
+      setSubmitStatus("error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const scrollToWaitlist = () => {
+    const heroSection = document.getElementById("hero");
+    if (heroSection) {
+      heroSection.scrollIntoView({ behavior: "smooth" });
+      setTimeout(() => {
+        const input = document.querySelector('input[type="email"]') as HTMLInputElement;
+        if (input) input.focus();
+      }, 500);
+    }
+  };
+
   return (
     <main className="bg-background text-foreground min-h-screen overflow-x-hidden">
       {/* Navigation */}
@@ -244,16 +274,35 @@ export default function SynthosLanding() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, delay: 1.1, ease: [0.25, 0.4, 0.25, 1] }}
             >
-              <div className="relative flex items-center w-full max-w-md">
-                <input
-                  type="email"
-                  placeholder="Join the waitlist..."
-                  className="w-full px-5 py-3.5 pr-14 rounded-full bg-white/[0.08] backdrop-blur-xl border border-white/[0.15] text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/50 focus:bg-white/[0.12] transition-all duration-300"
-                />
-                <button className="absolute right-1.5 w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center hover:from-cyan-500 hover:to-blue-600 transition-all duration-300 shadow-lg shadow-cyan-500/25">
-                  <ArrowRight className="w-4 h-4 text-white" />
-                </button>
-              </div>
+              <form onSubmit={handleWaitlistSubmit} className="relative flex flex-col items-center w-full max-w-md gap-2">
+                <div className="relative flex items-center w-full">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email to join the waitlist..."
+                    disabled={isSubmitting}
+                    className="w-full px-5 py-3.5 pr-14 rounded-full bg-white/[0.08] backdrop-blur-xl border border-white/[0.15] text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/50 focus:bg-white/[0.12] transition-all duration-300 disabled:opacity-50"
+                  />
+                  <button 
+                    type="submit"
+                    disabled={isSubmitting || !email}
+                    className="absolute right-1.5 w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center hover:from-cyan-500 hover:to-blue-600 transition-all duration-300 shadow-lg shadow-cyan-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? (
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <ArrowRight className="w-4 h-4 text-white" />
+                    )}
+                  </button>
+                </div>
+                {submitStatus === "success" && (
+                  <p className="text-cyan-400 text-sm">Thanks! You&apos;re on the waitlist.</p>
+                )}
+                {submitStatus === "error" && (
+                  <p className="text-red-400 text-sm">Something went wrong. Please try again.</p>
+                )}
+              </form>
             </motion.div>
           </div>
         </div>
@@ -503,7 +552,10 @@ export default function SynthosLanding() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               {/* Primary Button - Squircle with inner glow */}
-              <button className="group relative px-8 py-3 rounded-lg font-semibold text-sm transition-all duration-300 overflow-hidden">
+              <button 
+                onClick={scrollToWaitlist}
+                className="group relative px-8 py-3 rounded-lg font-semibold text-sm transition-all duration-300 overflow-hidden"
+              >
                 <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg blur-xl opacity-50 group-hover:opacity-75 transition-opacity" />
                 <div className="absolute inset-0 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-lg" />
                 <div className="absolute inset-[1px] bg-gradient-to-b from-white/20 to-transparent rounded-lg opacity-50" />
@@ -515,7 +567,10 @@ export default function SynthosLanding() {
               </button>
 
               {/* Secondary Button - Glass effect */}
-              <button className="group relative px-8 py-3 rounded-lg font-semibold text-sm transition-all duration-300">
+              <button 
+                onClick={scrollToWaitlist}
+                className="group relative px-8 py-3 rounded-lg font-semibold text-sm transition-all duration-300"
+              >
                 <div className="absolute inset-0 rounded-lg bg-gradient-to-b from-white/20 via-white/10 to-transparent p-[1px]">
                   <div className="absolute inset-[1px] rounded-lg bg-white/[0.05] backdrop-blur-xl" />
                 </div>

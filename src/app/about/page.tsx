@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { Home, Shield, Zap, Users, ArrowLeft, Building2, ExternalLink } from "lucide-react";
 import { NavBar } from "@/components/ui/tubelight-navbar";
 import { SparklesCore } from "@/components/ui/sparkles";
@@ -42,13 +43,13 @@ export default function AboutPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             >
-              <a 
+              <Link 
                 href="/"
                 className="inline-flex items-center gap-2 text-white/60 hover:text-white/80 transition-colors mb-8"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span className="text-sm">Back to Home</span>
-              </a>
+              </Link>
               
               <h1 className="text-4xl md:text-6xl font-bold tracking-tighter mb-6">
                 <span className="text-white">About </span>
@@ -138,7 +139,7 @@ export default function AboutPage() {
                 </p>
                 
                 <p>
-                  Our mission is to provide the industry's most accurate and efficient validation 
+                  Our mission is to provide the industry&apos;s most accurate and efficient validation 
                   platform, giving AI teams the confidence to train at scale without fear of 
                   catastrophic failures.
                 </p>
@@ -183,7 +184,7 @@ export default function AboutPage() {
             </div>
             <div className="flex flex-col items-center md:items-end gap-2">
               <div className="flex items-center gap-6 text-sm text-white/50">
-                <a href="/" className="hover:text-white/80 transition-colors">Home</a>
+                <Link href="/" className="hover:text-white/80 transition-colors">Home</Link>
                 <a 
                   href="https://www.genovotech.com" 
                   target="_blank" 
