@@ -24,13 +24,13 @@ export function NavBar({ items, className }: NavBarProps) {
   return (
     <div
       className={cn(
-        "fixed bottom-0 sm:top-0 left-1/2 -translate-x-1/2 z-50 mb-6 sm:pt-6",
+        "fixed bottom-0 sm:top-0 left-1/2 -translate-x-1/2 z-50 mb-6 sm:pt-6 select-none",
         className,
       )}
     >
       <div className="flex items-center gap-3 bg-background/5 border border-border backdrop-blur-lg py-1 px-1 rounded-full shadow-lg">
         {/* Logo */}
-        <Link href="#hero" className="pl-2 pr-1 hidden sm:block">
+        <Link href="#hero" className="pl-2 pr-1 hidden sm:block select-none" draggable={false}>
           <SynthosLogo size={28} />
         </Link>
         {items.map((item) => {
@@ -42,8 +42,9 @@ export function NavBar({ items, className }: NavBarProps) {
               key={item.name}
               href={item.url}
               onClick={() => setActiveTab(item.name)}
+              draggable={false}
               className={cn(
-                "relative cursor-pointer text-sm font-semibold px-6 py-2 rounded-full transition-colors",
+                "relative cursor-pointer text-sm font-semibold px-6 py-2 rounded-full transition-colors select-none",
                 "text-foreground/80 hover:text-primary",
                 isActive && "bg-muted text-primary",
               )}
