@@ -155,8 +155,8 @@ export default function PrivacyPage() {
               <h2 className="text-xl font-semibold text-white mb-4">9. Contact Us</h2>
               <p className="leading-relaxed">
                 For privacy-related inquiries, please contact our Data Protection Officer at{' '}
-                <a href="mailto:privacy@synthos.ai" className="text-violet-400 hover:text-violet-300 transition-colors">
-                  privacy@synthos.ai
+                <a href="mailto:privacy@synthos.dev" className="text-violet-400 hover:text-violet-300 transition-colors">
+                  privacy@synthos.dev
                 </a>
               </p>
             </section>

@@ -119,8 +119,8 @@ export default function TermsPage() {
               <h2 className="text-xl font-semibold text-white mb-4">8. Contact</h2>
               <p className="leading-relaxed">
                 For questions about these Terms of Service, please contact us at{' '}
-                <a href="mailto:legal@synthos.ai" className="text-violet-400 hover:text-violet-300 transition-colors">
-                  legal@synthos.ai
+                <a href="mailto:legal@synthos.dev" className="text-violet-400 hover:text-violet-300 transition-colors">
+                  legal@synthos.dev
                 </a>
               </p>
             </section>
