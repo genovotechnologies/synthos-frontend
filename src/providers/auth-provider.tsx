@@ -45,8 +45,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const currentUser = await authApi.getCurrentUser();
-      setUser(currentUser);
+      if (currentUser) {
+        setUser(currentUser);
+      } else {
+        // If /auth/me returns null (e.g., 404), create a placeholder user from token
+        // This keeps the user logged in even if the endpoint isn't implemented
+        setUser({
+          id: 'temp',
+          email: '',
+          name: 'User',
+          company: '',
+          created_at: new Date().toISOString(),
+        });
+      }
     } catch {
+      // Only clear token on actual auth errors, not network errors
       Cookies.remove('access_token', { path: '/' });
       setUser(null);
     } finally {

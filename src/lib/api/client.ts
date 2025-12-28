@@ -32,11 +32,14 @@ apiClient.interceptors.response.use(
   (error: AxiosError<{ message?: string }>) => {
     // A09:2021 - Security Logging: Log security-relevant errors
     if (error.response?.status === 401) {
-      // Clear token and redirect to login
+      // Clear token and redirect to login (but not if already on auth pages)
       Cookies.remove('access_token', { path: '/' });
       if (typeof window !== 'undefined') {
-        // Prevent open redirect by using relative URL
-        window.location.href = '/login';
+        const currentPath = window.location.pathname;
+        // Don't redirect if already on login/register pages to avoid loops
+        if (!currentPath.startsWith('/login') && !currentPath.startsWith('/register') && !currentPath.startsWith('/forgot-password')) {
+          window.location.href = '/login';
+        }
       }
     }
     

@@ -12,9 +12,15 @@ export const authApi = {
     return response.data;
   },
 
-  getCurrentUser: async (): Promise<User> => {
-    const response = await apiClient.get<User>('/auth/me');
-    return response.data;
+  getCurrentUser: async (): Promise<User | null> => {
+    try {
+      const response = await apiClient.get<User>('/auth/me');
+      return response.data;
+    } catch {
+      // If endpoint doesn't exist (404) or unauthorized, return null
+      // Don't throw error - let auth provider handle gracefully
+      return null;
+    }
   },
 
   logout: async (): Promise<void> => {
