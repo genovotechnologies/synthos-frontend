@@ -339,7 +339,7 @@ export default function SynthosLanding() {
 
       {/* Validation Process Section */}
       <section id="validation" className="py-24 relative">
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 pointer-events-none">
           <SparklesCore
             id="validation-sparkles"
             background="transparent"
@@ -484,7 +484,7 @@ export default function SynthosLanding() {
 
       {/* CTA Section */}
       <section className="py-24 relative">
-        <div className="absolute inset-0 opacity-50">
+        <div className="absolute inset-0 opacity-50 pointer-events-none">
           <SparklesCore
             id="cta-sparkles"
             background="transparent"
