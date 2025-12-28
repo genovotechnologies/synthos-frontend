@@ -54,14 +54,14 @@
 
 :root {
   --radius: 1rem;
-  /* Core Soft UI Background */
-  --background: #e8eef5;
-  --foreground: #1a1f36;
-  /* Card Surface (slightly lighter than bg for extruded effect) */
-  --card: #edf2f7;
-  --card-foreground: #1a1f36;
-  --popover: #ffffff;
-  --popover-foreground: #1a1f36;
+  /* Original dark theme for landing page */
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  /* Card Surface */
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
   /* Electric Violet - Primary Accent */
   --primary: #6c5ce7;
   --primary-foreground: #ffffff;
@@ -70,21 +70,21 @@
   /* Mint Green - Secondary Accent */
   --mint: #00d9a5;
   --mint-glow: rgba(0, 217, 165, 0.4);
-  /* Soft UI Surface */
+  /* Soft UI Surface (for dashboard) */
   --surface: #e8eef5;
   --surface-light: #f0f5fa;
   /* Neumorphic Shadows */
   --shadow-dark: rgba(163, 177, 198, 0.6);
   --shadow-light: rgba(255, 255, 255, 0.8);
-  --secondary: #f0f5fa;
-  --secondary-foreground: #1a1f36;
-  --muted: #d1dce8;
-  --muted-foreground: #64748b;
-  --accent: #f0f5fa;
-  --accent-foreground: #1a1f36;
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
   --destructive: #ef4444;
-  --border: rgba(163, 177, 198, 0.3);
-  --input: rgba(163, 177, 198, 0.2);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
   --ring: #6c5ce7;
   /* Chart Colors */
   --chart-1: #6c5ce7;
