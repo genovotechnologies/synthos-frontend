@@ -13,7 +13,9 @@ import {
   X,
   CheckCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -31,12 +33,14 @@ interface UploadProgress {
 function DatasetRow({ dataset, onDelete }: { dataset: Dataset; onDelete: (id: string) => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const statusColors = {
-    uploading: 'bg-blue-500/10 text-blue-500',
-    processing: 'bg-yellow-500/10 text-yellow-500',
-    ready: 'bg-green-500/10 text-green-500',
-    error: 'bg-red-500/10 text-red-500',
+  const statusConfig = {
+    uploading: { bg: 'bg-blue-500/20', text: 'text-blue-400', dot: 'bg-blue-400' },
+    processing: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', dot: 'bg-yellow-400' },
+    ready: { bg: 'bg-mint/20', text: 'text-mint', dot: 'bg-mint' },
+    error: { bg: 'bg-red-500/20', text: 'text-red-400', dot: 'bg-red-400' },
   };
+
+  const status = statusConfig[dataset.status];
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 B';
@@ -55,42 +59,47 @@ function DatasetRow({ dataset, onDelete }: { dataset: Dataset; onDelete: (id: st
   };
 
   return (
-    <tr className="border-b border-border hover:bg-muted/30 transition-colors">
-      <td className="px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <FileSpreadsheet size={20} className="text-primary" />
-          </div>
-          <div>
-            <p className="font-medium">{dataset.name}</p>
-            <p className="text-sm text-muted-foreground">{dataset.file_name}</p>
-          </div>
+    <div className="flex items-center justify-between p-4 rounded-xl hover:bg-white/5 transition-all duration-200 group">
+      <div className="flex items-center gap-4 flex-1 min-w-0">
+        <div className="p-3 rounded-xl bg-violet/20">
+          <FileSpreadsheet size={20} className="text-violet" />
         </div>
-      </td>
-      <td className="px-6 py-4 text-sm text-muted-foreground">
-        {dataset.row_count?.toLocaleString() || '-'} rows
-      </td>
-      <td className="px-6 py-4 text-sm text-muted-foreground">
-        {formatFileSize(dataset.file_size)}
-      </td>
-      <td className="px-6 py-4">
+        <div className="min-w-0 flex-1">
+          <p className="font-medium text-white truncate group-hover:text-violet transition-colors">
+            {dataset.name}
+          </p>
+          <p className="text-sm text-white/50 truncate">{dataset.file_name}</p>
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-8">
+        <div className="text-right hidden sm:block">
+          <p className="text-sm text-white/50">Rows</p>
+          <p className="font-medium text-white">{dataset.row_count?.toLocaleString() || '-'}</p>
+        </div>
+        <div className="text-right hidden md:block">
+          <p className="text-sm text-white/50">Size</p>
+          <p className="font-medium text-white">{formatFileSize(dataset.file_size)}</p>
+        </div>
+        <div className="text-right hidden lg:block">
+          <p className="text-sm text-white/50">Created</p>
+          <p className="font-medium text-white">{formatDate(dataset.created_at)}</p>
+        </div>
+        
         <span className={cn(
-          "px-2 py-1 text-xs font-medium rounded-full capitalize",
-          statusColors[dataset.status]
+          "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full capitalize",
+          status.bg, status.text
         )}>
+          <span className={cn("w-1.5 h-1.5 rounded-full", status.dot)} />
           {dataset.status}
         </span>
-      </td>
-      <td className="px-6 py-4 text-sm text-muted-foreground">
-        {formatDate(dataset.created_at)}
-      </td>
-      <td className="px-6 py-4">
+
         <div className="relative">
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="p-2 rounded-md hover:bg-muted"
+            className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
           >
-            <MoreVertical size={16} />
+            <MoreVertical size={18} />
           </button>
           {menuOpen && (
             <>
@@ -98,12 +107,12 @@ function DatasetRow({ dataset, onDelete }: { dataset: Dataset; onDelete: (id: st
                 className="fixed inset-0 z-10"
                 onClick={() => setMenuOpen(false)}
               />
-              <div className="absolute right-0 top-full mt-1 z-20 bg-card border border-border rounded-lg shadow-lg py-1 min-w-[140px]">
+              <div className="absolute right-0 top-full mt-2 z-20 glass-dark rounded-xl py-2 min-w-[160px] shadow-xl">
                 <Link
                   href={`/dashboard/datasets/${dataset.id}`}
-                  className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-muted"
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
                 >
-                  <Eye size={14} />
+                  <Eye size={16} />
                   View details
                 </Link>
                 <button
@@ -111,17 +120,17 @@ function DatasetRow({ dataset, onDelete }: { dataset: Dataset; onDelete: (id: st
                     onDelete(dataset.id);
                     setMenuOpen(false);
                   }}
-                  className="flex items-center gap-2 px-4 py-2 text-sm text-destructive hover:bg-destructive/10 w-full text-left"
+                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 w-full text-left transition-colors"
                 >
-                  <Trash2 size={14} />
+                  <Trash2 size={16} />
                   Delete
                 </button>
               </div>
             </>
           )}
         </div>
-      </td>
-    </tr>
+      </div>
+    </div>
   );
 }
 
@@ -196,13 +205,13 @@ function UploadModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60" onClick={handleClose} />
-      <div className="relative bg-card border border-border rounded-xl p-6 w-full max-w-lg mx-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={handleClose} />
+      <div className="relative glass-dark rounded-2xl p-8 w-full max-w-lg mx-4 shadow-2xl">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold">Upload Dataset</h2>
+          <h2 className="text-xl font-semibold text-white">Upload Dataset</h2>
           <button
             onClick={handleClose}
-            className="p-2 rounded-md hover:bg-muted"
+            className="p-2 rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors"
             disabled={isUploading}
           >
             <X size={20} />
@@ -210,8 +219,8 @@ function UploadModal({
         </div>
 
         {uploadProgress.state === 'error' && (
-          <div className="mb-4 p-3 bg-destructive/10 text-destructive rounded-lg flex items-center gap-2">
-            <AlertCircle size={18} />
+          <div className="mb-4 p-4 bg-red-500/20 text-red-400 rounded-xl flex items-center gap-3">
+            <AlertCircle size={20} />
             {uploadProgress.error}
           </div>
         )}
@@ -221,32 +230,38 @@ function UploadModal({
             onDrop={handleDrop}
             onDragOver={(e) => e.preventDefault()}
             className={cn(
-              "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
-              file ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+              "border-2 border-dashed rounded-2xl p-10 text-center transition-all duration-300",
+              file 
+                ? "border-violet bg-violet/10" 
+                : "border-white/20 hover:border-violet/50 hover:bg-white/5"
             )}
           >
             {file ? (
-              <div className="space-y-2">
-                <FileSpreadsheet size={40} className="mx-auto text-primary" />
-                <p className="font-medium">{file.name}</p>
-                <p className="text-sm text-muted-foreground">
+              <div className="space-y-3">
+                <div className="w-16 h-16 mx-auto rounded-2xl bg-violet/20 flex items-center justify-center">
+                  <FileSpreadsheet size={32} className="text-violet" />
+                </div>
+                <p className="font-medium text-white">{file.name}</p>
+                <p className="text-sm text-white/50">
                   {(file.size / 1024 / 1024).toFixed(2)} MB
                 </p>
                 <button
                   onClick={() => setFile(null)}
-                  className="text-sm text-destructive hover:underline"
+                  className="text-sm text-red-400 hover:text-red-300 transition-colors"
                 >
                   Remove
                 </button>
               </div>
             ) : (
-              <div className="space-y-2">
-                <Upload size={40} className="mx-auto text-muted-foreground" />
-                <p className="font-medium">Drop your file here</p>
-                <p className="text-sm text-muted-foreground">
+              <div className="space-y-3">
+                <div className="w-16 h-16 mx-auto rounded-2xl bg-white/5 flex items-center justify-center">
+                  <Upload size={32} className="text-white/40" />
+                </div>
+                <p className="font-medium text-white">Drop your file here</p>
+                <p className="text-sm text-white/50">
                   or click to browse
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-white/30">
                   Supports CSV, JSON, Parquet (max 500MB)
                 </p>
               </div>
@@ -261,41 +276,57 @@ function UploadModal({
         )}
 
         {(isUploading || uploadProgress.state === 'done') && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
+          <div className="space-y-4 p-6 rounded-2xl bg-white/5">
+            <div className="flex items-center gap-4">
               {uploadProgress.state === 'done' ? (
-                <CheckCircle className="text-green-500" size={24} />
+                <div className="p-3 rounded-xl bg-mint/20">
+                  <CheckCircle className="text-mint" size={24} />
+                </div>
               ) : (
-                <Loader2 className="animate-spin text-primary" size={24} />
+                <div className="p-3 rounded-xl bg-violet/20">
+                  <Loader2 className="animate-spin text-violet" size={24} />
+                </div>
               )}
               <div className="flex-1">
-                <p className="font-medium">
+                <p className="font-medium text-white">
                   {uploadProgress.state === 'getting-url' && 'Preparing upload...'}
                   {uploadProgress.state === 'uploading' && 'Uploading to storage...'}
                   {uploadProgress.state === 'completing' && 'Finalizing...'}
                   {uploadProgress.state === 'done' && 'Upload complete!'}
                 </p>
-                <p className="text-sm text-muted-foreground">{file?.name}</p>
+                <p className="text-sm text-white/50">{file?.name}</p>
               </div>
             </div>
-            <Progress value={uploadProgress.progress} />
+            <div className="relative h-2 bg-white/10 rounded-full overflow-hidden">
+              <div 
+                className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet to-mint rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress.progress}%` }}
+              />
+            </div>
           </div>
         )}
 
         <div className="flex justify-end gap-3 mt-6">
-          <Button
-            variant="outline"
+          <button
             onClick={handleClose}
             disabled={isUploading}
+            className="px-5 py-2.5 rounded-xl text-white/70 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
           >
             Cancel
-          </Button>
-          <Button
+          </button>
+          <button
             onClick={handleUpload}
             disabled={!file || isUploading || uploadProgress.state === 'done'}
+            className={cn(
+              "px-5 py-2.5 rounded-xl font-medium transition-all duration-300",
+              "bg-gradient-to-r from-violet to-violet/80 text-white",
+              "hover:shadow-lg hover:shadow-violet/30",
+              "active:scale-95",
+              "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
+            )}
           >
             {isUploading ? 'Uploading...' : 'Upload'}
-          </Button>
+          </button>
         </div>
       </div>
     </div>
@@ -333,99 +364,106 @@ export default function DatasetsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Datasets</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl font-bold text-white">Datasets</h1>
+          <p className="text-white/50">
             Manage your training data files
           </p>
         </div>
-        <Button onClick={() => setUploadModalOpen(true)}>
-          <Upload size={18} className="mr-2" />
+        {/* Neumorphic Upload Button */}
+        <button
+          onClick={() => setUploadModalOpen(true)}
+          className={cn(
+            "flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-300",
+            "bg-gradient-to-r from-violet to-violet/80 text-white",
+            "shadow-lg shadow-violet/30",
+            "hover:shadow-xl hover:shadow-violet/40 hover:scale-[1.02]",
+            "active:scale-95 active:shadow-inner"
+          )}
+        >
+          <Upload size={18} />
           Upload Dataset
-        </Button>
+        </button>
       </div>
 
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
+      <div className="glass-dark rounded-2xl overflow-hidden">
         {isLoading ? (
-          <div className="p-12 text-center text-muted-foreground">
-            <Loader2 className="animate-spin mx-auto mb-2" size={24} />
-            Loading datasets...
+          <div className="p-12 text-center">
+            <Loader2 className="animate-spin mx-auto mb-3 text-violet" size={32} />
+            <p className="text-white/50">Loading datasets...</p>
           </div>
         ) : error ? (
-          <div className="p-12 text-center text-destructive">
+          <div className="p-12 text-center text-red-400">
             Failed to load datasets
           </div>
         ) : !data?.datasets?.length ? (
-          <div className="p-12 text-center text-muted-foreground">
-            <Database size={40} className="mx-auto mb-3 opacity-50" />
-            <p className="font-medium">No datasets yet</p>
-            <p className="text-sm mt-1">Upload your first dataset to get started</p>
-            <Button
+          <div className="p-16 text-center">
+            <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-white/5 flex items-center justify-center">
+              <Database size={40} className="text-white/30" />
+            </div>
+            <p className="font-medium text-white mb-1">No datasets yet</p>
+            <p className="text-sm text-white/50 mb-6">Upload your first dataset to get started</p>
+            <button
               onClick={() => setUploadModalOpen(true)}
-              className="mt-4"
+              className={cn(
+                "inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-300",
+                "bg-gradient-to-r from-violet to-violet/80 text-white",
+                "shadow-lg shadow-violet/30",
+                "hover:shadow-xl hover:shadow-violet/40"
+              )}
             >
-              <Upload size={18} className="mr-2" />
+              <Upload size={18} />
               Upload Dataset
-            </Button>
+            </button>
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Rows
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Size
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Created
-                    </th>
-                    <th className="px-6 py-3"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.datasets.map((dataset) => (
-                    <DatasetRow
-                      key={dataset.id}
-                      dataset={dataset}
-                      onDelete={handleDelete}
-                    />
-                  ))}
-                </tbody>
-              </table>
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-white/10">
+              <div className="flex items-center text-xs font-medium text-white/40 uppercase tracking-wider">
+                <span className="flex-1">Dataset</span>
+                <span className="w-24 text-right hidden sm:block">Rows</span>
+                <span className="w-24 text-right hidden md:block">Size</span>
+                <span className="w-28 text-right hidden lg:block">Created</span>
+                <span className="w-28 text-center">Status</span>
+                <span className="w-12"></span>
+              </div>
+            </div>
+            
+            {/* Dataset Rows */}
+            <div className="divide-y divide-white/5">
+              {data.datasets.map((dataset) => (
+                <DatasetRow
+                  key={dataset.id}
+                  dataset={dataset}
+                  onDelete={handleDelete}
+                />
+              ))}
             </div>
 
             {/* Pagination */}
             {data.pagination.total_pages > 1 && (
-              <div className="flex items-center justify-between px-6 py-4 border-t border-border">
-                <p className="text-sm text-muted-foreground">
+              <div className="flex items-center justify-between px-6 py-4 border-t border-white/10">
+                <p className="text-sm text-white/50">
                   Showing {((page - 1) * 10) + 1} to {Math.min(page * 10, data.pagination.total)} of {data.pagination.total} datasets
                 </p>
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <button
                     onClick={() => setPage(p => p - 1)}
                     disabled={page === 1}
+                    className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
+                    <ChevronLeft size={18} />
+                  </button>
+                  <span className="px-4 py-2 text-sm text-white/70">
+                    Page {page} of {data.pagination.total_pages}
+                  </span>
+                  <button
                     onClick={() => setPage(p => p + 1)}
                     disabled={page >= data.pagination.total_pages}
+                    className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
-                    Next
-                  </Button>
+                    <ChevronRight size={18} />
+                  </button>
                 </div>
               </div>
             )}

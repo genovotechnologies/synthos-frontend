@@ -20,10 +20,10 @@ import Link from 'next/link';
 
 function ValidationCard({ validation }: { validation: Validation }) {
   const statusConfig = {
-    pending: { icon: Clock, color: 'text-yellow-500', bg: 'bg-yellow-500/10', animate: false },
-    processing: { icon: Loader2, color: 'text-blue-500', bg: 'bg-blue-500/10', animate: true },
-    completed: { icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-500/10', animate: false },
-    failed: { icon: AlertCircle, color: 'text-red-500', bg: 'bg-red-500/10', animate: false },
+    pending: { icon: Clock, color: 'text-yellow-400', bg: 'bg-yellow-500/20', dot: 'bg-yellow-400', animate: false },
+    processing: { icon: Loader2, color: 'text-blue-400', bg: 'bg-blue-500/20', dot: 'bg-blue-400', animate: true },
+    completed: { icon: CheckCircle, color: 'text-mint', bg: 'bg-mint/20', dot: 'bg-mint', animate: false },
+    failed: { icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-500/20', dot: 'bg-red-400', animate: false },
   };
 
   const config = statusConfig[validation.status];
@@ -41,41 +41,42 @@ function ValidationCard({ validation }: { validation: Validation }) {
   return (
     <Link
       href={`/dashboard/validations/${validation.id}`}
-      className="block bg-card border border-border rounded-xl p-5 hover:border-primary/30 transition-all group"
+      className="block glass-dark rounded-2xl p-5 hover:bg-white/10 transition-all duration-300 group"
     >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className={cn("p-2.5 rounded-lg", config.bg)}>
+          <div className={cn("p-2.5 rounded-xl", config.bg)}>
             <Icon 
               size={20} 
               className={cn(config.color, config.animate && "animate-spin")} 
             />
           </div>
           <div>
-            <p className="font-medium group-hover:text-primary transition-colors">
+            <p className="font-medium text-white group-hover:text-violet transition-colors">
               {validation.dataset_name || 'Dataset Validation'}
             </p>
-            <p className="text-sm text-muted-foreground">{validation.validation_type}</p>
+            <p className="text-sm text-white/50">{validation.validation_type}</p>
           </div>
         </div>
-        <ChevronRight size={20} className="text-muted-foreground group-hover:text-primary transition-colors" />
+        <ChevronRight size={20} className="text-white/40 group-hover:text-violet transition-colors" />
       </div>
 
-      <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+      <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/10">
         <span className={cn(
-          "px-2.5 py-1 text-xs font-medium rounded-full capitalize",
+          "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full capitalize",
           config.bg,
           config.color
         )}>
+          <span className={cn("w-1.5 h-1.5 rounded-full", config.dot)} />
           {validation.status}
         </span>
         
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+        <div className="flex items-center gap-4 text-sm text-white/50">
           {validation.results?.risk_score !== undefined && (
             <span className={cn(
               "font-medium",
-              validation.results.risk_score < 30 ? "text-green-500" :
-              validation.results.risk_score < 60 ? "text-yellow-500" : "text-red-500"
+              validation.results.risk_score < 30 ? "text-mint" :
+              validation.results.risk_score < 60 ? "text-yellow-400" : "text-red-400"
             )}>
               Risk: {validation.results.risk_score}%
             </span>
@@ -86,13 +87,13 @@ function ValidationCard({ validation }: { validation: Validation }) {
 
       {validation.status === 'processing' && validation.progress !== undefined && (
         <div className="mt-3">
-          <div className="flex justify-between text-xs text-muted-foreground mb-1">
+          <div className="flex justify-between text-xs text-white/50 mb-1">
             <span>Progress</span>
             <span>{validation.progress}%</span>
           </div>
-          <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+          <div className="h-2 bg-white/10 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-primary transition-all duration-300"
+              className="h-full bg-gradient-to-r from-violet to-mint rounded-full transition-all duration-300"
               style={{ width: `${validation.progress}%` }}
             />
           </div>
@@ -158,21 +159,21 @@ function CreateValidationModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60" onClick={handleClose} />
-      <div className="relative bg-card border border-border rounded-xl p-6 w-full max-w-lg mx-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={handleClose} />
+      <div className="relative glass-dark rounded-2xl p-8 w-full max-w-lg mx-4 shadow-2xl">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold">New Validation</h2>
+          <h2 className="text-xl font-semibold text-white">New Validation</h2>
           <button
             onClick={handleClose}
-            className="p-2 rounded-md hover:bg-muted"
+            className="p-2 rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors"
           >
             <X size={20} />
           </button>
         </div>
 
         {createMutation.isError && (
-          <div className="mb-4 p-3 bg-destructive/10 text-destructive rounded-lg flex items-center gap-2">
-            <AlertCircle size={18} />
+          <div className="mb-4 p-4 bg-red-500/20 text-red-400 rounded-xl flex items-center gap-3">
+            <AlertCircle size={20} />
             Failed to create validation. Please try again.
           </div>
         )}
@@ -243,19 +244,26 @@ function CreateValidationModal({
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button
+            <button
               type="button"
-              variant="outline"
               onClick={handleClose}
+              className="px-5 py-2.5 rounded-xl text-white/70 hover:text-white hover:bg-white/5 transition-colors"
             >
               Cancel
-            </Button>
-            <Button
+            </button>
+            <button
               type="submit"
               disabled={!datasetId || createMutation.isPending}
+              className={cn(
+                "px-5 py-2.5 rounded-xl font-medium transition-all duration-300",
+                "bg-gradient-to-r from-violet to-violet/80 text-white",
+                "hover:shadow-lg hover:shadow-violet/30",
+                "active:scale-95",
+                "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
+              )}
             >
               {createMutation.isPending ? 'Creating...' : 'Start Validation'}
-            </Button>
+            </button>
           </div>
         </form>
       </div>
@@ -291,45 +299,61 @@ export default function ValidationsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Validations</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl font-bold text-white">Validations</h1>
+          <p className="text-white/50">
             Monitor and manage your data validation jobs
           </p>
         </div>
-        <Button onClick={() => setCreateModalOpen(true)}>
-          <Plus size={18} className="mr-2" />
+        <button
+          onClick={() => setCreateModalOpen(true)}
+          className={cn(
+            "flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-300",
+            "bg-gradient-to-r from-violet to-violet/80 text-white",
+            "shadow-lg shadow-violet/30",
+            "hover:shadow-xl hover:shadow-violet/40 hover:scale-[1.02]",
+            "active:scale-95 active:shadow-inner"
+          )}
+        >
+          <Plus size={18} />
           New Validation
-        </Button>
+        </button>
       </div>
 
       {isLoading ? (
-        <div className="p-12 text-center text-muted-foreground">
-          <Loader2 className="animate-spin mx-auto mb-2" size={24} />
-          Loading validations...
+        <div className="p-12 text-center">
+          <Loader2 className="animate-spin mx-auto mb-3 text-violet" size={32} />
+          <p className="text-white/50">Loading validations...</p>
         </div>
       ) : error ? (
-        <div className="p-12 text-center text-destructive">
+        <div className="p-12 text-center text-red-400">
           Failed to load validations
         </div>
       ) : !data?.validations?.length ? (
-        <div className="bg-card border border-border rounded-xl p-12 text-center text-muted-foreground">
-          <CheckCircle size={40} className="mx-auto mb-3 opacity-50" />
-          <p className="font-medium">No validations yet</p>
-          <p className="text-sm mt-1">Create your first validation to get started</p>
-          <Button
+        <div className="glass-dark rounded-2xl p-16 text-center">
+          <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-white/5 flex items-center justify-center">
+            <CheckCircle size={40} className="text-white/30" />
+          </div>
+          <p className="font-medium text-white mb-1">No validations yet</p>
+          <p className="text-sm text-white/50 mb-6">Create your first validation to get started</p>
+          <button
             onClick={() => setCreateModalOpen(true)}
-            className="mt-4"
+            className={cn(
+              "inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-300",
+              "bg-gradient-to-r from-violet to-violet/80 text-white",
+              "shadow-lg shadow-violet/30",
+              "hover:shadow-xl hover:shadow-violet/40"
+            )}
           >
-            <Plus size={18} className="mr-2" />
+            <Plus size={18} />
             New Validation
-          </Button>
+          </button>
         </div>
       ) : (
         <div className="space-y-8">
           {activeValidations.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Loader2 size={18} className="animate-spin text-primary" />
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
+                <Loader2 size={18} className="animate-spin text-violet" />
                 Active Jobs ({activeValidations.length})
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -342,7 +366,7 @@ export default function ValidationsPage() {
 
           {completedValidations.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold mb-4">
+              <h2 className="text-lg font-semibold mb-4 text-white">
                 Completed ({completedValidations.length})
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -355,26 +379,24 @@ export default function ValidationsPage() {
 
           {/* Pagination */}
           {data.pagination.total_pages > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-4">
-              <Button
-                variant="outline"
-                size="sm"
+            <div className="flex items-center justify-center gap-3 pt-6">
+              <button
                 onClick={() => setPage(p => p - 1)}
                 disabled={page === 1}
+                className="px-4 py-2 rounded-xl text-white/70 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 Previous
-              </Button>
-              <span className="text-sm text-muted-foreground px-4">
+              </button>
+              <span className="text-sm text-white/50 px-4">
                 Page {page} of {data.pagination.total_pages}
               </span>
-              <Button
-                variant="outline"
-                size="sm"
+              <button
                 onClick={() => setPage(p => p + 1)}
                 disabled={page >= data.pagination.total_pages}
+                className="px-4 py-2 rounded-xl text-white/70 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 Next
-              </Button>
+              </button>
             </div>
           )}
         </div>
