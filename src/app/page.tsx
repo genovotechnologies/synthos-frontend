@@ -173,12 +173,12 @@ export default function SynthosLanding() {
       {/* Hero Section with Shader Animation */}
       <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* Shader Background */}
-        <div className="absolute inset-0 opacity-30">
+        <div className="absolute inset-0 opacity-30 pointer-events-none">
           <ShaderAnimation />
         </div>
         
         {/* Sparkles Overlay */}
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 pointer-events-none">
           <SparklesCore
             id="hero-sparkles"
             background="transparent"
@@ -238,19 +238,19 @@ export default function SynthosLanding() {
 
             {/* CTA Buttons */}
             <motion.div 
-              className="flex items-center justify-center gap-4"
+              className="flex items-center justify-center gap-4 relative z-20"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, delay: 1.1, ease: [0.25, 0.4, 0.25, 1] }}
             >
               <Link
                 href="/register"
-                className="group relative px-8 py-3.5 rounded-full font-semibold text-sm transition-all duration-300 overflow-hidden"
+                className="group relative px-8 py-3.5 rounded-full font-semibold text-sm transition-all duration-300 overflow-hidden cursor-pointer"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity" />
-                <div className="absolute inset-0 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full" />
-                <div className="absolute inset-[1px] bg-gradient-to-b from-white/20 to-transparent rounded-full opacity-50" />
-                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full pointer-events-none" />
+                <div className="absolute inset-[1px] bg-gradient-to-b from-white/20 to-transparent rounded-full opacity-50 pointer-events-none" />
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none" />
                 <span className="relative z-10 flex items-center gap-2 text-white">
                   Get Started Free
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -258,9 +258,9 @@ export default function SynthosLanding() {
               </Link>
               <Link
                 href="/login"
-                className="group relative px-8 py-3.5 rounded-full font-semibold text-sm transition-all duration-300"
+                className="group relative px-8 py-3.5 rounded-full font-semibold text-sm transition-all duration-300 cursor-pointer"
               >
-                <div className="absolute inset-0 rounded-full bg-gradient-to-b from-white/20 via-white/10 to-transparent p-[1px]">
+                <div className="absolute inset-0 rounded-full bg-gradient-to-b from-white/20 via-white/10 to-transparent p-[1px] pointer-events-none">
                   <div className="absolute inset-[1px] rounded-full bg-white/[0.05] backdrop-blur-xl" />
                 </div>
                 <span className="relative z-10 flex items-center gap-2 text-white/80 group-hover:text-white transition-colors">
@@ -273,7 +273,7 @@ export default function SynthosLanding() {
         </div>
 
         {/* Gradient overlay at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-background to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-background to-transparent pointer-events-none" />
       </section>
 
       {/* Gooey Text Section */}
@@ -515,16 +515,16 @@ export default function SynthosLanding() {
               Join the AI leaders who validate before they train. 
               Get your first validation report in 48 hours.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10">
               {/* Primary Button - Link to Register */}
               <Link 
                 href="/register"
-                className="group relative px-8 py-3 rounded-lg font-semibold text-sm transition-all duration-300 overflow-hidden"
+                className="group relative px-8 py-3 rounded-lg font-semibold text-sm transition-all duration-300 overflow-hidden cursor-pointer"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg blur-xl opacity-50 group-hover:opacity-75 transition-opacity" />
-                <div className="absolute inset-0 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-lg" />
-                <div className="absolute inset-[1px] bg-gradient-to-b from-white/20 to-transparent rounded-lg opacity-50" />
-                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg blur-xl opacity-50 group-hover:opacity-75 transition-opacity pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-lg pointer-events-none" />
+                <div className="absolute inset-[1px] bg-gradient-to-b from-white/20 to-transparent rounded-lg opacity-50 pointer-events-none" />
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none" />
                 <span className="relative z-10 flex items-center gap-2 text-white">
                   Create Free Account
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -534,9 +534,9 @@ export default function SynthosLanding() {
               {/* Secondary Button - Link to Login */}
               <Link 
                 href="/login"
-                className="group relative px-8 py-3 rounded-lg font-semibold text-sm transition-all duration-300"
+                className="group relative px-8 py-3 rounded-lg font-semibold text-sm transition-all duration-300 cursor-pointer"
               >
-                <div className="absolute inset-0 rounded-lg bg-gradient-to-b from-white/20 via-white/10 to-transparent p-[1px]">
+                <div className="absolute inset-0 rounded-lg bg-gradient-to-b from-white/20 via-white/10 to-transparent p-[1px] pointer-events-none">
                   <div className="absolute inset-[1px] rounded-lg bg-white/[0.05] backdrop-blur-xl" />
                 </div>
                 <span className="relative z-10 flex items-center gap-2 text-white/80 group-hover:text-white transition-colors">
