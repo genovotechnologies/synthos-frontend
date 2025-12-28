@@ -166,7 +166,7 @@ export default function SynthosLanding() {
 
 
   return (
-    <main className="bg-background text-foreground min-h-screen overflow-x-hidden">
+    <main className="bg-background text-foreground min-h-screen overflow-x-hidden select-none">
       {/* Navigation */}
       <NavBar items={navItems} />
 
