@@ -94,7 +94,7 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 shadow-xl">
       <p className="text-xs text-zinc-500 mb-1">{label}</p>
-      <p className="text-sm font-medium text-white">{payload[0].value.toLocaleString()}</p>
+      <p className="text-sm font-medium text-white">{(payload[0]?.value ?? 0).toLocaleString()}</p>
     </div>
   );
 }
@@ -188,8 +188,8 @@ export default function DashboardOverview() {
     return <DashboardSkeleton />;
   }
 
-  // Default stats (used when API fails or returns empty)
-  const stats: UsageAnalytics = analytics || {
+  // Default stats (used when API fails or returns empty) - with null safety
+  const defaultStats: UsageAnalytics = {
     total_rows_validated: 0,
     total_datasets: 0,
     total_validations: 0,
@@ -197,6 +197,17 @@ export default function DashboardOverview() {
     avg_risk_score: 0,
     validations_this_month: 0,
     rows_this_month: 0,
+  };
+  
+  // Merge with defaults to ensure all values are defined
+  const stats: UsageAnalytics = {
+    total_rows_validated: analytics?.total_rows_validated ?? defaultStats.total_rows_validated,
+    total_datasets: analytics?.total_datasets ?? defaultStats.total_datasets,
+    total_validations: analytics?.total_validations ?? defaultStats.total_validations,
+    active_jobs: analytics?.active_jobs ?? defaultStats.active_jobs,
+    avg_risk_score: analytics?.avg_risk_score ?? defaultStats.avg_risk_score,
+    validations_this_month: analytics?.validations_this_month ?? defaultStats.validations_this_month,
+    rows_this_month: analytics?.rows_this_month ?? defaultStats.rows_this_month,
   };
 
   // Greeting based on time
@@ -249,29 +260,29 @@ export default function DashboardOverview() {
       >
         <StatsCard
           title="Total Rows Validated"
-          value={stats.total_rows_validated.toLocaleString()}
+          value={(stats.total_rows_validated ?? 0).toLocaleString()}
           icon={<Database size={20} />}
           trend={12}
-          trendLabel={`${stats.rows_this_month.toLocaleString()} this month`}
+          trendLabel={`${(stats.rows_this_month ?? 0).toLocaleString()} this month`}
           href="/dashboard/datasets"
         />
         <StatsCard
           title="Validations"
-          value={stats.total_validations}
+          value={stats.total_validations ?? 0}
           icon={<CheckCircle size={20} />}
           trend={8}
-          trendLabel={`${stats.validations_this_month} this month`}
+          trendLabel={`${stats.validations_this_month ?? 0} this month`}
           href="/dashboard/validations"
         />
         <StatsCard
           title="Active Jobs"
-          value={stats.active_jobs}
+          value={stats.active_jobs ?? 0}
           icon={<Activity size={20} />}
           href="/dashboard/validations"
         />
         <StatsCard
           title="Avg Risk Score"
-          value={`${stats.avg_risk_score}%`}
+          value={`${stats.avg_risk_score ?? 0}%`}
           icon={<TrendingUp size={20} />}
           trend={-5}
           trendLabel="Lower is better"
