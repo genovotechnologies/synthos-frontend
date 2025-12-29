@@ -1,324 +1,45 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { analyticsApi, validationsApi, datasetsApi, type UsageAnalytics, type Validation } from '@/lib/api';
-import { 
-  Database, 
-  CheckCircle, 
-  Activity,
-  ArrowUpRight,
-  Clock,
-  ArrowDownRight,
-  AlertCircle,
-  Loader2,
-  FileCheck,
-  Shield,
-  Zap,
-  MoreVertical,
-  ChevronDown
-} from 'lucide-react';
+import { analyticsApi, validationsApi, datasetsApi, type UsageAnalytics } from '@/lib/api';
+import { ArrowUpRight, ArrowDownRight, AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  ResponsiveContainer,
-  Cell
-} from 'recharts';
-import { motion } from 'framer-motion';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '@/providers/auth-provider';
 
-// Modern Stat Card Component - Light glassmorphic style
-interface StatCardProps {
-  title: string;
-  value: string | number;
-  subValue?: string | number;
-  icon: React.ReactNode;
-  trend?: number;
-  subtitle?: string;
-  href?: string;
-  loading?: boolean;
-  variant?: 'default' | 'light';
-}
-
-function StatCard({ title, value, subValue, icon, trend, subtitle, href, loading, variant = 'default' }: StatCardProps) {
-  const content = (
-    <div className={cn(
-      "relative p-5 rounded-2xl transition-all duration-300 group",
-      variant === 'light' 
-        ? "bg-white/80 backdrop-blur-sm border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.08)] hover:shadow-[0_12px_48px_rgba(0,0,0,0.12)]"
-        : "bg-white/70 backdrop-blur-sm border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.1)]",
-      href && "cursor-pointer"
-    )}>
-      {loading ? (
-        <div className="animate-pulse">
-          <div className="h-10 w-10 bg-slate-200 rounded-xl mb-4" />
-          <div className="h-4 w-24 bg-slate-200 rounded mb-2" />
-          <div className="h-8 w-16 bg-slate-200 rounded" />
-        </div>
-      ) : (
-        <>
-          <div className="flex items-start justify-between mb-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200/50 text-slate-500 shadow-sm">
-              {icon}
-            </div>
-            {trend !== undefined && (
-              <div className={cn(
-                "flex items-center gap-0.5 text-xs font-semibold px-2 py-1 rounded-full",
-                trend >= 0 
-                  ? "text-emerald-600 bg-emerald-50" 
-                  : "text-rose-600 bg-rose-50"
-              )}>
-                {trend >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                {Math.abs(trend)}%
-              </div>
-            )}
-          </div>
-          
-          <p className="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wide">{title}</p>
-          <div className="flex items-baseline gap-2">
-            <p className="text-2xl font-bold text-slate-800">{value}</p>
-            {subValue && (
-              <span className="text-lg font-medium text-slate-400">- {subValue}</span>
-            )}
-          </div>
-          
-          {subtitle && (
-            <p className="text-xs text-slate-400 mt-1.5">{subtitle}</p>
-          )}
-        </>
-      )}
-    </div>
-  );
-
-  if (href) {
-    return <Link href={href}>{content}</Link>;
-  }
-
-  return content;
-}
-
-// Featured Card with Gauge - Purple style
-interface GaugeCardProps {
-  title: string;
-  value: string;
-  subValue?: string;
-  percentage: number;
-  icon: React.ReactNode;
-  loading?: boolean;
-}
-
-function GaugeCard({ title, value, subValue, percentage, icon, loading }: GaugeCardProps) {
-  const circumference = 2 * Math.PI * 45;
-  const strokeDashoffset = circumference - (percentage / 100) * circumference * 0.75;
-
-  return (
-    <div className="relative p-6 rounded-2xl bg-gradient-to-br from-violet-600 via-violet-500 to-indigo-600 text-white shadow-[0_20px_60px_rgba(108,92,231,0.4)] overflow-hidden">
-      <div className="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-      <div className="absolute -left-4 -bottom-4 w-24 h-24 bg-white/5 rounded-full blur-xl" />
-      
-      <button className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-white/10 transition-colors">
-        <MoreVertical size={18} className="text-white/70" />
-      </button>
-
-      {loading ? (
-        <div className="animate-pulse space-y-4">
-          <div className="w-32 h-32 bg-white/20 rounded-full mx-auto" />
-          <div className="h-6 w-24 bg-white/20 rounded mx-auto" />
-        </div>
-      ) : (
-        <>
-          <div className="relative w-40 h-40 mx-auto mb-4">
-            <svg className="w-full h-full -rotate-135" viewBox="0 0 100 100">
-              <circle
-                cx="50"
-                cy="50"
-                r="45"
-                fill="none"
-                stroke="rgba(255,255,255,0.2)"
-                strokeWidth="8"
-                strokeLinecap="round"
-                strokeDasharray={`${circumference * 0.75} ${circumference * 0.25}`}
-              />
-              <defs>
-                <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#fbbf24" />
-                  <stop offset="50%" stopColor="#a3e635" />
-                  <stop offset="100%" stopColor="#22c55e" />
-                </linearGradient>
-              </defs>
-              <circle
-                cx="50"
-                cy="50"
-                r="45"
-                fill="none"
-                stroke="url(#gaugeGradient)"
-                strokeWidth="8"
-                strokeLinecap="round"
-                strokeDasharray={`${circumference * 0.75} ${circumference * 0.25}`}
-                strokeDashoffset={strokeDashoffset}
-                className="transition-all duration-1000 ease-out"
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-3xl font-bold">{percentage}%</span>
-            </div>
-          </div>
-
-          <div className="text-center relative z-10">
-            <div className="inline-flex items-center gap-2 mb-2 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur">
-              {icon}
-              <span className="text-sm font-medium">{title}</span>
-            </div>
-            <p className="text-3xl font-bold">{value}</p>
-            {subValue && (
-              <p className="text-sm text-white/60 mt-1">{subValue}</p>
-            )}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-// Smaller Metric Card
-interface MetricCardProps {
-  title: string;
-  value: string;
-  subtitle?: string;
-  icon: React.ReactNode;
-  trend?: number;
-  loading?: boolean;
-}
-
-function MetricCard({ title, value, subtitle, icon, trend, loading }: MetricCardProps) {
-  return (
-    <div className="p-5 rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.06)]">
-      {loading ? (
-        <div className="animate-pulse space-y-3">
-          <div className="h-10 w-10 bg-slate-200 rounded-xl" />
-          <div className="h-6 w-20 bg-slate-200 rounded" />
-        </div>
-      ) : (
-        <>
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 rounded-xl bg-slate-50 border border-slate-100 text-slate-500">
-              {icon}
-            </div>
-            {trend !== undefined && (
-              <div className={cn(
-                "flex items-center gap-0.5 text-xs font-semibold px-2 py-1 rounded-full",
-                trend >= 0 
-                  ? "text-emerald-600 bg-emerald-50" 
-                  : "text-rose-600 bg-rose-50"
-              )}>
-                {trend >= 0 ? '+' : ''}{trend}%
-              </div>
-            )}
-          </div>
-          <p className="text-xs font-medium text-slate-500 mb-1">{title}</p>
-          <p className="text-xl font-bold text-slate-800">{value}</p>
-          {subtitle && (
-            <p className="text-xs text-slate-400 mt-1">{subtitle}</p>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-// Custom Tooltip for Charts
 function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
   if (!active || !payload?.length) return null;
-  
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 shadow-xl">
-      <p className="text-xs text-slate-400 mb-0.5">{label}</p>
-      <p className="text-sm font-semibold text-white">{(payload[0]?.value ?? 0).toLocaleString()}</p>
+    <div className="bg-zinc-900 px-3 py-2 rounded-md border border-zinc-800">
+      <p className="text-[11px] text-zinc-500 uppercase tracking-wide">{label}</p>
+      <p className="text-sm font-medium text-zinc-100">{(payload[0]?.value ?? 0).toLocaleString()}</p>
     </div>
   );
 }
 
-// Section Header Component
-function SectionHeader({ title, collapsible = true }: { title: string; collapsible?: boolean }) {
-  return (
-    <div className="flex items-center justify-between mb-4">
-      <h2 className="text-lg font-semibold text-slate-700">{title}</h2>
-      {collapsible && (
-        <button className="p-1 rounded hover:bg-slate-100 transition-colors">
-          <ChevronDown size={20} className="text-slate-400" />
-        </button>
-      )}
-    </div>
-  );
-}
-
-// Recent Validation Item for History
-function HistoryItem({ validation }: { validation: Validation }) {
-  const statusConfig: Record<string, { color: string; bgColor: string }> = {
-    pending: { color: 'text-amber-600', bgColor: 'bg-amber-100' },
-    processing: { color: 'text-blue-600', bgColor: 'bg-blue-100' },
-    completed: { color: 'text-emerald-600', bgColor: 'bg-emerald-100' },
-    failed: { color: 'text-rose-600', bgColor: 'bg-rose-100' },
+function StatusDot({ status }: { status: string }) {
+  const colors: Record<string, string> = {
+    pending: 'bg-amber-500',
+    processing: 'bg-blue-500 animate-pulse',
+    completed: 'bg-emerald-500',
+    failed: 'bg-rose-500',
   };
-
-  const status = statusConfig[validation.status] || statusConfig.pending;
-
-  return (
-    <Link
-      href={`/dashboard/validations/${validation.id}`}
-      className="flex items-center gap-4 p-4 hover:bg-slate-50/80 transition-colors rounded-xl group"
-    >
-      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-white text-sm font-medium shadow-md">
-        {validation.dataset_name?.charAt(0).toUpperCase() || 'D'}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-slate-700 truncate group-hover:text-violet-600 transition-colors">
-          {validation.dataset_name || 'Dataset Validation'}
-        </p>
-      </div>
-      <div className="text-xs text-slate-400">
-        {new Date(validation.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-      </div>
-      <div className="text-xs text-slate-400 w-20 text-right">
-        {validation.results?.risk_score ? `${validation.results.risk_score}%` : '-'}
-      </div>
-      <div className="text-xs text-slate-400 w-24 text-center">
-        {validation.validation_type}
-      </div>
-      <div className="text-xs text-slate-400 w-16 text-center">
-        {validation.progress || 0}%
-      </div>
-      <div className="text-xs text-slate-400 w-16 text-center">
-        {new Date(validation.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-      </div>
-      <span className={cn(
-        "px-3 py-1 text-xs font-medium rounded-full capitalize",
-        status.bgColor, status.color
-      )}>
-        {validation.status}
-      </span>
-    </Link>
-  );
+  return <span className={cn("w-1.5 h-1.5 rounded-full", colors[status] || colors.pending)} />;
 }
 
-// Dashboard Skeleton
 function DashboardSkeleton() {
   return (
-    <div className="space-y-8 animate-pulse">
-      <div>
-        <div className="h-8 w-48 bg-slate-200 rounded-lg" />
-        <div className="h-4 w-64 bg-slate-100 rounded-lg mt-2" />
+    <div className="space-y-12 animate-pulse">
+      <div className="space-y-2">
+        <div className="h-7 w-48 bg-zinc-800/50 rounded" />
+        <div className="h-4 w-72 bg-zinc-800/30 rounded" />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-4 gap-12">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="p-5 rounded-2xl bg-white/80 border border-white/50 shadow-sm">
-            <div className="h-10 w-10 bg-slate-200 rounded-xl mb-4" />
-            <div className="h-4 w-24 bg-slate-200 rounded mb-2" />
-            <div className="h-8 w-20 bg-slate-200 rounded" />
+          <div key={i} className="space-y-3">
+            <div className="h-3 w-20 bg-zinc-800/30 rounded" />
+            <div className="h-8 w-24 bg-zinc-800/50 rounded" />
           </div>
         ))}
       </div>
@@ -329,286 +50,201 @@ function DashboardSkeleton() {
 export default function DashboardOverview() {
   const { user } = useAuth();
   
-  // Fetch real analytics data from API
   const { data: analytics, isLoading: analyticsLoading, error: analyticsError } = useQuery({
     queryKey: ['analytics', 'usage'],
     queryFn: analyticsApi.getUsage,
     retry: 1,
   });
 
-  // Fetch recent validations from API
   const { data: validationsData, isLoading: validationsLoading } = useQuery({
     queryKey: ['validations', 'recent'],
-    queryFn: () => validationsApi.list(1, 5),
+    queryFn: () => validationsApi.list(1, 8),
     retry: 1,
   });
 
-  // Fetch datasets count
   const { data: datasetsData } = useQuery({
     queryKey: ['datasets', 'list'],
     queryFn: () => datasetsApi.list(1, 10),
     retry: 1,
   });
 
-  // Loading state
-  if (analyticsLoading) {
-    return <DashboardSkeleton />;
-  }
+  if (analyticsLoading) return <DashboardSkeleton />;
 
-  // Default stats
-  const defaultStats: UsageAnalytics = {
-    total_rows_validated: 0,
-    total_datasets: 0,
-    total_validations: 0,
-    active_jobs: 0,
-    avg_risk_score: 0,
-    validations_this_month: 0,
-    rows_this_month: 0,
-  };
-  
   const stats: UsageAnalytics = {
-    total_rows_validated: analytics?.total_rows_validated ?? defaultStats.total_rows_validated,
-    total_datasets: analytics?.total_datasets ?? defaultStats.total_datasets,
-    total_validations: analytics?.total_validations ?? defaultStats.total_validations,
-    active_jobs: analytics?.active_jobs ?? defaultStats.active_jobs,
-    avg_risk_score: analytics?.avg_risk_score ?? defaultStats.avg_risk_score,
-    validations_this_month: analytics?.validations_this_month ?? defaultStats.validations_this_month,
-    rows_this_month: analytics?.rows_this_month ?? defaultStats.rows_this_month,
+    total_rows_validated: analytics?.total_rows_validated ?? 0,
+    total_datasets: analytics?.total_datasets ?? 0,
+    total_validations: analytics?.total_validations ?? 0,
+    active_jobs: analytics?.active_jobs ?? 0,
+    avg_risk_score: analytics?.avg_risk_score ?? 0,
+    validations_this_month: analytics?.validations_this_month ?? 0,
+    rows_this_month: analytics?.rows_this_month ?? 0,
   };
 
-  // Greeting based on time
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
-  const userName = user?.name?.split(' ')[0] || 'there';
-
-  // Chart data for monthly validations
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const firstName = user?.name?.split(' ')[0] || '';
   const chartData = [
-    { name: 'Feb', value: 45 },
-    { name: 'Mar', value: 78 },
-    { name: 'Apr', value: 62 },
-    { name: 'May', value: 89 },
-    { name: 'Jun', value: 54 },
-    { name: 'Jul', value: 67 },
-    { name: 'Aug', value: 82 },
-    { name: 'Sep', value: 71 },
+    { name: 'Jan', value: 32 }, { name: 'Feb', value: 45 }, { name: 'Mar', value: 78 },
+    { name: 'Apr', value: 62 }, { name: 'May', value: 89 }, { name: 'Jun', value: 54 }, { name: 'Jul', value: 67 },
   ];
-
-  // Calculate quality score (inverse of risk score)
   const qualityScore = Math.max(0, 100 - (stats.avg_risk_score || 0));
+  const readyDatasets = datasetsData?.datasets?.filter(d => d.status === 'ready').length || 0;
+  const failedValidations = validationsData?.validations?.filter(v => v.status === 'failed').length || 0;
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="flex items-start justify-between"
-      >
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">{greeting} {userName}</h1>
-          <div className="flex items-center gap-2 mt-1">
-            <p className="text-slate-500">Your weekly validation update</p>
-            <ChevronDown size={16} className="text-slate-400" />
-          </div>
-        </div>
-      </motion.div>
+    <div className="space-y-16">
+      <header>
+        <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">
+          {greeting}{firstName ? `, ${firstName}` : ''}
+        </h1>
+        <p className="text-sm text-zinc-500 mt-1">Overview of your validation activity and system health</p>
+      </header>
 
-      {/* API Error Notice */}
       {analyticsError && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex items-center gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-sm"
-        >
-          <AlertCircle size={16} />
-          Unable to fetch analytics from backend. Showing default values.
-        </motion.div>
+        <div className="flex items-center gap-2 text-sm text-amber-500/80">
+          <AlertCircle size={14} />
+          <span>Unable to connect to analytics service</span>
+        </div>
       )}
 
-      {/* Validations Section */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-      >
-        <SectionHeader title="Validations" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            title="Ready to Validate"
-            value={stats.total_datasets ?? 0}
-            subValue={datasetsData?.datasets?.filter(d => d.status === 'ready').length || 0}
-            icon={<Database size={20} />}
-            trend={42}
-            subtitle={`Datasets this week ${stats.total_datasets ?? 0}`}
-            href="/dashboard/datasets"
-          />
-          <StatCard
-            title="Pending Validations"
-            value={stats.active_jobs ?? 0}
-            subValue={Math.floor((stats.active_jobs ?? 0) * 0.3)}
-            icon={<Clock size={20} />}
-            trend={22}
-            subtitle={`Processing this week ${stats.validations_this_month ?? 0}`}
-            href="/dashboard/validations"
-          />
-          <StatCard
-            title="Failed"
-            value={validationsData?.validations?.filter(v => v.status === 'failed').length || 0}
-            icon={<AlertCircle size={20} />}
-            trend={-5}
-            subtitle={`Failed this week ${Math.floor(Math.random() * 3)}`}
-            href="/dashboard/validations"
-          />
-          <StatCard
-            title="Completed"
-            value={stats.total_validations ?? 0}
-            subValue={stats.validations_this_month ?? 0}
-            icon={<CheckCircle size={20} />}
-            trend={5}
-            subtitle={`Completed this week ${stats.validations_this_month ?? 0}`}
-            href="/dashboard/validations"
-          />
-        </div>
-      </motion.section>
-
-      {/* Analytics Section */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-      >
-        <SectionHeader title="Analytics" />
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {/* Featured Gauge Card - Quality Score */}
-          <div className="lg:col-span-3">
-            <GaugeCard
-              title="Quality Score"
-              value={`${(stats.total_rows_validated ?? 0).toLocaleString()}`}
-              subValue={`${(stats.rows_this_month ?? 0).toLocaleString()} rows this month`}
-              percentage={qualityScore}
-              icon={<Shield size={16} />}
-              loading={analyticsLoading}
-            />
-          </div>
-
-          {/* Metric Cards */}
-          <div className="lg:col-span-3 grid grid-rows-2 gap-4">
-            <MetricCard
-              title="Validated Rows"
-              value={`${((stats.total_rows_validated ?? 0) / 1000).toFixed(1)}K`}
-              subtitle="Current month"
-              icon={<FileCheck size={18} />}
-              trend={5}
-              loading={analyticsLoading}
-            />
-            <MetricCard
-              title="Active Jobs"
-              value={`${stats.active_jobs ?? 0}`}
-              subtitle="Running now"
-              icon={<Zap size={18} />}
-              trend={85}
-              loading={analyticsLoading}
-            />
-          </div>
-
-          {/* Bar Chart */}
-          <div className="lg:col-span-6 p-5 rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.06)]">
-            <div className="flex items-center justify-between mb-4">
-              <div className="px-3 py-1.5 rounded-lg bg-slate-100 text-xs font-medium text-slate-600">
-                {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-              </div>
-              <button className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
-                <MoreVertical size={16} className="text-slate-400" />
-              </button>
+      <section>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-16 gap-y-10">
+          <Link href="/dashboard/datasets" className="group">
+            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">Datasets</p>
+            <div className="flex items-baseline gap-3">
+              <span className="text-3xl font-semibold text-zinc-100 tabular-nums tracking-tight">{stats.total_datasets}</span>
+              <span className="text-sm text-zinc-600">{readyDatasets} ready</span>
             </div>
-            
-            <div className="h-48">
-              {chartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} barSize={32}>
-                    <XAxis 
-                      dataKey="name" 
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: '#94a3b8', fontSize: 12 }}
-                    />
-                    <YAxis hide />
-                    <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(0,0,0,0.05)' }} />
-                    <Bar 
-                      dataKey="value" 
-                      radius={[6, 6, 0, 0]}
-                    >
-                      {chartData.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={index === 1 ? '#6366f1' : '#818cf8'} 
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full flex items-center justify-center">
-                  <div className="text-center">
-                    <Activity className="mx-auto mb-2 text-slate-300" size={32} />
-                    <p className="text-slate-400 text-sm">No data available</p>
-                  </div>
-                </div>
+            <div className="h-px bg-zinc-800 mt-4 group-hover:bg-zinc-700 transition-colors" />
+          </Link>
+
+          <Link href="/dashboard/validations" className="group">
+            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">Validations</p>
+            <div className="flex items-baseline gap-3">
+              <span className="text-3xl font-semibold text-zinc-100 tabular-nums tracking-tight">{stats.total_validations}</span>
+              <span className="flex items-center gap-1 text-sm text-emerald-500">
+                <ArrowUpRight size={12} />{stats.validations_this_month} this month
+              </span>
+            </div>
+            <div className="h-px bg-zinc-800 mt-4 group-hover:bg-zinc-700 transition-colors" />
+          </Link>
+
+          <div>
+            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">Rows Processed</p>
+            <div className="flex items-baseline gap-3">
+              <span className="text-3xl font-semibold text-zinc-100 tabular-nums tracking-tight">{(stats.total_rows_validated / 1000).toFixed(1)}k</span>
+              <span className="text-sm text-zinc-600">{(stats.rows_this_month / 1000).toFixed(1)}k this month</span>
+            </div>
+            <div className="h-px bg-zinc-800 mt-4" />
+          </div>
+
+          <div>
+            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">Quality Score</p>
+            <div className="flex items-baseline gap-3">
+              <span className="text-3xl font-semibold text-zinc-100 tabular-nums tracking-tight">{qualityScore}%</span>
+              {stats.avg_risk_score > 0 && (
+                <span className="flex items-center gap-1 text-sm text-rose-500">
+                  <ArrowDownRight size={12} />{stats.avg_risk_score}% risk
+                </span>
               )}
             </div>
+            <div className="h-px bg-zinc-800 mt-4" />
           </div>
         </div>
-      </motion.section>
+      </section>
 
-      {/* History Section */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.3 }}
-      >
-        <SectionHeader title="History" />
-        <div className="rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.06)] overflow-hidden">
-          {/* Table Header */}
-          <div className="flex items-center gap-4 px-4 py-3 bg-slate-50/80 border-b border-slate-100 text-xs font-medium text-slate-500 uppercase tracking-wide">
-            <div className="w-10" />
-            <div className="flex-1">Dataset</div>
-            <div className="w-20 text-right">Time</div>
-            <div className="w-20 text-right">Risk Score</div>
-            <div className="w-24 text-center">Type</div>
-            <div className="w-16 text-center">Progress</div>
-            <div className="w-16 text-center">Date</div>
-            <div className="w-24 text-center">Status</div>
+      <section className="flex items-center gap-16 text-sm">
+        <div className="flex items-center gap-3">
+          <span className="text-zinc-500">Active jobs</span>
+          <span className="font-medium text-zinc-200 tabular-nums">{stats.active_jobs}</span>
+          {stats.active_jobs > 0 && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
+        </div>
+        <div className="w-px h-4 bg-zinc-800" />
+        <div className="flex items-center gap-3">
+          <span className="text-zinc-500">Failed</span>
+          <span className={cn("font-medium tabular-nums", failedValidations > 0 ? "text-rose-400" : "text-zinc-200")}>{failedValidations}</span>
+        </div>
+        <div className="w-px h-4 bg-zinc-800" />
+        <Link href="/dashboard/validations" className="text-zinc-500 hover:text-zinc-300 transition-colors">View all validations →</Link>
+      </section>
+
+      <section className="grid grid-cols-1 lg:grid-cols-5 gap-16">
+        <div className="lg:col-span-3">
+          <div className="flex items-center justify-between mb-6">
+            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Validation Trend</p>
+            <span className="text-xs text-zinc-600">Last 7 months</span>
           </div>
-          
-          {/* Table Body */}
-          <div className="divide-y divide-slate-100">
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#a78bfa" stopOpacity={0.15} />
+                    <stop offset="100%" stopColor="#a78bfa" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#52525b', fontSize: 11 }} dy={8} />
+                <YAxis hide />
+                <Tooltip content={<ChartTooltip />} cursor={false} />
+                <Area type="monotone" dataKey="value" stroke="#a78bfa" strokeWidth={1.5} fill="url(#chartGradient)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="lg:col-span-2">
+          <div className="flex items-center justify-between mb-6">
+            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Recent Activity</p>
+          </div>
+          <div className="space-y-1">
             {validationsLoading ? (
-              <div className="p-8 text-center">
-                <Loader2 className="w-6 h-6 animate-spin text-violet-500 mx-auto" />
-                <p className="text-slate-400 text-sm mt-2">Loading history...</p>
-              </div>
+              <div className="flex items-center justify-center py-8"><Loader2 className="w-4 h-4 animate-spin text-zinc-600" /></div>
             ) : validationsData?.validations?.length ? (
-              validationsData.validations.map((validation) => (
-                <HistoryItem key={validation.id} validation={validation} />
+              validationsData.validations.slice(0, 6).map((v) => (
+                <Link key={v.id} href={`/dashboard/validations/${v.id}`} className="flex items-center gap-4 py-2.5 group">
+                  <StatusDot status={v.status} />
+                  <span className="flex-1 text-sm text-zinc-300 truncate group-hover:text-zinc-100 transition-colors">{v.dataset_name || 'Untitled validation'}</span>
+                  <span className="text-xs text-zinc-600 tabular-nums">{new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                </Link>
               ))
             ) : (
-              <div className="py-12 text-center">
-                <Clock className="mx-auto mb-3 text-slate-300" size={40} />
-                <p className="text-slate-500 font-medium">No validation history yet</p>
-                <p className="text-slate-400 text-sm mt-1">Start validating datasets to see your history</p>
-                <Link
-                  href="/dashboard/validations"
-                  className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium rounded-xl transition-colors"
-                >
-                  Create Validation
-                  <ArrowUpRight size={16} />
-                </Link>
-              </div>
+              <p className="text-sm text-zinc-600 py-4">No recent activity</p>
             )}
           </div>
+          {validationsData?.validations?.length ? (
+            <div className="pt-4 mt-4 border-t border-zinc-800/50">
+              <Link href="/dashboard/validations" className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">View all activity →</Link>
+            </div>
+          ) : null}
         </div>
-      </motion.section>
+      </section>
+
+      {validationsData?.validations?.length ? (
+        <section>
+          <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-6">Validation History</p>
+          <div className="border-t border-zinc-800/50">
+            <div className="grid grid-cols-12 gap-4 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-zinc-800/50">
+              <div className="col-span-4">Dataset</div>
+              <div className="col-span-2">Type</div>
+              <div className="col-span-2 text-right">Risk Score</div>
+              <div className="col-span-2 text-right">Date</div>
+              <div className="col-span-2 text-right">Status</div>
+            </div>
+            {validationsData.validations.map((v) => (
+              <Link key={v.id} href={`/dashboard/validations/${v.id}`} className="grid grid-cols-12 gap-4 py-3.5 border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors group">
+                <div className="col-span-4 flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-md bg-zinc-800/80 flex items-center justify-center text-xs font-medium text-zinc-400 group-hover:bg-zinc-800 transition-colors">{v.dataset_name?.charAt(0).toUpperCase() || 'D'}</div>
+                  <span className="text-sm text-zinc-300 truncate group-hover:text-zinc-100 transition-colors">{v.dataset_name || 'Untitled'}</span>
+                </div>
+                <div className="col-span-2 flex items-center"><span className="text-sm text-zinc-500">{v.validation_type}</span></div>
+                <div className="col-span-2 flex items-center justify-end"><span className="text-sm text-zinc-400 tabular-nums">{v.results?.risk_score ? `${v.results.risk_score}%` : '—'}</span></div>
+                <div className="col-span-2 flex items-center justify-end"><span className="text-sm text-zinc-500 tabular-nums">{new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span></div>
+                <div className="col-span-2 flex items-center justify-end gap-2"><StatusDot status={v.status} /><span className="text-sm text-zinc-500 capitalize">{v.status}</span></div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
