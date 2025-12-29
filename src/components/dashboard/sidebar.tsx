@@ -14,7 +14,8 @@ import {
   Bell,
   Search,
   ChevronRight,
-  X
+  X,
+  HelpCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SynthosLogo } from '@/components/ui/synthos-logo';
@@ -30,7 +31,7 @@ const navigation = [
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ];
 
-// Vertical Tubelight Nav Item
+// Light theme Nav Item with glassmorphic style
 function NavItem({ 
   item, 
   isActive, 
@@ -49,40 +50,31 @@ function NavItem({
       href={item.href}
       onClick={onClick}
       className={cn(
-        "relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group",
+        "relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group",
         isActive 
-          ? "text-white" 
-          : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"
+          ? "text-violet-700 bg-white/80 shadow-[0_4px_20px_rgba(108,92,231,0.15)]" 
+          : "text-slate-500 hover:text-slate-700 hover:bg-white/50"
       )}
     >
-      {/* Tubelight glow effect on the left */}
+      {/* Active indicator */}
       {isActive && (
-        <>
-          {/* Glow */}
-          <motion.div
-            layoutId="sidebar-glow"
-            className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-full bg-violet-500"
-            style={{
-              boxShadow: '0 0 20px 4px rgba(139, 92, 246, 0.5), 0 0 40px 8px rgba(139, 92, 246, 0.3)',
-            }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          />
-          {/* Background highlight */}
-          <motion.div
-            layoutId="sidebar-bg"
-            className="absolute inset-0 bg-white/5 rounded-lg"
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          />
-        </>
+        <motion.div
+          layoutId="sidebar-active"
+          className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-full bg-violet-500"
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+        />
       )}
       
       <Icon size={20} className={cn(
         "relative z-10 transition-colors shrink-0",
-        isActive ? "text-violet-400" : "group-hover:text-white"
+        isActive ? "text-violet-600" : "group-hover:text-slate-700"
       )} />
       
       {!collapsed && (
-        <span className="relative z-10 text-sm font-medium truncate">
+        <span className={cn(
+          "relative z-10 text-sm font-medium truncate",
+          isActive ? "text-slate-800" : ""
+        )}>
           {item.name}
         </span>
       )}
@@ -111,14 +103,14 @@ export function DashboardSidebar() {
   return (
     <>
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-zinc-950/80 backdrop-blur-xl border-b border-white/10 px-4 py-3 flex items-center justify-between">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/50 px-4 py-3 flex items-center justify-between shadow-sm">
         <Link href="/dashboard" className="flex items-center gap-2">
           <SynthosLogo size={28} />
-          <span className="font-semibold text-white">Synthos</span>
+          <span className="font-semibold text-slate-800">Synthos</span>
         </Link>
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="p-2 rounded-lg hover:bg-white/5 text-zinc-400 hover:text-white transition-colors"
+          className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors"
         >
           {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
@@ -131,7 +123,7 @@ export function DashboardSidebar() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+            className="lg:hidden fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
           />
         )}
@@ -141,22 +133,23 @@ export function DashboardSidebar() {
       <aside
         className={cn(
           "fixed lg:static inset-y-0 left-0 z-50 flex flex-col transition-all duration-300",
-          "bg-zinc-950 border-r border-white/10",
+          "bg-gradient-to-b from-slate-50/95 to-white/90 backdrop-blur-xl border-r border-slate-200/50",
+          "shadow-[4px_0_24px_rgba(0,0,0,0.04)]",
           mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           collapsed ? "lg:w-[72px]" : "w-64"
         )}
       >
         {/* Logo Section */}
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
+        <div className="flex items-center justify-between p-4 border-b border-slate-200/50">
           <Link href="/dashboard" className="flex items-center gap-3">
             <SynthosLogo size={32} />
             {!collapsed && (
-              <span className="font-semibold text-lg text-white">Synthos</span>
+              <span className="font-semibold text-lg text-slate-800">Synthos</span>
             )}
           </Link>
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg hover:bg-white/5 text-zinc-500 hover:text-white transition-colors"
+            className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
           >
             <ChevronLeft
               size={16}
@@ -184,19 +177,19 @@ export function DashboardSidebar() {
         </nav>
 
         {/* User Section */}
-        <div className="p-3 border-t border-white/10">
+        <div className="p-3 border-t border-slate-200/50">
           {user && (
             <div className={cn(
-              "flex items-center gap-3 p-2 rounded-lg",
+              "flex items-center gap-3 p-2 rounded-xl bg-white/60",
               collapsed ? "justify-center" : ""
             )}>
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white text-sm font-medium shrink-0">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-white text-sm font-medium shrink-0 shadow-md">
                 {user.name?.charAt(0).toUpperCase() || 'U'}
               </div>
               {!collapsed && (
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">{user.name}</p>
-                  <p className="text-xs text-zinc-500 truncate">{user.email}</p>
+                  <p className="text-sm font-medium text-slate-700 truncate">{user.name}</p>
+                  <p className="text-xs text-slate-400 truncate">{user.email}</p>
                 </div>
               )}
             </div>
@@ -205,7 +198,7 @@ export function DashboardSidebar() {
           <button
             onClick={handleLogout}
             className={cn(
-              "flex items-center gap-3 w-full p-2 mt-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors",
+              "flex items-center gap-3 w-full p-2 mt-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors",
               collapsed && "justify-center"
             )}
           >
@@ -218,7 +211,7 @@ export function DashboardSidebar() {
   );
 }
 
-// Topbar Component
+// Topbar Component - Light theme
 export function DashboardTopbar() {
   const pathname = usePathname();
   const { user } = useAuth();
@@ -241,14 +234,14 @@ export function DashboardTopbar() {
       <nav className="flex items-center gap-2 text-sm">
         {breadcrumbs.map((crumb, index) => (
           <div key={crumb.href} className="flex items-center gap-2">
-            {index > 0 && <ChevronRight size={14} className="text-zinc-600" />}
+            {index > 0 && <ChevronRight size={14} className="text-slate-300" />}
             <Link 
               href={crumb.href}
               className={cn(
                 "transition-colors",
                 index === breadcrumbs.length - 1 
-                  ? "text-white font-medium" 
-                  : "text-zinc-500 hover:text-zinc-300"
+                  ? "text-slate-700 font-medium" 
+                  : "text-slate-400 hover:text-slate-600"
               )}
             >
               {crumb.label}
@@ -260,25 +253,29 @@ export function DashboardTopbar() {
       {/* Actions */}
       <div className="flex items-center gap-3">
         {/* Search */}
-        <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 focus-within:border-zinc-700 transition-colors">
-          <Search size={16} className="text-zinc-500" />
+        <div className="hidden md:flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/80 backdrop-blur border border-slate-200/50 shadow-sm focus-within:border-violet-300 focus-within:shadow-[0_0_0_3px_rgba(139,92,246,0.1)] transition-all">
+          <Search size={16} className="text-slate-400" />
           <input
             type="text"
-            placeholder="Search..."
-            className="bg-transparent text-sm text-white placeholder:text-zinc-500 focus:outline-none w-48"
+            placeholder="Search here"
+            className="bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none w-48"
           />
-          <kbd className="hidden lg:inline-flex text-xs text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded">⌘K</kbd>
         </div>
 
-        {/* Notifications */}
-        <button className="relative p-2 rounded-lg hover:bg-white/5 text-zinc-500 hover:text-white transition-colors">
-          <Bell size={18} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-violet-500 rounded-full" />
+        {/* Help */}
+        <button className="p-2.5 rounded-xl bg-white/80 backdrop-blur border border-slate-200/50 shadow-sm hover:bg-white hover:shadow-md text-slate-400 hover:text-slate-600 transition-all">
+          <HelpCircle size={18} />
         </button>
 
-        {/* User Dropdown */}
-        <div className="flex items-center gap-2 pl-3 border-l border-zinc-800">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white text-sm font-medium">
+        {/* Notifications */}
+        <button className="relative p-2.5 rounded-xl bg-white/80 backdrop-blur border border-slate-200/50 shadow-sm hover:bg-white hover:shadow-md text-slate-400 hover:text-slate-600 transition-all">
+          <Bell size={18} />
+          <span className="absolute top-2 right-2 w-2 h-2 bg-violet-500 rounded-full ring-2 ring-white" />
+        </button>
+
+        {/* User Avatar */}
+        <div className="flex items-center gap-2 pl-3 border-l border-slate-200">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-white text-sm font-medium shadow-md ring-2 ring-white">
             {user?.name?.charAt(0).toUpperCase() || 'U'}
           </div>
         </div>

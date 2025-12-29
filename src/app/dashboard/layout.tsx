@@ -12,18 +12,16 @@ export default function DashboardLayout({
   return (
     <AuthProvider>
       <QueryProvider>
-        <div className="min-h-screen bg-black">
-          {/* Subtle grid background */}
-          <div 
-            className="fixed inset-0 opacity-10 pointer-events-none"
-            style={{
-              backgroundImage: `
-                linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px)
-              `,
-              backgroundSize: '40px 40px',
-            }}
-          />
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50/50 to-violet-50/30">
+          {/* Soft glassmorphic background decorations */}
+          <div className="fixed inset-0 overflow-hidden pointer-events-none">
+            {/* Top-right decoration */}
+            <div className="absolute -top-40 -right-40 w-96 h-96 bg-violet-200/30 rounded-full blur-3xl" />
+            {/* Bottom-left decoration */}
+            <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-blue-200/30 rounded-full blur-3xl" />
+            {/* Center decoration */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-100/20 rounded-full blur-3xl" />
+          </div>
           
           <div className="flex relative">
             <DashboardSidebar />
