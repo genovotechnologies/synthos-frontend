@@ -38,7 +38,7 @@ function ProfileSettings() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="name">Full Name</Label>
-          <Input id="name" defaultValue={user?.name} placeholder="John Doe" />
+          <Input id="name" defaultValue={user?.name} placeholder="Mike Alts />
         </div>
         <div className="space-y-2">
           <Label htmlFor="email">Email Address</Label>
