@@ -54,6 +54,33 @@ export interface UploadUrlResponse {
   dataset_id: string;
 }
 
+// Multipart upload types for large files (up to 500GB)
+export interface InitiateMultipartUploadResponse {
+  dataset_id: string;
+  upload_id: string;
+  chunk_size: number; // Expected chunk size in bytes
+}
+
+export interface GetChunkUploadUrlRequest {
+  upload_id: string;
+  part_number: number;
+}
+
+export interface ChunkUploadUrlResponse {
+  upload_url: string;
+  part_number: number;
+}
+
+export interface UploadedPart {
+  part_number: number;
+  etag: string;
+}
+
+export interface CompleteMultipartUploadRequest {
+  upload_id: string;
+  parts: UploadedPart[];
+}
+
 export interface CompleteUploadRequest {
   etag: string;
 }

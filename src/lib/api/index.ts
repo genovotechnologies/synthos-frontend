@@ -2,6 +2,7 @@ export { apiClient, API_BASE_URL } from './client';
 export { authApi } from './auth';
 export type { UpdateProfileRequest, ChangePasswordRequest, NotificationPreferences } from './auth';
 export { datasetsApi } from './datasets';
+export type { UploadProgress, InitiateMultipartResponse, CompletedPart } from './datasets';
 export { validationsApi } from './validations';
 export { analyticsApi } from './analytics';
 export { warrantiesApi } from './warranties';

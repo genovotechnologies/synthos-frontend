@@ -1,36 +1,53 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
   Upload, Database, Trash2, FileText, AlertCircle, Check, X, 
-  Loader2, ChevronLeft, ChevronRight, Search, Filter, MoreHorizontal 
+  Loader2, ChevronLeft, ChevronRight, Search, MoreHorizontal,
+  Pause, Play, RefreshCw
 } from 'lucide-react';
-import { datasetsApi, type Dataset } from '@/lib/api';
+import { datasetsApi, type Dataset, type UploadProgress } from '@/lib/api';
 
-const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
-const ALLOWED_EXTENSIONS = ['.csv', '.json', '.parquet', '.xlsx', '.xls'];
-const ALLOWED_MIME_TYPES = [
-  'text/csv',
-  'application/json',
-  'application/vnd.apache.parquet',
-  'application/octet-stream',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/vnd.ms-excel',
-];
+// Max file size: 500GB
+const MAX_FILE_SIZE = 500 * 1024 * 1024 * 1024;
+const ALLOWED_EXTENSIONS = ['.csv', '.json', '.parquet', '.hdf5', '.h5', '.xlsx', '.xls'];
 
 interface UploadState {
-  status: 'idle' | 'validating' | 'getting-url' | 'uploading' | 'completing' | 'success' | 'error';
-  progress: number;
+  status: 'idle' | 'checking-resume' | 'preparing' | 'uploading' | 'completing' | 'paused' | 'success' | 'error';
+  progress: UploadProgress | null;
   error: string | null;
+  canResume: boolean;
+  resumeInfo?: { completedChunks: number; totalChunks: number };
 }
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B';
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+}
+
+function formatSpeed(bytesPerSecond: number): string {
+  if (bytesPerSecond === 0) return '0 B/s';
+  const k = 1024;
+  const sizes = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
+  const i = Math.floor(Math.log(bytesPerSecond) / Math.log(k));
+  return `${parseFloat((bytesPerSecond / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+
+function formatTime(seconds: number): string {
+  if (!isFinite(seconds) || seconds <= 0) return '--:--';
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  if (seconds < 3600) {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.round(seconds % 60);
+    return `${mins}m ${secs}s`;
+  }
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  return `${hours}h ${mins}m`;
 }
 
 function formatDate(dateString: string): string {
@@ -144,19 +161,66 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
   const [file, setFile] = useState<File | null>(null);
   const [uploadState, setUploadState] = useState<UploadState>({
     status: 'idle',
-    progress: 0,
+    progress: null,
     error: null,
+    canResume: false,
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Check for resumable upload when file is selected
+  useEffect(() => {
+    if (file) {
+      checkResumableUpload(file);
+    }
+  }, [file]);
+
+  const checkResumableUpload = async (selectedFile: File) => {
+    setUploadState(prev => ({ ...prev, status: 'checking-resume' }));
+    try {
+      const resumeState = await datasetsApi.getResumableUpload(selectedFile.name, selectedFile.size);
+      if (resumeState) {
+        const totalChunks = Math.ceil(selectedFile.size / (100 * 1024 * 1024));
+        setUploadState({
+          status: 'idle',
+          progress: null,
+          error: null,
+          canResume: true,
+          resumeInfo: {
+            completedChunks: resumeState.completedParts.length,
+            totalChunks,
+          },
+        });
+      } else {
+        setUploadState({
+          status: 'idle',
+          progress: null,
+          error: null,
+          canResume: false,
+        });
+      }
+    } catch {
+      setUploadState({
+        status: 'idle',
+        progress: null,
+        error: null,
+        canResume: false,
+      });
+    }
+  };
 
   const handleFileSelect = useCallback((selectedFile: File) => {
     const validation = validateFile(selectedFile);
     if (!validation.valid) {
-      setUploadState({ status: 'error', progress: 0, error: validation.error || 'Invalid file' });
+      setUploadState({ 
+        status: 'error', 
+        progress: null, 
+        error: validation.error || 'Invalid file',
+        canResume: false,
+      });
       return;
     }
     setFile(selectedFile);
-    setUploadState({ status: 'idle', progress: 0, error: null });
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -174,60 +238,77 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
   const handleUpload = async () => {
     if (!file) return;
 
+    abortControllerRef.current = new AbortController();
+    
     try {
-      // Step 1: Validate
-      setUploadState({ status: 'validating', progress: 5, error: null });
-      const validation = validateFile(file);
-      if (!validation.valid) {
-        throw new Error(validation.error);
-      }
+      setUploadState(prev => ({ 
+        ...prev, 
+        status: 'preparing', 
+        error: null,
+        progress: { phase: 'preparing', totalBytes: file.size, uploadedBytes: 0, percentage: 0 },
+      }));
 
-      // Step 2: Get pre-signed URL
-      setUploadState({ status: 'getting-url', progress: 15, error: null });
-      const { upload_url, dataset_id } = await datasetsApi.getUploadUrl(
-        file.name,
-        file.size
+      const dataset = await datasetsApi.upload(
+        file,
+        (progress) => {
+          setUploadState(prev => ({
+            ...prev,
+            status: progress.phase === 'completing' ? 'completing' : 'uploading',
+            progress,
+          }));
+        },
+        abortControllerRef.current.signal
       );
 
-      // Step 3: Upload to S3
-      setUploadState({ status: 'uploading', progress: 25, error: null });
-      
-      const etag = await datasetsApi.uploadToS3(upload_url, file, (progress) => {
-        setUploadState(prev => ({
-          ...prev,
-          progress: 25 + Math.round(progress * 0.6), // 25% to 85%
-        }));
+      setUploadState({
+        status: 'success',
+        progress: { phase: 'completing', totalBytes: file.size, uploadedBytes: file.size, percentage: 100 },
+        error: null,
+        canResume: false,
       });
 
-      // Step 4: Complete upload
-      setUploadState({ status: 'completing', progress: 90, error: null });
-      await datasetsApi.completeUpload(dataset_id, { etag });
-
-      // Success
-      setUploadState({ status: 'success', progress: 100, error: null });
-      
       setTimeout(() => {
         onSuccess();
         onClose();
-      }, 1000);
+      }, 1500);
 
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Upload failed. Please try again.';
-      setUploadState({ status: 'error', progress: 0, error: message });
+      if (abortControllerRef.current?.signal.aborted) {
+        setUploadState(prev => ({
+          ...prev,
+          status: 'paused',
+          error: 'Upload paused. You can resume later.',
+          canResume: true,
+        }));
+      } else {
+        const message = error instanceof Error ? error.message : 'Upload failed. Please try again.';
+        setUploadState(prev => ({
+          ...prev,
+          status: 'error',
+          error: message,
+        }));
+      }
     }
   };
 
-  const statusMessages = {
-    idle: 'Ready to upload',
-    validating: 'Validating file...',
-    'getting-url': 'Preparing upload...',
-    uploading: 'Uploading file...',
-    completing: 'Finalizing...',
-    success: 'Upload complete!',
-    error: uploadState.error || 'Upload failed',
+  const handlePause = () => {
+    abortControllerRef.current?.abort();
   };
 
-  const isUploading = ['validating', 'getting-url', 'uploading', 'completing'].includes(uploadState.status);
+  const handleCancelResume = async () => {
+    if (file) {
+      await datasetsApi.cancelResumableUpload(file.name);
+      setUploadState({
+        status: 'idle',
+        progress: null,
+        error: null,
+        canResume: false,
+      });
+    }
+  };
+
+  const isUploading = ['preparing', 'uploading', 'completing'].includes(uploadState.status);
+  const canPause = uploadState.status === 'uploading' && uploadState.progress?.totalChunks && uploadState.progress.totalChunks > 1;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -239,7 +320,7 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
           <div>
             <h2 className="text-lg font-semibold text-white">Upload Dataset</h2>
             <p className="text-sm text-zinc-500 mt-0.5">
-              Supports CSV, JSON, Parquet, Excel (max {formatBytes(MAX_FILE_SIZE)})
+              CSV, JSON, Parquet, HDF5, Excel (max {formatBytes(MAX_FILE_SIZE)})
             </p>
           </div>
           <button
@@ -282,17 +363,30 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
                 <Check className="w-12 h-12 mx-auto mb-3" />
                 <p className="font-medium">Upload Complete!</p>
               </div>
-            ) : uploadState.status === 'error' ? (
+            ) : uploadState.status === 'error' && !file ? (
               <div className="text-red-400">
                 <AlertCircle className="w-12 h-12 mx-auto mb-3" />
                 <p className="font-medium mb-1">Upload Failed</p>
                 <p className="text-sm text-red-400/80">{uploadState.error}</p>
+              </div>
+            ) : uploadState.status === 'checking-resume' ? (
+              <div className="text-zinc-400">
+                <Loader2 className="w-12 h-12 mx-auto mb-3 animate-spin" />
+                <p className="font-medium text-white">Checking for resumable upload...</p>
               </div>
             ) : file ? (
               <div>
                 <FileText className="w-12 h-12 mx-auto mb-3 text-blue-400" />
                 <p className="font-medium text-white">{file.name}</p>
                 <p className="text-sm text-zinc-500 mt-1">{formatBytes(file.size)}</p>
+                {uploadState.canResume && uploadState.resumeInfo && (
+                  <div className="mt-3 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                    <p className="text-xs text-amber-400 flex items-center justify-center gap-2">
+                      <RefreshCw className="w-3 h-3" />
+                      Resumable: {uploadState.resumeInfo.completedChunks}/{uploadState.resumeInfo.totalChunks} chunks uploaded
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-zinc-400">
@@ -304,48 +398,141 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
           </div>
 
           {/* Progress */}
-          {isUploading && (
-            <div className="mt-5">
-              <div className="flex items-center justify-between text-sm mb-2">
-                <span className="text-zinc-400">{statusMessages[uploadState.status]}</span>
-                <span className="text-zinc-500">{uploadState.progress}%</span>
+          {(isUploading || uploadState.status === 'paused') && uploadState.progress && (
+            <div className="mt-5 space-y-3">
+              {/* Progress bar */}
+              <div>
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="text-zinc-400">
+                    {uploadState.status === 'paused' ? 'Paused' : 
+                     uploadState.progress.phase === 'preparing' ? 'Preparing...' :
+                     uploadState.progress.phase === 'completing' ? 'Finalizing...' :
+                     uploadState.progress.totalChunks ? `Uploading chunk ${uploadState.progress.currentChunk || 0}/${uploadState.progress.totalChunks}` :
+                     'Uploading...'}
+                  </span>
+                  <span className="text-zinc-500">{uploadState.progress.percentage}%</span>
+                </div>
+                <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-300 ${
+                      uploadState.status === 'paused' ? 'bg-amber-500' : 'bg-blue-500'
+                    }`}
+                    style={{ width: `${uploadState.progress.percentage}%` }}
+                  />
+                </div>
               </div>
-              <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-500 transition-all duration-300"
-                  style={{ width: `${uploadState.progress}%` }}
-                />
+
+              {/* Stats */}
+              <div className="flex items-center justify-between text-xs text-zinc-500">
+                <span>
+                  {formatBytes(uploadState.progress.uploadedBytes)} / {formatBytes(uploadState.progress.totalBytes)}
+                </span>
+                {uploadState.progress.speed && uploadState.progress.speed > 0 && (
+                  <span className="flex items-center gap-3">
+                    <span>{formatSpeed(uploadState.progress.speed)}</span>
+                    {uploadState.progress.remainingTime !== undefined && (
+                      <span>{formatTime(uploadState.progress.remainingTime)} remaining</span>
+                    )}
+                  </span>
+                )}
               </div>
+            </div>
+          )}
+
+          {/* Error message */}
+          {uploadState.status === 'error' && file && (
+            <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+              <p className="text-sm text-red-400 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                {uploadState.error}
+              </p>
+            </div>
+          )}
+
+          {/* Paused message */}
+          {uploadState.status === 'paused' && (
+            <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <p className="text-sm text-amber-400">
+                Upload paused. Click &quot;Resume&quot; to continue or &quot;Cancel&quot; to start over.
+              </p>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-5 border-t border-zinc-800">
-          <button
-            onClick={onClose}
-            disabled={isUploading}
-            className="px-4 py-2.5 text-sm font-medium text-zinc-400 hover:text-zinc-300 disabled:opacity-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleUpload}
-            disabled={!file || isUploading || uploadState.status === 'success'}
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
-          >
-            {isUploading ? (
+        <div className="flex items-center justify-between p-5 border-t border-zinc-800">
+          <div>
+            {uploadState.canResume && !isUploading && uploadState.status !== 'paused' && (
+              <button
+                onClick={handleCancelResume}
+                className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                Clear saved progress
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            {uploadState.status === 'paused' ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Uploading...
+                <button
+                  onClick={handleCancelResume}
+                  className="px-4 py-2.5 text-sm font-medium text-zinc-400 hover:text-zinc-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpload}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Play className="w-4 h-4" />
+                  Resume
+                </button>
               </>
             ) : (
               <>
-                <Upload className="w-4 h-4" />
-                Upload
+                <button
+                  onClick={onClose}
+                  disabled={isUploading}
+                  className="px-4 py-2.5 text-sm font-medium text-zinc-400 hover:text-zinc-300 disabled:opacity-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                {canPause && (
+                  <button
+                    onClick={handlePause}
+                    className="px-4 py-2.5 bg-zinc-700 hover:bg-zinc-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                  >
+                    <Pause className="w-4 h-4" />
+                    Pause
+                  </button>
+                )}
+                <button
+                  onClick={handleUpload}
+                  disabled={!file || isUploading || uploadState.status === 'success'}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {uploadState.progress?.phase === 'preparing' ? 'Preparing...' :
+                       uploadState.progress?.phase === 'completing' ? 'Finalizing...' :
+                       'Uploading...'}
+                    </>
+                  ) : uploadState.canResume ? (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      Resume Upload
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4" />
+                      Upload
+                    </>
+                  )}
+                </button>
               </>
             )}
-          </button>
+          </div>
         </div>
       </div>
     </div>
@@ -363,16 +550,14 @@ export default function DatasetsPage() {
     queryFn: () => datasetsApi.list(page, 10),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: datasetsApi.delete,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['datasets'] });
-    },
-  });
-
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this dataset? This action cannot be undone.')) {
-      deleteMutation.mutate(id);
+      try {
+        await datasetsApi.delete(id);
+        queryClient.invalidateQueries({ queryKey: ['datasets'] });
+      } catch {
+        alert('Failed to delete dataset. Please try again.');
+      }
     }
   };
 
@@ -401,7 +586,7 @@ export default function DatasetsPage() {
         </button>
       </div>
 
-      {/* Search and Filter */}
+      {/* Search */}
       <div className="flex items-center gap-4 mb-6">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
@@ -426,14 +611,6 @@ export default function DatasetsPage() {
             <p className="font-medium">Failed to load datasets</p>
             <p className="text-sm text-red-400/80 mt-0.5">Please try refreshing the page.</p>
           </div>
-        </div>
-      )}
-
-      {/* Delete Error */}
-      {deleteMutation.isError && (
-        <div className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 mb-6">
-          <AlertCircle className="w-5 h-5 flex-shrink-0" />
-          <span>Failed to delete dataset. Please try again.</span>
         </div>
       )}
 
