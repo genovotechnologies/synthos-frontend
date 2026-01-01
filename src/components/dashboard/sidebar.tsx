@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Database, CheckCircle, Shield, Settings, LogOut, Menu, Bell, Search, X } from 'lucide-react';
+import { LayoutDashboard, Database, CheckCircle, Shield, Settings, LogOut, Menu, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SynthosLogo } from '@/components/ui/synthos-logo';
 import { useAuth } from '@/providers/auth-provider';
 import { useState, useEffect } from 'react';
+import NotificationsDropdown from './notifications-dropdown';
 
 const navigation = [
   { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
@@ -126,10 +127,7 @@ export function DashboardTopbar() {
           <kbd className="text-[10px] text-zinc-700 bg-zinc-900 px-1.5 py-0.5 rounded">⌘K</kbd>
         </div>
 
-        <button className="relative p-1.5 text-zinc-600 hover:text-zinc-400 transition-colors">
-          <Bell size={16} />
-          <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-violet-500 rounded-full" />
-        </button>
+        <NotificationsDropdown />
 
         <div className="w-px h-5 bg-zinc-800/50" />
 

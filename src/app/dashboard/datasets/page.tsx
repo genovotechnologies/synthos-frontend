@@ -1,128 +1,134 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { datasetsApi, type Dataset } from '@/lib/api';
 import { 
-  Upload, 
-  Database, 
-  MoreVertical, 
-  Trash2, 
-  Eye,
-  FileSpreadsheet,
-  X,
-  CheckCircle,
-  AlertCircle,
-  Loader2,
-  ChevronLeft,
-  ChevronRight
+  Upload, Database, Trash2, FileText, AlertCircle, Check, X, 
+  Loader2, ChevronLeft, ChevronRight, Search, Filter, MoreHorizontal 
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import Link from 'next/link';
+import { datasetsApi, type Dataset } from '@/lib/api';
 
-type UploadState = 'idle' | 'getting-url' | 'uploading' | 'completing' | 'done' | 'error';
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+const ALLOWED_EXTENSIONS = ['.csv', '.json', '.parquet', '.xlsx', '.xls'];
+const ALLOWED_MIME_TYPES = [
+  'text/csv',
+  'application/json',
+  'application/vnd.apache.parquet',
+  'application/octet-stream',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-excel',
+];
 
-interface UploadProgress {
-  state: UploadState;
+interface UploadState {
+  status: 'idle' | 'validating' | 'getting-url' | 'uploading' | 'completing' | 'success' | 'error';
   progress: number;
-  error?: string;
+  error: string | null;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function getFileExtension(filename: string): string {
+  return filename.substring(filename.lastIndexOf('.')).toLowerCase();
+}
+
+function validateFile(file: File): { valid: boolean; error?: string } {
+  const extension = getFileExtension(file.name);
+  
+  if (!ALLOWED_EXTENSIONS.includes(extension)) {
+    return { 
+      valid: false, 
+      error: `Invalid file type. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}` 
+    };
+  }
+  
+  if (file.size > MAX_FILE_SIZE) {
+    return { 
+      valid: false, 
+      error: `File too large. Maximum size: ${formatBytes(MAX_FILE_SIZE)}` 
+    };
+  }
+  
+  if (file.size === 0) {
+    return { valid: false, error: 'File is empty' };
+  }
+  
+  return { valid: true };
 }
 
 function DatasetRow({ dataset, onDelete }: { dataset: Dataset; onDelete: (id: string) => void }) {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  const statusConfig = {
-    uploading: { bg: 'bg-blue-500/20', text: 'text-blue-400', dot: 'bg-blue-400' },
-    processing: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', dot: 'bg-yellow-400' },
-    ready: { bg: 'bg-mint/20', text: 'text-mint', dot: 'bg-mint' },
-    error: { bg: 'bg-red-500/20', text: 'text-red-400', dot: 'bg-red-400' },
+  const statusColors: Record<Dataset['status'], string> = {
+    uploading: 'text-amber-400 bg-amber-400/10',
+    processing: 'text-blue-400 bg-blue-400/10',
+    ready: 'text-emerald-400 bg-emerald-400/10',
+    error: 'text-red-400 bg-red-400/10',
   };
 
-  const status = statusConfig[dataset.status];
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
-  };
-
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+  const statusLabels: Record<Dataset['status'], string> = {
+    uploading: 'Uploading',
+    processing: 'Processing',
+    ready: 'Ready',
+    error: 'Error',
   };
 
   return (
-    <div className="flex items-center justify-between p-4 rounded-xl hover:bg-white/5 transition-all duration-200 group">
+    <div className="flex items-center justify-between py-4 border-b border-zinc-800/50 last:border-0 group">
       <div className="flex items-center gap-4 flex-1 min-w-0">
-        <div className="p-3 rounded-xl bg-violet/20">
-          <FileSpreadsheet size={20} className="text-violet" />
+        <div className="w-10 h-10 rounded-lg bg-zinc-800/50 flex items-center justify-center flex-shrink-0">
+          <FileText className="w-5 h-5 text-zinc-500" />
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="font-medium text-white truncate group-hover:text-violet transition-colors">
-            {dataset.name}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-white truncate">{dataset.name}</p>
+          <p className="text-xs text-zinc-500 mt-0.5">
+            {formatBytes(dataset.file_size)} • {formatDate(dataset.created_at)}
           </p>
-          <p className="text-sm text-white/50 truncate">{dataset.file_name}</p>
         </div>
       </div>
       
-      <div className="flex items-center gap-8">
-        <div className="text-right hidden sm:block">
-          <p className="text-sm text-white/50">Rows</p>
-          <p className="font-medium text-white">{dataset.row_count?.toLocaleString() || '-'}</p>
-        </div>
-        <div className="text-right hidden md:block">
-          <p className="text-sm text-white/50">Size</p>
-          <p className="font-medium text-white">{formatFileSize(dataset.file_size)}</p>
-        </div>
-        <div className="text-right hidden lg:block">
-          <p className="text-sm text-white/50">Created</p>
-          <p className="font-medium text-white">{formatDate(dataset.created_at)}</p>
-        </div>
-        
-        <span className={cn(
-          "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full capitalize",
-          status.bg, status.text
-        )}>
-          <span className={cn("w-1.5 h-1.5 rounded-full", status.dot)} />
-          {dataset.status}
+      <div className="flex items-center gap-4">
+        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[dataset.status]}`}>
+          {statusLabels[dataset.status]}
         </span>
-
-        <div className="relative">
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+        
+        <div className="relative" ref={menuRef}>
+          <button 
+            onClick={() => setShowMenu(!showMenu)}
+            className="p-2 text-zinc-500 hover:text-zinc-300 transition-colors opacity-0 group-hover:opacity-100"
           >
-            <MoreVertical size={18} />
+            <MoreHorizontal className="w-4 h-4" />
           </button>
-          {menuOpen && (
+          
+          {showMenu && (
             <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setMenuOpen(false)}
-              />
-              <div className="absolute right-0 top-full mt-2 z-20 glass-dark rounded-xl py-2 min-w-[160px] shadow-xl">
-                <Link
-                  href={`/dashboard/datasets/${dataset.id}`}
-                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
-                >
-                  <Eye size={16} />
-                  View details
-                </Link>
+              <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+              <div className="absolute right-0 top-full mt-1 w-36 py-1 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl z-20">
                 <button
                   onClick={() => {
                     onDelete(dataset.id);
-                    setMenuOpen(false);
+                    setShowMenu(false);
                   }}
-                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 w-full text-left transition-colors"
+                  className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-zinc-800 transition-colors flex items-center gap-2"
                 >
-                  <Trash2 size={16} />
+                  <Trash2 className="w-4 h-4" />
                   Delete
                 </button>
               </div>
@@ -134,198 +140,211 @@ function DatasetRow({ dataset, onDelete }: { dataset: Dataset; onDelete: (id: st
   );
 }
 
-function UploadModal({ 
-  isOpen, 
-  onClose,
-  onSuccess
-}: { 
-  isOpen: boolean; 
-  onClose: () => void;
-  onSuccess: () => void;
-}) {
+function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const [file, setFile] = useState<File | null>(null);
-  const [uploadProgress, setUploadProgress] = useState<UploadProgress>({
-    state: 'idle',
+  const [uploadState, setUploadState] = useState<UploadState>({
+    status: 'idle',
     progress: 0,
+    error: null,
   });
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUpload = useCallback(async () => {
+  const handleFileSelect = useCallback((selectedFile: File) => {
+    const validation = validateFile(selectedFile);
+    if (!validation.valid) {
+      setUploadState({ status: 'error', progress: 0, error: validation.error || 'Invalid file' });
+      return;
+    }
+    setFile(selectedFile);
+    setUploadState({ status: 'idle', progress: 0, error: null });
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile) {
+      handleFileSelect(droppedFile);
+    }
+  }, [handleFileSelect]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+  }, []);
+
+  const handleUpload = async () => {
     if (!file) return;
 
     try {
-      // Step 1: Get signed URL
-      setUploadProgress({ state: 'getting-url', progress: 10 });
+      // Step 1: Validate
+      setUploadState({ status: 'validating', progress: 5, error: null });
+      const validation = validateFile(file);
+      if (!validation.valid) {
+        throw new Error(validation.error);
+      }
+
+      // Step 2: Get pre-signed URL
+      setUploadState({ status: 'getting-url', progress: 15, error: null });
       const { upload_url, dataset_id } = await datasetsApi.getUploadUrl(
         file.name,
         file.size
       );
 
-      // Step 2: Upload to S3
-      setUploadProgress({ state: 'uploading', progress: 20 });
+      // Step 3: Upload to S3
+      setUploadState({ status: 'uploading', progress: 25, error: null });
+      
       const etag = await datasetsApi.uploadToS3(upload_url, file, (progress) => {
-        setUploadProgress({ state: 'uploading', progress: 20 + progress * 0.7 });
+        setUploadState(prev => ({
+          ...prev,
+          progress: 25 + Math.round(progress * 0.6), // 25% to 85%
+        }));
       });
 
-      // Step 3: Complete upload
-      setUploadProgress({ state: 'completing', progress: 95 });
+      // Step 4: Complete upload
+      setUploadState({ status: 'completing', progress: 90, error: null });
       await datasetsApi.completeUpload(dataset_id, { etag });
 
-      setUploadProgress({ state: 'done', progress: 100 });
+      // Success
+      setUploadState({ status: 'success', progress: 100, error: null });
       
       setTimeout(() => {
         onSuccess();
-        handleClose();
+        onClose();
       }, 1000);
-    } catch (error) {
-      setUploadProgress({
-        state: 'error',
-        progress: 0,
-        error: error instanceof Error ? error.message : 'Upload failed',
-      });
-    }
-  }, [file, onSuccess]);
 
-  const handleClose = () => {
-    setFile(null);
-    setUploadProgress({ state: 'idle', progress: 0 });
-    onClose();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Upload failed. Please try again.';
+      setUploadState({ status: 'error', progress: 0, error: message });
+    }
   };
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && (droppedFile.name.endsWith('.csv') || droppedFile.name.endsWith('.json') || droppedFile.name.endsWith('.parquet'))) {
-      setFile(droppedFile);
-    }
-  }, []);
+  const statusMessages = {
+    idle: 'Ready to upload',
+    validating: 'Validating file...',
+    'getting-url': 'Preparing upload...',
+    uploading: 'Uploading file...',
+    completing: 'Finalizing...',
+    success: 'Upload complete!',
+    error: uploadState.error || 'Upload failed',
+  };
 
-  if (!isOpen) return null;
-
-  const isUploading = ['getting-url', 'uploading', 'completing'].includes(uploadProgress.state);
+  const isUploading = ['validating', 'getting-url', 'uploading', 'completing'].includes(uploadState.status);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={handleClose} />
-      <div className="relative glass-dark rounded-2xl p-8 w-full max-w-lg mx-4 shadow-2xl">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-white">Upload Dataset</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      
+      <div className="relative w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-zinc-800">
+          <div>
+            <h2 className="text-lg font-semibold text-white">Upload Dataset</h2>
+            <p className="text-sm text-zinc-500 mt-0.5">
+              Supports CSV, JSON, Parquet, Excel (max {formatBytes(MAX_FILE_SIZE)})
+            </p>
+          </div>
           <button
-            onClick={handleClose}
-            className="p-2 rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+            onClick={onClose}
             disabled={isUploading}
+            className="p-2 text-zinc-500 hover:text-zinc-300 disabled:opacity-50 transition-colors"
           >
-            <X size={20} />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {uploadProgress.state === 'error' && (
-          <div className="mb-4 p-4 bg-red-500/20 text-red-400 rounded-xl flex items-center gap-3">
-            <AlertCircle size={20} />
-            {uploadProgress.error}
-          </div>
-        )}
-
-        {!isUploading && uploadProgress.state !== 'done' && (
+        {/* Content */}
+        <div className="p-5">
+          {/* Drop Zone */}
           <div
             onDrop={handleDrop}
-            onDragOver={(e) => e.preventDefault()}
-            className={cn(
-              "border-2 border-dashed rounded-2xl p-10 text-center transition-all duration-300",
-              file 
-                ? "border-violet bg-violet/10" 
-                : "border-white/20 hover:border-violet/50 hover:bg-white/5"
-            )}
+            onDragOver={handleDragOver}
+            onClick={() => !isUploading && fileInputRef.current?.click()}
+            className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${
+              uploadState.status === 'error'
+                ? 'border-red-500/50 bg-red-500/5'
+                : uploadState.status === 'success'
+                ? 'border-emerald-500/50 bg-emerald-500/5'
+                : file
+                ? 'border-blue-500/50 bg-blue-500/5'
+                : 'border-zinc-700 hover:border-zinc-600 bg-zinc-800/30'
+            } ${isUploading ? 'pointer-events-none' : ''}`}
           >
-            {file ? (
-              <div className="space-y-3">
-                <div className="w-16 h-16 mx-auto rounded-2xl bg-violet/20 flex items-center justify-center">
-                  <FileSpreadsheet size={32} className="text-violet" />
-                </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ALLOWED_EXTENSIONS.join(',')}
+              onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+              className="hidden"
+              disabled={isUploading}
+            />
+
+            {uploadState.status === 'success' ? (
+              <div className="text-emerald-400">
+                <Check className="w-12 h-12 mx-auto mb-3" />
+                <p className="font-medium">Upload Complete!</p>
+              </div>
+            ) : uploadState.status === 'error' ? (
+              <div className="text-red-400">
+                <AlertCircle className="w-12 h-12 mx-auto mb-3" />
+                <p className="font-medium mb-1">Upload Failed</p>
+                <p className="text-sm text-red-400/80">{uploadState.error}</p>
+              </div>
+            ) : file ? (
+              <div>
+                <FileText className="w-12 h-12 mx-auto mb-3 text-blue-400" />
                 <p className="font-medium text-white">{file.name}</p>
-                <p className="text-sm text-white/50">
-                  {(file.size / 1024 / 1024).toFixed(2)} MB
-                </p>
-                <button
-                  onClick={() => setFile(null)}
-                  className="text-sm text-red-400 hover:text-red-300 transition-colors"
-                >
-                  Remove
-                </button>
+                <p className="text-sm text-zinc-500 mt-1">{formatBytes(file.size)}</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="w-16 h-16 mx-auto rounded-2xl bg-white/5 flex items-center justify-center">
-                  <Upload size={32} className="text-white/40" />
-                </div>
+              <div className="text-zinc-400">
+                <Upload className="w-12 h-12 mx-auto mb-3" />
                 <p className="font-medium text-white">Drop your file here</p>
-                <p className="text-sm text-white/50">
-                  or click to browse
-                </p>
-                <p className="text-xs text-white/30">
-                  Supports CSV, JSON, Parquet (max 500MB)
-                </p>
+                <p className="text-sm text-zinc-500 mt-1">or click to browse</p>
               </div>
             )}
-            <input
-              type="file"
-              accept=".csv,.json,.parquet"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            />
           </div>
-        )}
 
-        {(isUploading || uploadProgress.state === 'done') && (
-          <div className="space-y-4 p-6 rounded-2xl bg-white/5">
-            <div className="flex items-center gap-4">
-              {uploadProgress.state === 'done' ? (
-                <div className="p-3 rounded-xl bg-mint/20">
-                  <CheckCircle className="text-mint" size={24} />
-                </div>
-              ) : (
-                <div className="p-3 rounded-xl bg-violet/20">
-                  <Loader2 className="animate-spin text-violet" size={24} />
-                </div>
-              )}
-              <div className="flex-1">
-                <p className="font-medium text-white">
-                  {uploadProgress.state === 'getting-url' && 'Preparing upload...'}
-                  {uploadProgress.state === 'uploading' && 'Uploading to storage...'}
-                  {uploadProgress.state === 'completing' && 'Finalizing...'}
-                  {uploadProgress.state === 'done' && 'Upload complete!'}
-                </p>
-                <p className="text-sm text-white/50">{file?.name}</p>
+          {/* Progress */}
+          {isUploading && (
+            <div className="mt-5">
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="text-zinc-400">{statusMessages[uploadState.status]}</span>
+                <span className="text-zinc-500">{uploadState.progress}%</span>
+              </div>
+              <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 transition-all duration-300"
+                  style={{ width: `${uploadState.progress}%` }}
+                />
               </div>
             </div>
-            <div className="relative h-2 bg-white/10 rounded-full overflow-hidden">
-              <div 
-                className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet to-mint rounded-full transition-all duration-300"
-                style={{ width: `${uploadProgress.progress}%` }}
-              />
-            </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        <div className="flex justify-end gap-3 mt-6">
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 p-5 border-t border-zinc-800">
           <button
-            onClick={handleClose}
+            onClick={onClose}
             disabled={isUploading}
-            className="px-5 py-2.5 rounded-xl text-white/70 hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
+            className="px-4 py-2.5 text-sm font-medium text-zinc-400 hover:text-zinc-300 disabled:opacity-50 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleUpload}
-            disabled={!file || isUploading || uploadProgress.state === 'done'}
-            className={cn(
-              "px-5 py-2.5 rounded-xl font-medium transition-all duration-300",
-              "bg-gradient-to-r from-violet to-violet/80 text-white",
-              "hover:shadow-lg hover:shadow-violet/30",
-              "active:scale-95",
-              "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
-            )}
+            disabled={!file || isUploading || uploadState.status === 'success'}
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
           >
-            {isUploading ? 'Uploading...' : 'Upload'}
+            {isUploading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4" />
+                Upload
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -334,12 +353,13 @@ function UploadModal({
 }
 
 export default function DatasetsPage() {
-  const queryClient = useQueryClient();
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
-  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['datasets', page],
+    queryKey: ['datasets', page, searchQuery],
     queryFn: () => datasetsApi.list(page, 10),
   });
 
@@ -351,7 +371,7 @@ export default function DatasetsPage() {
   });
 
   const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this dataset?')) {
+    if (confirm('Are you sure you want to delete this dataset? This action cannot be undone.')) {
       deleteMutation.mutate(id);
     }
   };
@@ -360,122 +380,142 @@ export default function DatasetsPage() {
     queryClient.invalidateQueries({ queryKey: ['datasets'] });
   };
 
+  const datasets = data?.datasets || [];
+  const pagination = data?.pagination;
+  const totalPages = pagination?.total_pages || 1;
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="min-h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white">Datasets</h1>
-          <p className="text-white/50">
-            Manage your training data files
-          </p>
+          <h1 className="text-2xl font-semibold text-white">Datasets</h1>
+          <p className="text-zinc-500 mt-1">Manage your uploaded datasets</p>
         </div>
-        {/* Neumorphic Upload Button */}
         <button
-          onClick={() => setUploadModalOpen(true)}
-          className={cn(
-            "flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-300",
-            "bg-gradient-to-r from-violet to-violet/80 text-white",
-            "shadow-lg shadow-violet/30",
-            "hover:shadow-xl hover:shadow-violet/40 hover:scale-[1.02]",
-            "active:scale-95 active:shadow-inner"
-          )}
+          onClick={() => setShowUploadModal(true)}
+          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
         >
-          <Upload size={18} />
+          <Upload className="w-4 h-4" />
           Upload Dataset
         </button>
       </div>
 
-      <div className="glass-dark rounded-2xl overflow-hidden">
+      {/* Search and Filter */}
+      <div className="flex items-center gap-4 mb-6">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Search datasets..."
+            className="w-full pl-10 pr-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-all"
+          />
+        </div>
+      </div>
+
+      {/* Error State */}
+      {error && (
+        <div className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 mb-6">
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <div>
+            <p className="font-medium">Failed to load datasets</p>
+            <p className="text-sm text-red-400/80 mt-0.5">Please try refreshing the page.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Error */}
+      {deleteMutation.isError && (
+        <div className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 mb-6">
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <span>Failed to delete dataset. Please try again.</span>
+        </div>
+      )}
+
+      {/* Content */}
+      <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl">
         {isLoading ? (
-          <div className="p-12 text-center">
-            <Loader2 className="animate-spin mx-auto mb-3 text-violet" size={32} />
-            <p className="text-white/50">Loading datasets...</p>
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
           </div>
-        ) : error ? (
-          <div className="p-12 text-center text-red-400">
-            Failed to load datasets
-          </div>
-        ) : !data?.datasets?.length ? (
-          <div className="p-16 text-center">
-            <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-white/5 flex items-center justify-center">
-              <Database size={40} className="text-white/30" />
+        ) : datasets.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-16 h-16 rounded-full bg-zinc-800/50 flex items-center justify-center mb-4">
+              <Database className="w-8 h-8 text-zinc-600" />
             </div>
-            <p className="font-medium text-white mb-1">No datasets yet</p>
-            <p className="text-sm text-white/50 mb-6">Upload your first dataset to get started</p>
+            <h3 className="text-lg font-medium text-white mb-1">No datasets yet</h3>
+            <p className="text-sm text-zinc-500 mb-6 max-w-sm">
+              Upload your first dataset to start validating and analyzing your data.
+            </p>
             <button
-              onClick={() => setUploadModalOpen(true)}
-              className={cn(
-                "inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-300",
-                "bg-gradient-to-r from-violet to-violet/80 text-white",
-                "shadow-lg shadow-violet/30",
-                "hover:shadow-xl hover:shadow-violet/40"
-              )}
+              onClick={() => setShowUploadModal(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
             >
-              <Upload size={18} />
+              <Upload className="w-4 h-4" />
               Upload Dataset
             </button>
           </div>
         ) : (
           <>
-            {/* Header */}
-            <div className="px-6 py-4 border-b border-white/10">
-              <div className="flex items-center text-xs font-medium text-white/40 uppercase tracking-wider">
-                <span className="flex-1">Dataset</span>
-                <span className="w-24 text-right hidden sm:block">Rows</span>
-                <span className="w-24 text-right hidden md:block">Size</span>
-                <span className="w-28 text-right hidden lg:block">Created</span>
-                <span className="w-28 text-center">Status</span>
-                <span className="w-12"></span>
+            <div className="px-5 py-3 border-b border-zinc-800/50">
+              <div className="flex items-center justify-between text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                <span>Dataset</span>
+                <span className="mr-12">Status</span>
               </div>
             </div>
-            
-            {/* Dataset Rows */}
-            <div className="divide-y divide-white/5">
-              {data.datasets.map((dataset) => (
-                <DatasetRow
-                  key={dataset.id}
-                  dataset={dataset}
-                  onDelete={handleDelete}
+            <div className="px-5">
+              {datasets.map((dataset) => (
+                <DatasetRow 
+                  key={dataset.id} 
+                  dataset={dataset} 
+                  onDelete={handleDelete} 
                 />
               ))}
             </div>
-
-            {/* Pagination */}
-            {data.pagination.total_pages > 1 && (
-              <div className="flex items-center justify-between px-6 py-4 border-t border-white/10">
-                <p className="text-sm text-white/50">
-                  Showing {((page - 1) * 10) + 1} to {Math.min(page * 10, data.pagination.total)} of {data.pagination.total} datasets
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setPage(p => p - 1)}
-                    disabled={page === 1}
-                    className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                  <span className="px-4 py-2 text-sm text-white/70">
-                    Page {page} of {data.pagination.total_pages}
-                  </span>
-                  <button
-                    onClick={() => setPage(p => p + 1)}
-                    disabled={page >= data.pagination.total_pages}
-                    className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <ChevronRight size={18} />
-                  </button>
-                </div>
-              </div>
-            )}
           </>
         )}
       </div>
 
-      <UploadModal
-        isOpen={uploadModalOpen}
-        onClose={() => setUploadModalOpen(false)}
-        onSuccess={handleUploadSuccess}
-      />
+      {/* Pagination */}
+      {pagination && pagination.total > pagination.per_page && (
+        <div className="flex items-center justify-between mt-6">
+          <p className="text-sm text-zinc-500">
+            Showing {((page - 1) * pagination.per_page) + 1} to {Math.min(page * pagination.per_page, pagination.total)} of {pagination.total} datasets
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="p-2 text-zinc-400 hover:text-white disabled:text-zinc-600 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <span className="text-sm text-zinc-400 px-3">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="p-2 text-zinc-400 hover:text-white disabled:text-zinc-600 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <UploadModal
+          onClose={() => setShowUploadModal(false)}
+          onSuccess={handleUploadSuccess}
+        />
+      )}
     </div>
   );
 }

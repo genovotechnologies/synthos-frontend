@@ -1,218 +1,389 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { User, Settings, Shield, Key, Bell, Eye, EyeOff, Copy, RefreshCw, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { 
-  User, 
-  Building, 
-  Key, 
-  Bell, 
-  Shield,
-  Loader2,
-  CheckCircle
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { authApi, type NotificationPreferences } from '@/lib/api';
 
-type SettingsTab = 'profile' | 'security' | 'notifications' | 'api';
+type TabType = 'profile' | 'security' | 'notifications' | 'api';
 
 function ProfileSettings() {
-  const { user } = useAuth();
-  const [isSaving, setIsSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const { user, checkAuth } = useAuth();
+  const queryClient = useQueryClient();
+  const [name, setName] = useState('');
+  const [company, setCompany] = useState('');
+  const [role, setRole] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSaving(true);
-    // Simulate save
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
-  };
+  useEffect(() => {
+    if (user) {
+      setName(user.name || '');
+      setCompany(user.company || '');
+      setRole(user.role || '');
+    }
+  }, [user]);
 
-  return (
-    <form onSubmit={handleSave} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <Label htmlFor="name">Full Name</Label>
-          <Input id="name" defaultValue={user?.name} placeholder="Mike Alts />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="email">Email Address</Label>
-          <Input id="email" type="email" defaultValue={user?.email} disabled />
-          <p className="text-xs text-muted-foreground">
-            Contact support to change your email
-          </p>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="company">Company</Label>
-          <Input id="company" defaultValue={user?.company} placeholder="Acme Inc." />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="role">Role</Label>
-          <Input id="role" placeholder="ML Engineer" />
-        </div>
-      </div>
+  const updateProfileMutation = useMutation({
+    mutationFn: authApi.updateProfile,
+    onSuccess: () => {
+      setSuccessMessage('Profile updated successfully');
+      checkAuth(); // Refresh user data
+      queryClient.invalidateQueries({ queryKey: ['user'] });
+      setTimeout(() => setSuccessMessage(''), 3000);
+    },
+  });
 
-      <div className="flex items-center gap-3">
-        <Button type="submit" disabled={isSaving}>
-          {isSaving ? (
-            <>
-              <Loader2 size={16} className="mr-2 animate-spin" />
-              Saving...
-            </>
-          ) : saved ? (
-            <>
-              <CheckCircle size={16} className="mr-2" />
-              Saved!
-            </>
-          ) : (
-            'Save Changes'
-          )}
-        </Button>
-      </div>
-    </form>
-  );
-}
-
-function SecuritySettings() {
-  const [isSaving, setIsSaving] = useState(false);
-
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSaving(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsSaving(false);
+  const handleSave = () => {
+    updateProfileMutation.mutate({ name, company, role });
   };
 
   return (
     <div className="space-y-8">
-      <form onSubmit={handleChangePassword} className="space-y-6">
-        <h3 className="text-lg font-medium">Change Password</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label htmlFor="current">Current Password</Label>
-            <Input id="current" type="password" />
-          </div>
-          <div />
-          <div className="space-y-2">
-            <Label htmlFor="new">New Password</Label>
-            <Input id="new" type="password" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="confirm">Confirm New Password</Label>
-            <Input id="confirm" type="password" />
+      <div>
+        <h3 className="text-lg font-medium text-white mb-1">Profile Information</h3>
+        <p className="text-sm text-zinc-500">Update your account profile details.</p>
+      </div>
+
+      {successMessage && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+          <Check className="w-4 h-4" />
+          <span className="text-sm">{successMessage}</span>
+        </div>
+      )}
+
+      {updateProfileMutation.isError && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
+          <AlertCircle className="w-4 h-4" />
+          <span className="text-sm">Failed to update profile. Please try again.</span>
+        </div>
+      )}
+
+      <div className="grid gap-6 max-w-md">
+        <div>
+          <label className="block text-sm font-medium text-zinc-300 mb-2">Full Name</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full px-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-all"
+            placeholder="Enter your name"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-zinc-300 mb-2">Email Address</label>
+          <input
+            type="email"
+            value={user?.email || ''}
+            disabled
+            className="w-full px-4 py-2.5 bg-zinc-900/30 border border-zinc-800/50 rounded-lg text-zinc-500 cursor-not-allowed"
+          />
+          <p className="text-xs text-zinc-600 mt-1">Email cannot be changed</p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-zinc-300 mb-2">Company</label>
+          <input
+            type="text"
+            value={company}
+            onChange={(e) => setCompany(e.target.value)}
+            className="w-full px-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-all"
+            placeholder="Your company name"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-zinc-300 mb-2">Role</label>
+          <input
+            type="text"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            className="w-full px-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-all"
+            placeholder="Your role"
+          />
+        </div>
+
+        <button
+          onClick={handleSave}
+          disabled={updateProfileMutation.isPending}
+          className="w-fit px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+        >
+          {updateProfileMutation.isPending ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            'Save Changes'
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SecuritySettings() {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [validationError, setValidationError] = useState('');
+
+  const changePasswordMutation = useMutation({
+    mutationFn: authApi.changePassword,
+    onSuccess: () => {
+      setSuccessMessage('Password changed successfully');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    },
+  });
+
+  const handleChangePassword = () => {
+    setValidationError('');
+    
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setValidationError('All fields are required');
+      return;
+    }
+    
+    if (newPassword.length < 8) {
+      setValidationError('New password must be at least 8 characters');
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      setValidationError('New passwords do not match');
+      return;
+    }
+
+    changePasswordMutation.mutate({
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+  };
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h3 className="text-lg font-medium text-white mb-1">Security Settings</h3>
+        <p className="text-sm text-zinc-500">Manage your password and security preferences.</p>
+      </div>
+
+      {successMessage && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+          <Check className="w-4 h-4" />
+          <span className="text-sm">{successMessage}</span>
+        </div>
+      )}
+
+      {(validationError || changePasswordMutation.isError) && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
+          <AlertCircle className="w-4 h-4" />
+          <span className="text-sm">
+            {validationError || 'Failed to change password. Check your current password and try again.'}
+          </span>
+        </div>
+      )}
+
+      <div className="grid gap-6 max-w-md">
+        <div>
+          <label className="block text-sm font-medium text-zinc-300 mb-2">Current Password</label>
+          <div className="relative">
+            <input
+              type={showCurrent ? 'text' : 'password'}
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full px-4 py-2.5 pr-10 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-all"
+              placeholder="Enter current password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowCurrent(!showCurrent)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+            >
+              {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
           </div>
         </div>
-        <Button type="submit" disabled={isSaving}>
-          {isSaving ? 'Updating...' : 'Update Password'}
-        </Button>
-      </form>
 
-      <div className="pt-6 border-t border-border">
-        <h3 className="text-lg font-medium mb-4">Two-Factor Authentication</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Add an extra layer of security to your account by enabling two-factor authentication.
-        </p>
-        <Button variant="outline">Enable 2FA</Button>
+        <div>
+          <label className="block text-sm font-medium text-zinc-300 mb-2">New Password</label>
+          <div className="relative">
+            <input
+              type={showNew ? 'text' : 'password'}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full px-4 py-2.5 pr-10 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-all"
+              placeholder="Enter new password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowNew(!showNew)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+            >
+              {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          <p className="text-xs text-zinc-600 mt-1">Minimum 8 characters</p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-zinc-300 mb-2">Confirm New Password</label>
+          <div className="relative">
+            <input
+              type={showConfirm ? 'text' : 'password'}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full px-4 py-2.5 pr-10 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-all"
+              placeholder="Confirm new password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirm(!showConfirm)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+            >
+              {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        <button
+          onClick={handleChangePassword}
+          disabled={changePasswordMutation.isPending}
+          className="w-fit px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+        >
+          {changePasswordMutation.isPending ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Changing...
+            </>
+          ) : (
+            'Change Password'
+          )}
+        </button>
       </div>
     </div>
   );
 }
 
 function NotificationSettings() {
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [validationComplete, setValidationComplete] = useState(true);
-  const [warrantyExpiring, setWarrantyExpiring] = useState(true);
-  const [weeklyDigest, setWeeklyDigest] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  
+  const { data: preferences, isLoading } = useQuery({
+    queryKey: ['notification-preferences'],
+    queryFn: authApi.getNotificationPreferences,
+  });
+
+  const [settings, setSettings] = useState<NotificationPreferences>({
+    email_notifications: true,
+    validation_complete: true,
+    warranty_expiring: true,
+    weekly_digest: false,
+  });
+
+  useEffect(() => {
+    if (preferences) {
+      setSettings(preferences);
+    }
+  }, [preferences]);
+
+  const updatePreferencesMutation = useMutation({
+    mutationFn: authApi.updateNotificationPreferences,
+    onSuccess: () => {
+      setSuccessMessage('Notification preferences saved');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    },
+  });
+
+  const handleToggle = (key: keyof NotificationPreferences) => {
+    const newSettings = { ...settings, [key]: !settings[key] };
+    setSettings(newSettings);
+    updatePreferencesMutation.mutate(newSettings);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
+      </div>
+    );
+  }
+
+  const notificationOptions = [
+    {
+      key: 'email_notifications' as const,
+      title: 'Email Notifications',
+      description: 'Receive email notifications for important updates',
+    },
+    {
+      key: 'validation_complete' as const,
+      title: 'Validation Complete',
+      description: 'Get notified when data validation finishes',
+    },
+    {
+      key: 'warranty_expiring' as const,
+      title: 'Warranty Expiring',
+      description: 'Alert when warranties are about to expire',
+    },
+    {
+      key: 'weekly_digest' as const,
+      title: 'Weekly Digest',
+      description: 'Receive a weekly summary of your activity',
+    },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between py-4 border-b border-border">
-        <div>
-          <p className="font-medium">Email Notifications</p>
-          <p className="text-sm text-muted-foreground">
-            Receive email notifications about your account
-          </p>
-        </div>
-        <button
-          onClick={() => setEmailNotifications(!emailNotifications)}
-          className={cn(
-            "w-11 h-6 rounded-full transition-colors",
-            emailNotifications ? "bg-primary" : "bg-muted"
-          )}
-        >
-          <div className={cn(
-            "w-5 h-5 rounded-full bg-white transition-transform",
-            emailNotifications ? "translate-x-5" : "translate-x-0.5"
-          )} />
-        </button>
+    <div className="space-y-8">
+      <div>
+        <h3 className="text-lg font-medium text-white mb-1">Notification Preferences</h3>
+        <p className="text-sm text-zinc-500">Choose what notifications you want to receive.</p>
       </div>
 
-      <div className="flex items-center justify-between py-4 border-b border-border">
-        <div>
-          <p className="font-medium">Validation Complete</p>
-          <p className="text-sm text-muted-foreground">
-            Get notified when a validation job completes
-          </p>
+      {successMessage && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+          <Check className="w-4 h-4" />
+          <span className="text-sm">{successMessage}</span>
         </div>
-        <button
-          onClick={() => setValidationComplete(!validationComplete)}
-          className={cn(
-            "w-11 h-6 rounded-full transition-colors",
-            validationComplete ? "bg-primary" : "bg-muted"
-          )}
-        >
-          <div className={cn(
-            "w-5 h-5 rounded-full bg-white transition-transform",
-            validationComplete ? "translate-x-5" : "translate-x-0.5"
-          )} />
-        </button>
-      </div>
+      )}
 
-      <div className="flex items-center justify-between py-4 border-b border-border">
-        <div>
-          <p className="font-medium">Warranty Expiring</p>
-          <p className="text-sm text-muted-foreground">
-            Reminder before a warranty expires
-          </p>
+      {updatePreferencesMutation.isError && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
+          <AlertCircle className="w-4 h-4" />
+          <span className="text-sm">Failed to save preferences. Please try again.</span>
         </div>
-        <button
-          onClick={() => setWarrantyExpiring(!warrantyExpiring)}
-          className={cn(
-            "w-11 h-6 rounded-full transition-colors",
-            warrantyExpiring ? "bg-primary" : "bg-muted"
-          )}
-        >
-          <div className={cn(
-            "w-5 h-5 rounded-full bg-white transition-transform",
-            warrantyExpiring ? "translate-x-5" : "translate-x-0.5"
-          )} />
-        </button>
-      </div>
+      )}
 
-      <div className="flex items-center justify-between py-4">
-        <div>
-          <p className="font-medium">Weekly Digest</p>
-          <p className="text-sm text-muted-foreground">
-            Weekly summary of your validation activity
-          </p>
-        </div>
-        <button
-          onClick={() => setWeeklyDigest(!weeklyDigest)}
-          className={cn(
-            "w-11 h-6 rounded-full transition-colors",
-            weeklyDigest ? "bg-primary" : "bg-muted"
-          )}
-        >
-          <div className={cn(
-            "w-5 h-5 rounded-full bg-white transition-transform",
-            weeklyDigest ? "translate-x-5" : "translate-x-0.5"
-          )} />
-        </button>
+      <div className="space-y-1">
+        {notificationOptions.map((option) => (
+          <div
+            key={option.key}
+            className="flex items-center justify-between py-4 border-b border-zinc-800/50 last:border-0"
+          >
+            <div>
+              <p className="text-sm font-medium text-white">{option.title}</p>
+              <p className="text-xs text-zinc-500 mt-0.5">{option.description}</p>
+            </div>
+            <button
+              onClick={() => handleToggle(option.key)}
+              disabled={updatePreferencesMutation.isPending}
+              className={`relative w-11 h-6 rounded-full transition-colors ${
+                settings[option.key] ? 'bg-blue-600' : 'bg-zinc-700'
+              }`}
+            >
+              <span
+                className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                  settings[option.key] ? 'left-6' : 'left-1'
+                }`}
+              />
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -220,129 +391,181 @@ function NotificationSettings() {
 
 function ApiSettings() {
   const [showKey, setShowKey] = useState(false);
-  const [apiKey, setApiKey] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
-  // API key should be fetched from backend, never hardcoded
-  const fetchApiKey = async () => {
-    setIsLoading(true);
-    try {
-      // This would call your backend to get the user's API key
-      // const response = await apiClient.get('/auth/api-key');
-      // setApiKey(response.data.api_key);
-      setApiKey('••••••••••••••••••••••••••••••'); // Placeholder until backend implements
-    } catch (error) {
-      console.error('Failed to fetch API key');
-    } finally {
-      setIsLoading(false);
+  const { data: apiKeyData, isLoading, refetch } = useQuery({
+    queryKey: ['api-key'],
+    queryFn: authApi.getApiKey,
+  });
+
+  const regenerateMutation = useMutation({
+    mutationFn: authApi.regenerateApiKey,
+    onSuccess: () => {
+      setSuccessMessage('API key regenerated successfully');
+      refetch();
+      setTimeout(() => setSuccessMessage(''), 3000);
+    },
+  });
+
+  const apiKey = apiKeyData?.api_key || 'sk_live_••••••••••••••••••••••••••••••••';
+  const displayKey = showKey ? apiKey : 'sk_live_••••••••••••••••••••••••••••••••';
+
+  const handleCopy = () => {
+    if (apiKey && !apiKey.includes('••••')) {
+      navigator.clipboard.writeText(apiKey);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  const handleCopy = async () => {
-    if (!apiKey || apiKey.includes('•')) {
-      // Fetch real key first if not loaded
-      await fetchApiKey();
-    }
-    if (apiKey && !apiKey.includes('•')) {
-      await navigator.clipboard.writeText(apiKey);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+  const handleRegenerate = () => {
+    if (confirm('Are you sure you want to regenerate your API key? This will invalidate the existing key.')) {
+      regenerateMutation.mutate();
     }
   };
 
   return (
     <div className="space-y-8">
       <div>
-        <h3 className="text-lg font-medium mb-4">API Key</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Use this key to authenticate API requests. Keep it secret!
-        </p>
-        <div className="flex items-center gap-3">
-          <div className="flex-1 bg-muted rounded-md px-4 py-2 font-mono text-sm">
-            {isLoading ? 'Loading...' : (showKey && apiKey ? apiKey : '••••••••••••••••••••••••••••••')}
-          </div>
-          <Button variant="outline" onClick={() => { if (!showKey) fetchApiKey(); setShowKey(!showKey); }} disabled={isLoading}>
-            {showKey ? 'Hide' : 'Show'}
-          </Button>
-          <Button variant="outline" onClick={handleCopy} disabled={isLoading}>
-            {copied ? 'Copied!' : 'Copy'}
-          </Button>
+        <h3 className="text-lg font-medium text-white mb-1">API Access</h3>
+        <p className="text-sm text-zinc-500">Manage your API key for programmatic access.</p>
+      </div>
+
+      {successMessage && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+          <Check className="w-4 h-4" />
+          <span className="text-sm">{successMessage}</span>
         </div>
+      )}
+
+      {regenerateMutation.isError && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
+          <AlertCircle className="w-4 h-4" />
+          <span className="text-sm">Failed to regenerate API key. Please try again.</span>
+        </div>
+      )}
+
+      <div className="space-y-4 max-w-lg">
+        <div>
+          <label className="block text-sm font-medium text-zinc-300 mb-2">Your API Key</label>
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              {isLoading ? (
+                <div className="w-full px-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-lg text-zinc-500">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  value={displayKey}
+                  readOnly
+                  className="w-full px-4 py-2.5 pr-10 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white font-mono text-sm"
+                />
+              )}
+              <button
+                onClick={() => setShowKey(!showKey)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+              >
+                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <button
+              onClick={handleCopy}
+              disabled={!showKey || isLoading}
+              className="px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 disabled:bg-zinc-800/50 disabled:text-zinc-600 text-zinc-300 rounded-lg transition-colors"
+            >
+              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+            </button>
+          </div>
+          <p className="text-xs text-zinc-600 mt-2">
+            Keep your API key secure. Do not share it publicly or commit it to version control.
+          </p>
+        </div>
+
+        <button
+          onClick={handleRegenerate}
+          disabled={regenerateMutation.isPending}
+          className="flex items-center gap-2 px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 disabled:bg-zinc-800/50 text-zinc-300 rounded-lg transition-colors"
+        >
+          {regenerateMutation.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4" />
+          )}
+          Regenerate Key
+        </button>
       </div>
 
-      <div className="pt-6 border-t border-border">
-        <h3 className="text-lg font-medium mb-4">Regenerate Key</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          If you believe your API key has been compromised, you can generate a new one.
-          This will invalidate the current key.
+      <div className="pt-6 border-t border-zinc-800/50">
+        <h4 className="text-sm font-medium text-white mb-3">API Documentation</h4>
+        <p className="text-sm text-zinc-500 mb-4">
+          Use the API to integrate Synthos with your workflows and applications.
         </p>
-        <Button variant="outline" className="text-destructive hover:bg-destructive/10">
-          Regenerate API Key
-        </Button>
-      </div>
-
-      <div className="pt-6 border-t border-border">
-        <h3 className="text-lg font-medium mb-4">Webhooks</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Configure webhook endpoints to receive real-time events.
-        </p>
-        <Button variant="outline">Configure Webhooks</Button>
+        <a
+          href="https://docs.synthos.dev"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+        >
+          View API Documentation
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
       </div>
     </div>
   );
 }
 
-const tabs = [
-  { id: 'profile' as const, label: 'Profile', icon: User },
-  { id: 'security' as const, label: 'Security', icon: Shield },
-  { id: 'notifications' as const, label: 'Notifications', icon: Bell },
-  { id: 'api' as const, label: 'API', icon: Key },
-];
-
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
+  const [activeTab, setActiveTab] = useState<TabType>('profile');
+
+  const tabs = [
+    { id: 'profile' as const, label: 'Profile', icon: User },
+    { id: 'security' as const, label: 'Security', icon: Shield },
+    { id: 'notifications' as const, label: 'Notifications', icon: Bell },
+    { id: 'api' as const, label: 'API', icon: Key },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your account settings and preferences
-        </p>
+    <div className="min-h-full">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold text-white">Settings</h1>
+        <p className="text-zinc-500 mt-1">Manage your account settings and preferences</p>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6">
-        {/* Tabs */}
-        <div className="md:w-48 shrink-0">
-          <nav className="flex md:flex-col gap-1">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors text-left",
-                    activeTab === tab.id
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                >
-                  <Icon size={18} />
-                  {tab.label}
-                </button>
-              );
-            })}
+      {/* Tabs and Content */}
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* Tab Navigation */}
+        <div className="lg:w-56 flex-shrink-0">
+          <nav className="flex lg:flex-col gap-1">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors w-full text-left ${
+                  activeTab === tab.id
+                    ? 'bg-zinc-800/80 text-white'
+                    : 'text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/40'
+                }`}
+              >
+                <tab.icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            ))}
           </nav>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 bg-card border border-border rounded-xl p-6">
-          {activeTab === 'profile' && <ProfileSettings />}
-          {activeTab === 'security' && <SecuritySettings />}
-          {activeTab === 'notifications' && <NotificationSettings />}
-          {activeTab === 'api' && <ApiSettings />}
+        {/* Tab Content */}
+        <div className="flex-1 min-w-0">
+          <div className="p-6 rounded-xl bg-zinc-900/30 border border-zinc-800/50">
+            {activeTab === 'profile' && <ProfileSettings />}
+            {activeTab === 'security' && <SecuritySettings />}
+            {activeTab === 'notifications' && <NotificationSettings />}
+            {activeTab === 'api' && <ApiSettings />}
+          </div>
         </div>
       </div>
     </div>
