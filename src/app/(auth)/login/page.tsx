@@ -11,7 +11,8 @@ import { useAuth } from '@/providers/auth-provider';
 import { SynthosLogo } from '@/components/ui/synthos-logo';
 import { isValidRedirectUrl } from '@/lib/utils';
 import { cn } from '@/lib/utils';
-import { Eye, EyeOff, Mail, Lock, AlertCircle, ArrowRight, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, AlertCircle, ArrowRight, Loader2, Gift } from 'lucide-react';
+import { creditsApi } from '@/lib/api/credits';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -42,11 +43,23 @@ function LoginFormContent() {
 
     try {
       await login(data);
+
+      // Auto-redeem promo code if present from registration
+      const promoCode = searchParams.get('promo');
+      if (promoCode) {
+        try {
+          await creditsApi.redeemPromo(promoCode);
+        } catch {
+          // Promo redemption failure shouldn't block login
+          console.warn('Failed to redeem promo code:', promoCode);
+        }
+      }
+
       const redirectUrl = searchParams.get('redirect');
       if (redirectUrl && isValidRedirectUrl(redirectUrl)) {
         router.push(redirectUrl);
       } else {
-        router.push('/dashboard');
+        router.push(promoCode ? '/dashboard/billing' : '/dashboard');
       }
     } catch {
       setError('Invalid credentials. Please try again.');
@@ -75,6 +88,27 @@ function LoginFormContent() {
           <h1 className="text-2xl font-semibold text-white mb-2">Welcome back</h1>
           <p className="text-zinc-400 text-sm">Sign in to your account to continue</p>
         </div>
+
+        {/* Registration + Promo Success */}
+        {searchParams.get('registered') && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-2 p-3 mb-6 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm"
+          >
+            {searchParams.get('promo') ? (
+              <>
+                <Gift size={16} />
+                Account created! Sign in to activate your free credits.
+              </>
+            ) : (
+              <>
+                <ArrowRight size={16} />
+                Account created successfully! Please sign in.
+              </>
+            )}
+          </motion.div>
+        )}
 
         {/* Error Display */}
         {error && (

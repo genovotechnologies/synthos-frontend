@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Database, CheckCircle, Shield, Settings, LogOut, Menu, Search, X } from 'lucide-react';
+import { LayoutDashboard, Database, CheckCircle, Shield, Settings, LogOut, Menu, Search, X, CreditCard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SynthosLogo } from '@/components/ui/synthos-logo';
 import { useAuth } from '@/providers/auth-provider';
@@ -14,6 +14,7 @@ const navigation = [
   { name: 'Datasets', href: '/dashboard/datasets', icon: Database },
   { name: 'Validations', href: '/dashboard/validations', icon: CheckCircle },
   { name: 'Warranties', href: '/dashboard/warranties', icon: Shield },
+  { name: 'Billing', href: '/dashboard/billing', icon: CreditCard },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ];
 

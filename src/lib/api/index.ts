@@ -8,4 +8,6 @@ export { analyticsApi } from './analytics';
 export { warrantiesApi } from './warranties';
 export { notificationsApi } from './notifications';
 export type { Notification, NotificationsResponse } from './notifications';
+export { creditsApi } from './credits';
+export type { CreditBalance, CreditPackage, CreditTransaction, CreditCost } from './credits';
 export * from './types';

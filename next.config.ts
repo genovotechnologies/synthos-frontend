@@ -33,6 +33,8 @@ const nextConfig: NextConfig = {
   },
   // Disable x-powered-by header
   poweredByHeader: false,
+  // Enable standalone output for Docker deployment
+  output: 'standalone',
 };
 
 export default nextConfig;

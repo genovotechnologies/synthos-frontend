@@ -1,16 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/providers/auth-provider';
 import { SynthosLogo } from '@/components/ui/synthos-logo';
 import { cn } from '@/lib/utils';
-import { Eye, EyeOff, Mail, Lock, User, Building2, AlertCircle, ArrowRight, Loader2, Check } from 'lucide-react';
+import { apiClient } from '@/lib/api/client';
+import { Eye, EyeOff, Mail, Lock, User, Building2, AlertCircle, ArrowRight, Loader2, Check, Tag, ChevronDown } from 'lucide-react';
 
 const registerSchema = z.object({
   name: z.string()
@@ -19,6 +20,7 @@ const registerSchema = z.object({
   email: z.string()
     .email('Please enter a valid email address'),
   company: z.string().optional(),
+  promoCode: z.string().optional(),
   password: z.string()
     .min(8, 'Password must be at least 8 characters')
     .regex(/[A-Z]/, 'Password must contain an uppercase letter')
@@ -80,6 +82,41 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showPromoCode, setShowPromoCode] = useState(false);
+  const [promoValidation, setPromoValidation] = useState<{
+    status: 'idle' | 'loading' | 'valid' | 'invalid';
+    message?: string;
+  }>({ status: 'idle' });
+  const promoDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const validatePromoCode = useCallback((code: string) => {
+    if (promoDebounceRef.current) {
+      clearTimeout(promoDebounceRef.current);
+    }
+
+    if (!code.trim()) {
+      setPromoValidation({ status: 'idle' });
+      return;
+    }
+
+    setPromoValidation({ status: 'loading' });
+
+    promoDebounceRef.current = setTimeout(async () => {
+      try {
+        const response = await apiClient.get(`/api/v1/promo/validate?code=${encodeURIComponent(code.trim())}`);
+        const data = response.data;
+        setPromoValidation({
+          status: 'valid',
+          message: data.message || `Valid! You'll receive ${data.credits || 50} credits.`,
+        });
+      } catch {
+        setPromoValidation({
+          status: 'invalid',
+          message: 'Invalid promotional code.',
+        });
+      }
+    }, 500);
+  }, []);
 
   const {
     register,
@@ -103,7 +140,10 @@ export default function RegisterPage() {
         password: data.password,
         company: data.company,
       });
-      router.push('/login?registered=true');
+      const promoParam = data.promoCode && promoValidation.status === 'valid'
+        ? `&promo=${encodeURIComponent(data.promoCode.trim())}`
+        : '';
+      router.push(`/login?registered=true${promoParam}`);
     } catch {
       setError('Registration failed. Please try again.');
     } finally {
@@ -224,6 +264,79 @@ export default function RegisterPage() {
                 )}
               />
             </div>
+          </div>
+
+          {/* Promo Code Collapsible */}
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => setShowPromoCode(!showPromoCode)}
+              className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-300 transition-colors"
+            >
+              <Tag size={14} />
+              <span>Have a promo code?</span>
+              <ChevronDown
+                size={14}
+                className={cn(
+                  "transition-transform duration-200",
+                  showPromoCode && "rotate-180"
+                )}
+              />
+            </button>
+            <AnimatePresence>
+              {showPromoCode && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="space-y-2 pt-1">
+                    <label htmlFor="promoCode" className="text-sm font-medium text-zinc-300">
+                      Promotional Code <span className="text-zinc-600">(optional)</span>
+                    </label>
+                    <div className="relative">
+                      <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                      <input
+                        {...register('promoCode')}
+                        id="promoCode"
+                        type="text"
+                        placeholder="Enter promo code"
+                        onChange={(e) => {
+                          register('promoCode').onChange(e);
+                          validatePromoCode(e.target.value);
+                        }}
+                        className={cn(
+                          "w-full pl-10 pr-10 py-3 rounded-lg",
+                          "bg-zinc-950 border border-zinc-800",
+                          "text-white placeholder:text-zinc-600",
+                          "focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/20",
+                          "transition-colors duration-200",
+                          promoValidation.status === 'valid' && "border-green-500/50",
+                          promoValidation.status === 'invalid' && "border-red-500/50"
+                        )}
+                      />
+                      {promoValidation.status === 'loading' && (
+                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 animate-spin" size={18} />
+                      )}
+                      {promoValidation.status === 'valid' && (
+                        <Check className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500" size={18} />
+                      )}
+                      {promoValidation.status === 'invalid' && (
+                        <AlertCircle className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500" size={18} />
+                      )}
+                    </div>
+                    {promoValidation.status === 'valid' && promoValidation.message && (
+                      <p className="text-xs text-green-400">{promoValidation.message}</p>
+                    )}
+                    {promoValidation.status === 'invalid' && promoValidation.message && (
+                      <p className="text-xs text-red-400">{promoValidation.message}</p>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Password Field */}
