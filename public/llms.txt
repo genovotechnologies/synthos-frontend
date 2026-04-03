@@ -1,0 +1,44 @@
+# Synthos - AI Training Data Validation Platform
+
+> Synthos validates AI training data to prevent model collapse before it happens. Built by Genovo Technologies.
+
+## What is Synthos?
+
+Synthos is a professional AI training data validation platform that detects model collapse risks before training begins. It validates synthetic data quality across multiple dimensions with 90%+ prediction accuracy, helping AI teams avoid costly training failures.
+
+## Key Features
+
+- **Model Collapse Detection**: Identifies collapse risks in synthetic training data before they impact model performance
+- **Multi-Dimensional Validation**: Analyzes distribution fidelity, feature correlation, temporal consistency, outlier detection, and schema compliance
+- **90%+ Prediction Accuracy**: Industry-leading accuracy in predicting training outcomes
+- **Data Quality Warranties**: Financial guarantees backed by validated data quality scores
+- **Large Dataset Support**: Handles datasets up to 500GB with chunked upload and resume
+- **REST API**: Full API access for integration into ML training pipelines
+- **Credit-Based Pricing**: Pay per validation with packages from Starter ($1,500) to Enterprise ($80,000)
+
+## Who Uses Synthos?
+
+AI/ML teams, data scientists, and organizations building production AI models who need to validate their training data quality before committing to expensive training runs. Particularly useful for teams working with synthetic data.
+
+## How It Works
+
+1. Upload your dataset (CSV, JSON, Parquet, HDF5, Excel)
+2. Select validation type (comprehensive, distribution, correlation, temporal)
+3. Receive detailed risk scores across 5 quality dimensions
+4. Get actionable recommendations to improve data quality
+5. Optionally purchase a data quality warranty
+
+## Technical Details
+
+- **Architecture**: Go API gateway + Python ML backend with PyTorch
+- **Validation Approach**: Multi-scale cascade architecture with spectral and frequency analysis
+- **Deployment**: Google Cloud Platform (Cloud Run, Cloud SQL, GCS)
+- **Frontend**: Next.js on Vercel at synthos.dev
+
+## Links
+
+- Website: https://synthos.dev
+- Register: https://synthos.dev/register
+- Login: https://synthos.dev/login
+- Company: https://genovotech.com
+- Contact: info@genovotech.com
