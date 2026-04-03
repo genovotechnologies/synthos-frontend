@@ -22,26 +22,51 @@ export interface NotificationPreferences {
 export const authApi = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
     const response = await apiClient.post<LoginResponse>('/auth/login', data);
-    return response.data;
+    const result = response.data;
+    // Map backend field names to frontend types
+    if (result.user) {
+      const u = result.user as unknown as Record<string, unknown>;
+      if (u.full_name && !u.name) result.user.name = u.full_name as string;
+      if (u.company_name && !u.company) result.user.company = u.company_name as string;
+    }
+    return result;
   },
 
   register: async (data: RegisterRequest): Promise<RegisterResponse> => {
-    const response = await apiClient.post<RegisterResponse>('/auth/register', data);
+    const response = await apiClient.post<RegisterResponse>('/auth/register', {
+      email: data.email,
+      password: data.password,
+      full_name: data.name,
+      company_name: data.company || '',
+    });
     return response.data;
   },
 
   getCurrentUser: async (): Promise<User | null> => {
     try {
       const response = await apiClient.get<User>('/auth/me');
-      return response.data;
+      const user = response.data;
+      // Map backend field names to frontend types
+      const u = user as unknown as Record<string, unknown>;
+      if (u.full_name && !u.name) user.name = u.full_name as string;
+      if (u.company_name && !u.company) user.company = u.company_name as string;
+      return user;
     } catch {
       return null;
     }
   },
 
   updateProfile: async (data: UpdateProfileRequest): Promise<User> => {
-    const response = await apiClient.patch<User>('/auth/me', data);
-    return response.data;
+    const response = await apiClient.patch<User>('/auth/me', {
+      full_name: data.name,
+      company_name: data.company,
+      job_title: data.role,
+    });
+    const user = response.data;
+    const u = user as unknown as Record<string, unknown>;
+    if (u.full_name && !u.name) user.name = u.full_name as string;
+    if (u.company_name && !u.company) user.company = u.company_name as string;
+    return user;
   },
 
   changePassword: async (data: ChangePasswordRequest): Promise<void> => {
