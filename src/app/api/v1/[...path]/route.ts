@@ -2,17 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'https://synthos-api-gateway-1072864054735.us-central1.run.app';
 
-// GCP Identity Token from env (generated via: gcloud auth print-identity-token --audiences=BACKEND_URL)
-// Set as VERCEL env var: GCP_IDENTITY_TOKEN
-// This needs to be refreshed periodically (1 hour expiry)
-// For production, use Workload Identity Federation
+const GCP_PROJECT_NUMBER = process.env.GCP_PROJECT_NUMBER || '1072864054735';
+const WIF_POOL_ID = process.env.WIF_POOL_ID || 'vercel-pool';
+const WIF_PROVIDER_ID = process.env.WIF_PROVIDER_ID || 'vercel-provider';
+const GCP_SA_EMAIL = process.env.GCP_SA_EMAIL || 'synthos-vercel-proxy@cs-poc-eeli19j6nx85aphvzv6bmeb.iam.gserviceaccount.com';
 
 async function getGCPToken(): Promise<string | null> {
-  // Method 1: Pre-set identity token (simplest - set via Vercel env var)
+  // Method 1: Pre-set identity token (for local dev / quick testing)
   const staticToken = process.env.GCP_IDENTITY_TOKEN;
   if (staticToken) return staticToken;
 
-  // Method 2: Service account JSON (if org policy allows key creation)
+  // Method 2: Service account JSON key (if available)
   const saKey = process.env.GCP_SA_KEY_JSON;
   if (saKey) {
     try {
@@ -50,6 +50,78 @@ async function getGCPToken(): Promise<string | null> {
     }
   }
 
+  // Method 3: Workload Identity Federation (Vercel OIDC -> GCP)
+  // Get OIDC token from env var (set by Vercel when OIDC is enabled)
+  // or fetch it from the Vercel OIDC endpoint
+  let vercelOidcToken = process.env.VERCEL_OIDC_TOKEN;
+  if (!vercelOidcToken && process.env.VERCEL && process.env.VERCEL_OIDC_TOKEN_URL) {
+    try {
+      const oidcRes = await fetch(process.env.VERCEL_OIDC_TOKEN_URL, {
+        headers: { 'Authorization': `Bearer ${process.env.VERCEL_OIDC_TOKEN_SECRET || ''}` },
+      });
+      if (oidcRes.ok) {
+        const oidcData = await oidcRes.json();
+        vercelOidcToken = oidcData.token;
+      }
+    } catch (e) {
+      console.error('Failed to fetch Vercel OIDC token:', e);
+    }
+  }
+  if (vercelOidcToken) {
+    try {
+      // Step 1: Exchange Vercel OIDC token for a federated access token via STS
+      const stsAudience = `//iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/${WIF_POOL_ID}/providers/${WIF_PROVIDER_ID}`;
+
+      const stsRes = await fetch('https://sts.googleapis.com/v1/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+          audience: stsAudience,
+          scope: 'https://www.googleapis.com/auth/cloud-platform',
+          requested_token_type: 'urn:ietf:params:oauth:token-type:access_token',
+          subject_token_type: 'urn:ietf:params:oauth:token-type:jwt',
+          subject_token: vercelOidcToken,
+        }),
+      });
+
+      if (!stsRes.ok) {
+        const err = await stsRes.text();
+        console.error('STS token exchange failed:', err);
+        return null;
+      }
+
+      const stsData = await stsRes.json();
+      const federatedAccessToken = stsData.access_token;
+
+      // Step 2: Use federated token to generate an identity token for the target SA
+      const idTokenRes = await fetch(
+        `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${GCP_SA_EMAIL}:generateIdToken`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${federatedAccessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            audience: BACKEND_URL,
+            includeEmail: true,
+          }),
+        }
+      );
+
+      if (idTokenRes.ok) {
+        const idTokenData = await idTokenRes.json();
+        return idTokenData.token;
+      } else {
+        const err = await idTokenRes.text();
+        console.error('ID token generation failed:', err);
+      }
+    } catch (e) {
+      console.error('WIF auth failed:', e);
+    }
+  }
+
   return null;
 }
 
@@ -59,6 +131,7 @@ async function getCachedGCPToken(): Promise<string | null> {
   if (cachedToken && Date.now() < cachedToken.expiry) return cachedToken.token;
   const token = await getGCPToken();
   if (token) {
+    // Cache for 50 minutes (tokens last 60 min)
     cachedToken = { token, expiry: Date.now() + 50 * 60 * 1000 };
   }
   return token;
