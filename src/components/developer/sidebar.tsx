@@ -2,24 +2,23 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Database, CheckCircle, Shield, Settings, LogOut, Menu, Search, X, CreditCard, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, Server, BookOpen, Terminal, ScrollText, BarChart3, Settings, LogOut, Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SynthosLogo } from '@/components/ui/synthos-logo';
 import { useAuth } from '@/providers/auth-provider';
 import { useState, useEffect } from 'react';
-import NotificationsDropdown from './notifications-dropdown';
 
 const navigation = [
-  { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Datasets', href: '/dashboard/datasets', icon: Database },
-  { name: 'Validations', href: '/dashboard/validations', icon: CheckCircle },
-  { name: 'Warranties', href: '/dashboard/warranties', icon: Shield },
-  { name: 'Billing', href: '/dashboard/billing', icon: CreditCard },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
-  { name: 'Help', href: '/dashboard/help', icon: HelpCircle },
+  { name: 'Overview', href: '/developer', icon: LayoutDashboard },
+  { name: 'Services', href: '/developer/services', icon: Server },
+  { name: 'API Docs', href: '/developer/api-docs', icon: BookOpen },
+  { name: 'Playground', href: '/developer/playground', icon: Terminal },
+  { name: 'Logs', href: '/developer/logs', icon: ScrollText },
+  { name: 'Metrics', href: '/developer/metrics', icon: BarChart3 },
+  { name: 'Settings', href: '/developer/settings', icon: Settings },
 ];
 
-export function DashboardSidebar() {
+export function DeveloperSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout, isLoading, isAuthenticated } = useAuth();
@@ -34,9 +33,10 @@ export function DashboardSidebar() {
   return (
     <>
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-[#0a0a0b] border-b border-zinc-900 px-4 py-3 flex items-center justify-between">
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href="/developer" className="flex items-center gap-2">
           <SynthosLogo size={24} />
           <span className="font-medium text-zinc-100 text-sm">Synthos</span>
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/20">Developer</span>
         </Link>
         <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 text-zinc-500 hover:text-zinc-300 transition-colors">
           {mobileOpen ? <X size={18} /> : <Menu size={18} />}
@@ -52,16 +52,17 @@ export function DashboardSidebar() {
         mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         <div className="p-5 border-b border-zinc-900/80">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
+          <Link href="/developer" className="flex items-center gap-2.5">
             <SynthosLogo size={24} />
             <span className="font-medium text-zinc-100 text-sm tracking-tight">Synthos</span>
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/20">Developer</span>
           </Link>
         </div>
 
         <nav className="flex-1 py-6 px-3">
           <div className="space-y-0.5">
             {navigation.map((item) => {
-              const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+              const isActive = pathname === item.href || (item.href !== '/developer' && pathname.startsWith(item.href));
               const Icon = item.icon;
               return (
                 <Link
@@ -73,7 +74,7 @@ export function DashboardSidebar() {
                     isActive ? "text-zinc-100 bg-zinc-900/60" : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/30"
                   )}
                 >
-                  <Icon size={16} className={isActive ? "text-violet-400" : ""} />
+                  <Icon size={16} className={isActive ? "text-blue-400" : ""} />
                   <span>{item.name}</span>
                 </Link>
               );
@@ -103,40 +104,5 @@ export function DashboardSidebar() {
         </div>
       </aside>
     </>
-  );
-}
-
-export function DashboardTopbar() {
-  const { user } = useAuth();
-  const [searchFocused, setSearchFocused] = useState(false);
-
-  return (
-    <header className="flex items-center justify-between">
-      <div />
-      <div className="flex items-center gap-4">
-        <div className={cn(
-          "hidden md:flex items-center gap-2 px-3 py-1.5 rounded-md border transition-colors",
-          searchFocused ? "border-zinc-700 bg-zinc-900/50" : "border-zinc-800/50 bg-transparent"
-        )}>
-          <Search size={14} className="text-zinc-600" />
-          <input
-            type="text"
-            placeholder="Search..."
-            className="bg-transparent text-sm text-zinc-300 placeholder:text-zinc-600 focus:outline-none w-40"
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => setSearchFocused(false)}
-          />
-          <kbd className="text-[10px] text-zinc-700 bg-zinc-900 px-1.5 py-0.5 rounded">⌘K</kbd>
-        </div>
-
-        <NotificationsDropdown />
-
-        <div className="w-px h-5 bg-zinc-800/50" />
-
-        <div className="w-7 h-7 rounded-md bg-zinc-800 flex items-center justify-center text-xs font-medium text-zinc-400">
-          {user?.name?.charAt(0).toUpperCase() || 'U'}
-        </div>
-      </div>
-    </header>
   );
 }

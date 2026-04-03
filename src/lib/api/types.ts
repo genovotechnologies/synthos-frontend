@@ -5,6 +5,9 @@ export interface User {
   name: string;
   company?: string;
   role?: string;
+  roles?: string[];
+  is_active?: boolean;
+  last_login_at?: string;
   created_at: string;
 }
 
@@ -178,4 +181,108 @@ export interface ApiError {
   message: string;
   code?: string;
   details?: Record<string, string[]>;
+}
+
+// Admin types
+export interface AdminUser {
+  id: string;
+  email: string;
+  full_name: string;
+  company_name?: string;
+  role: string;
+  roles: string[];
+  is_active: boolean;
+  last_login_at?: string;
+  created_at: string;
+  credit_balance?: number;
+  total_validations?: number;
+  total_datasets?: number;
+}
+
+export interface SystemOverview {
+  total_users: number;
+  total_validations: number;
+  total_datasets: number;
+  total_revenue_cents: number;
+  active_jobs: number;
+  users_by_role: Record<string, number>;
+}
+
+export interface PromoCode {
+  id: string;
+  code: string;
+  credits_grant: number;
+  description: string;
+  max_uses: number;
+  current_uses: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface Invite {
+  id: string;
+  email: string;
+  role: string;
+  invited_by: string;
+  token: string;
+  status: 'pending' | 'accepted' | 'expired' | 'revoked';
+  expires_at: string;
+  created_at: string;
+}
+
+// Support types
+export interface SupportTicket {
+  id: string;
+  user_id: string;
+  user_email?: string;
+  user_name?: string;
+  assigned_to?: string;
+  assignee_name?: string;
+  subject: string;
+  category: string;
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  status: 'open' | 'in_progress' | 'waiting' | 'resolved' | 'closed';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TicketMessage {
+  id: string;
+  ticket_id: string;
+  sender_id: string;
+  sender_name?: string;
+  sender_role?: string;
+  message: string;
+  is_internal: boolean;
+  created_at: string;
+}
+
+export interface SupportOverview {
+  open_tickets: number;
+  in_progress_tickets: number;
+  resolved_today: number;
+  avg_response_time_hours: number;
+}
+
+// Developer types
+export interface ServiceStatus {
+  name: string;
+  status: 'healthy' | 'degraded' | 'down';
+  latency_ms?: number;
+  last_checked: string;
+}
+
+export interface DevOverview {
+  services: ServiceStatus[];
+  total_api_calls_today: number;
+  error_rate_percent: number;
+  avg_latency_ms: number;
+}
+
+export interface APIEndpoint {
+  method: string;
+  path: string;
+  description: string;
+  auth_required: boolean;
+  scopes?: string[];
 }

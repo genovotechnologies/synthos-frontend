@@ -10,4 +10,8 @@ export { notificationsApi } from './notifications';
 export type { Notification, NotificationsResponse } from './notifications';
 export { creditsApi } from './credits';
 export type { CreditBalance, CreditPackage, CreditTransaction, CreditCost } from './credits';
+export { adminApi } from './admin';
+export { supportApi } from './support';
+export { developerApi } from './developer';
+export { ticketsApi } from './tickets';
 export * from './types';

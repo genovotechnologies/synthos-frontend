@@ -41,22 +41,28 @@ function LoginFormContent() {
     setError(null);
 
     try {
-      await login(data);
+      const role = await login(data);
 
+      // Auto-redeem promo code if present
       const promoCode = searchParams.get('promo');
       if (promoCode) {
         try {
           await creditsApi.redeemPromo(promoCode);
-        } catch {
-          console.warn('Failed to redeem promo code:', promoCode);
-        }
+        } catch { }
       }
 
       const redirectUrl = searchParams.get('redirect');
       if (redirectUrl && isValidRedirectUrl(redirectUrl)) {
         router.push(redirectUrl);
       } else {
-        router.push(promoCode ? '/dashboard/billing' : '/dashboard');
+        // Auto-route based on role
+        const roleRoutes: Record<string, string> = {
+          admin: '/admin',
+          developer: '/developer',
+          support: '/support',
+          user: promoCode ? '/dashboard/billing' : '/dashboard',
+        };
+        router.push(roleRoutes[role] || '/dashboard');
       }
     } catch {
       setError('Invalid email or password. Please check your credentials.');

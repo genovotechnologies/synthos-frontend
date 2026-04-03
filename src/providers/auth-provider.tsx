@@ -5,6 +5,14 @@ import Cookies from 'js-cookie';
 import { authApi, type User, type LoginRequest, type RegisterRequest } from '@/lib/api';
 import { isTokenExpired } from '@/lib/utils';
 
+// Role hierarchy levels
+const ROLE_HIERARCHY: Record<string, number> = {
+  admin: 100,
+  developer: 75,
+  support: 50,
+  user: 25,
+};
+
 // A07:2021 - Secure cookie configuration
 const COOKIE_OPTIONS: Cookies.CookieAttributes = {
   expires: 7,
@@ -17,10 +25,15 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (data: LoginRequest) => Promise<void>;
+  login: (data: LoginRequest) => Promise<string>;
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => void;
   checkAuth: () => Promise<void>;
+  hasRole: (role: string) => boolean;
+  isAdmin: boolean;
+  isDeveloper: boolean;
+  isSupport: boolean;
+  userRole: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -77,6 +90,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // A07:2021 - Use secure cookie options
     Cookies.set('access_token', response.access_token, COOKIE_OPTIONS);
     setUser(response.user);
+
+    // Return the role so the login page can route appropriately
+    const u = response.user as unknown as Record<string, unknown>;
+    return (u.role as string) || 'user';
   }, []);
 
   const register = useCallback(async (data: RegisterRequest) => {
@@ -95,6 +112,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const userRole = useMemo(() => {
+    if (!user) return 'user';
+    const u = user as unknown as Record<string, unknown>;
+    return (u.role as string) || 'user';
+  }, [user]);
+
+  const hasRole = useCallback((role: string) => {
+    return (ROLE_HIERARCHY[userRole] || 0) >= (ROLE_HIERARCHY[role] || 0);
+  }, [userRole]);
+
+  const isAdmin = userRole === 'admin';
+  const isDeveloper = hasRole('developer');
+  const isSupport = hasRole('support');
+
   const value = useMemo(() => ({
     user,
     isLoading,
@@ -103,7 +134,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     register,
     logout,
     checkAuth,
-  }), [user, isLoading, login, register, logout, checkAuth]);
+    hasRole,
+    isAdmin,
+    isDeveloper,
+    isSupport,
+    userRole,
+  }), [user, isLoading, login, register, logout, checkAuth, hasRole, isAdmin, isDeveloper, isSupport, userRole]);
 
   return (
     <AuthContext.Provider value={value}>
