@@ -103,7 +103,7 @@ export default function RegisterPage() {
 
     promoDebounceRef.current = setTimeout(async () => {
       try {
-        const response = await apiClient.get(`/api/v1/promo/validate?code=${encodeURIComponent(code.trim())}`);
+        const response = await apiClient.get(`/promo/validate?code=${encodeURIComponent(code.trim())}`);
         const data = response.data;
         setPromoValidation({
           status: 'valid',

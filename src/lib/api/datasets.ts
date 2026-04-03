@@ -4,8 +4,9 @@ import type { Dataset, DatasetListResponse } from './types';
 
 // Chunk size: 100MB (matches Data Service streaming chunks)
 const CHUNK_SIZE = 100 * 1024 * 1024;
-// Threshold for multipart upload: 100MB (use multipart for files larger than this)
-const MULTIPART_THRESHOLD = 100 * 1024 * 1024;
+// Threshold for multipart upload: 500GB (disabled - backend doesn't support multipart yet)
+// All uploads use simple signed URL upload directly to GCS
+const MULTIPART_THRESHOLD = 500 * 1024 * 1024 * 1024;
 // Maximum concurrent chunk uploads
 const MAX_CONCURRENT_UPLOADS = 3;
 
@@ -188,8 +189,9 @@ export const datasetsApi = {
   
   getUploadUrl: async (fileName: string, fileSize: number): Promise<UploadUrlResponse> => {
     const response = await apiClient.post<UploadUrlResponse>('/datasets/upload', {
-      file_name: fileName,
+      filename: fileName,
       file_size: fileSize,
+      file_type: fileName.split('.').pop() || 'csv',
     });
     return response.data;
   },
@@ -222,9 +224,9 @@ export const datasetsApi = {
 
   initiateMultipartUpload: async (fileName: string, fileSize: number, contentType: string): Promise<InitiateMultipartResponse> => {
     const response = await apiClient.post<InitiateMultipartResponse>('/datasets/upload/multipart/initiate', {
-      file_name: fileName,
+      filename: fileName,
       file_size: fileSize,
-      content_type: contentType,
+      file_type: contentType,
     });
     return response.data;
   },

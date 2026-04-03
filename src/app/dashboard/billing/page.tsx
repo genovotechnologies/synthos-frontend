@@ -270,7 +270,11 @@ export default function BillingPage() {
                   </div>
 
                   <button
-                    onClick={() => purchaseMutation.mutate(pkg.id)}
+                    onClick={() => {
+                      if (confirm(`Purchase ${pkg.name} for ${formatCurrency(pkg.price_cents)}?\n\nYou will receive ${formatCredits(pkg.credits + pkg.bonus_credits)} credits.\n\nNote: Payment processing is coming soon. Credits will be added to your account for testing purposes.`)) {
+                        purchaseMutation.mutate(pkg.id);
+                      }
+                    }}
                     disabled={purchaseMutation.isPending}
                     className={cn(
                       "mt-6 w-full py-3 px-4 rounded-lg font-medium text-sm",
