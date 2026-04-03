@@ -3,9 +3,9 @@
 import { use } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { validationsApi, type ValidationDimensions } from '@/lib/api';
-import { 
-  ArrowLeft, 
-  CheckCircle, 
+import {
+  ArrowLeft,
+  CheckCircle,
   Clock,
   AlertCircle,
   Loader2,
@@ -13,8 +13,6 @@ import {
   Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import {
   RadarChart,
@@ -33,9 +31,9 @@ import {
 
 function RiskScoreGauge({ score }: { score: number }) {
   const getColor = (value: number) => {
-    if (value < 30) return '#22c55e'; // green
-    if (value < 60) return '#eab308'; // yellow
-    return '#ef4444'; // red
+    if (value < 30) return '#22c55e';
+    if (value < 60) return '#eab308';
+    return '#ef4444';
   };
 
   const getRiskLevel = (value: number) => {
@@ -52,7 +50,6 @@ function RiskScoreGauge({ score }: { score: number }) {
     <div className="flex flex-col items-center">
       <div className="relative w-40 h-40">
         <svg viewBox="0 0 100 100" className="w-full h-full -rotate-135">
-          {/* Background arc */}
           <circle
             cx="50"
             cy="50"
@@ -61,10 +58,9 @@ function RiskScoreGauge({ score }: { score: number }) {
             stroke="currentColor"
             strokeWidth="8"
             strokeLinecap="round"
-            className="text-muted/30"
+            className="text-zinc-800"
             strokeDasharray={`${circumference * 0.75} ${circumference}`}
           />
-          {/* Value arc */}
           <circle
             cx="50"
             cy="50"
@@ -79,13 +75,13 @@ function RiskScoreGauge({ score }: { score: number }) {
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-4xl font-bold" style={{ color }}>{score}</span>
-          <span className="text-xs text-muted-foreground">/ 100</span>
+          <span className="text-4xl font-bold text-zinc-100" style={{ color }}>{score}</span>
+          <span className="text-xs text-zinc-600">/ 100</span>
         </div>
       </div>
       <div className="mt-4 text-center">
         <p className="font-semibold" style={{ color }}>{getRiskLevel(score)}</p>
-        <p className="text-sm text-muted-foreground">Model Collapse Risk</p>
+        <p className="text-sm text-zinc-500">Model Collapse Risk</p>
       </div>
     </div>
   );
@@ -103,22 +99,22 @@ function DimensionsChart({ dimensions }: { dimensions: ValidationDimensions }) {
   return (
     <ResponsiveContainer width="100%" height={300}>
       <RadarChart data={data}>
-        <PolarGrid stroke="hsl(var(--border))" />
-        <PolarAngleAxis 
-          dataKey="name" 
-          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+        <PolarGrid stroke="#27272a" />
+        <PolarAngleAxis
+          dataKey="name"
+          tick={{ fill: '#71717a', fontSize: 12 }}
         />
-        <PolarRadiusAxis 
-          angle={90} 
-          domain={[0, 100]} 
-          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+        <PolarRadiusAxis
+          angle={90}
+          domain={[0, 100]}
+          tick={{ fill: '#52525b', fontSize: 10 }}
         />
         <Radar
           name="Score"
           dataKey="value"
-          stroke="hsl(var(--primary))"
-          fill="hsl(var(--primary))"
-          fillOpacity={0.3}
+          stroke="#a78bfa"
+          fill="#a78bfa"
+          fillOpacity={0.15}
           strokeWidth={2}
         />
       </RadarChart>
@@ -144,18 +140,19 @@ function DimensionsBarChart({ dimensions }: { dimensions: ValidationDimensions }
   return (
     <ResponsiveContainer width="100%" height={250}>
       <BarChart data={data} layout="vertical" margin={{ left: 30 }}>
-        <XAxis type="number" domain={[0, 100]} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
-        <YAxis 
-          type="category" 
-          dataKey="name" 
-          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
+        <XAxis type="number" domain={[0, 100]} tick={{ fill: '#71717a', fontSize: 12 }} />
+        <YAxis
+          type="category"
+          dataKey="name"
+          tick={{ fill: '#71717a', fontSize: 11 }}
           width={130}
         />
-        <Tooltip 
-          contentStyle={{ 
-            backgroundColor: 'hsl(var(--card))',
-            border: '1px solid hsl(var(--border))',
-            borderRadius: '8px'
+        <Tooltip
+          contentStyle={{
+            backgroundColor: '#18181b',
+            border: '1px solid #27272a',
+            borderRadius: '8px',
+            color: '#e4e4e7',
           }}
         />
         <Bar dataKey="value" radius={[0, 4, 4, 0]}>
@@ -170,19 +167,24 @@ function DimensionsBarChart({ dimensions }: { dimensions: ValidationDimensions }
 
 function ProcessingView({ progress }: { progress?: number }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-8 text-center">
-      <Loader2 size={48} className="animate-spin mx-auto text-primary mb-4" />
-      <h2 className="text-xl font-semibold mb-2">Validation in Progress</h2>
-      <p className="text-muted-foreground mb-6">
+    <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-8 text-center">
+      <Loader2 size={48} className="animate-spin mx-auto text-violet-400 mb-4" />
+      <h2 className="text-xl font-semibold text-zinc-100 mb-2">Validation in Progress</h2>
+      <p className="text-zinc-500 mb-6">
         Analyzing your dataset for model collapse risks...
       </p>
       {progress !== undefined && (
         <div className="max-w-md mx-auto">
-          <div className="flex justify-between text-sm text-muted-foreground mb-2">
+          <div className="flex justify-between text-sm text-zinc-500 mb-2">
             <span>Progress</span>
             <span>{progress}%</span>
           </div>
-          <Progress value={progress} className="h-3" />
+          <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-violet-500 rounded-full transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
         </div>
       )}
     </div>
@@ -191,43 +193,42 @@ function ProcessingView({ progress }: { progress?: number }) {
 
 export default function ValidationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  
+
   const { data: validation, isLoading, error } = useQuery({
     queryKey: ['validation', resolvedParams.id],
     queryFn: () => validationsApi.get(resolvedParams.id),
     refetchInterval: (query) => {
-      // Poll every 5 seconds if processing
       const data = query.state.data;
       return data?.status === 'processing' || data?.status === 'pending' ? 5000 : false;
     },
   });
 
   const statusConfig = {
-    pending: { icon: Clock, color: 'text-yellow-500', bg: 'bg-yellow-500/10', label: 'Pending' },
-    processing: { icon: Loader2, color: 'text-blue-500', bg: 'bg-blue-500/10', label: 'Processing' },
-    completed: { icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-500/10', label: 'Completed' },
-    failed: { icon: AlertCircle, color: 'text-red-500', bg: 'bg-red-500/10', label: 'Failed' },
+    pending: { icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10', label: 'Pending' },
+    processing: { icon: Loader2, color: 'text-blue-400', bg: 'bg-blue-500/10', label: 'Processing' },
+    completed: { icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10', label: 'Completed' },
+    failed: { icon: AlertCircle, color: 'text-rose-400', bg: 'bg-rose-500/10', label: 'Failed' },
   };
 
   if (isLoading) {
     return (
-      <div className="p-12 text-center text-muted-foreground">
-        <Loader2 className="animate-spin mx-auto mb-2" size={24} />
-        Loading validation details...
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-5 h-5 animate-spin text-zinc-600" />
       </div>
     );
   }
 
   if (error || !validation) {
     return (
-      <div className="p-12 text-center text-destructive">
-        <AlertCircle size={40} className="mx-auto mb-3" />
-        <p className="font-medium">Validation not found</p>
-        <Link href="/dashboard/validations">
-          <Button variant="outline" className="mt-4">
-            <ArrowLeft size={16} className="mr-2" />
-            Back to Validations
-          </Button>
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <AlertCircle size={40} className="text-zinc-600 mb-3" />
+        <p className="font-medium text-zinc-300">Validation not found</p>
+        <Link
+          href="/dashboard/validations"
+          className="mt-4 flex items-center gap-2 px-4 py-2 rounded-lg border border-zinc-800 text-sm text-zinc-400 hover:text-zinc-200 hover:border-zinc-700 transition-colors"
+        >
+          <ArrowLeft size={16} />
+          Back to Validations
         </Link>
       </div>
     );
@@ -237,29 +238,30 @@ export default function ValidationDetailPage({ params }: { params: Promise<{ id:
   const StatusIcon = config.icon;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/dashboard/validations">
-            <Button variant="outline" size="sm">
-              <ArrowLeft size={16} className="mr-2" />
-              Back
-            </Button>
+          <Link
+            href="/dashboard/validations"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-zinc-800 text-sm text-zinc-400 hover:text-zinc-200 hover:border-zinc-700 transition-colors"
+          >
+            <ArrowLeft size={14} />
+            Back
           </Link>
           <div>
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">
               {validation.dataset_name || 'Dataset'} Validation
             </h1>
-            <p className="text-muted-foreground">{validation.validation_type}</p>
+            <p className="text-sm text-zinc-500 mt-0.5">{validation.validation_type}</p>
           </div>
         </div>
         <div className={cn(
-          "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium",
+          "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium",
           config.bg,
           config.color
         )}>
-          <StatusIcon size={16} className={validation.status === 'processing' ? 'animate-spin' : ''} />
+          <StatusIcon size={14} className={validation.status === 'processing' ? 'animate-spin' : ''} />
           {config.label}
         </div>
       </div>
@@ -271,15 +273,13 @@ export default function ValidationDetailPage({ params }: { params: Promise<{ id:
 
       {/* Failed State */}
       {validation.status === 'failed' && (
-        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-6">
-          <div className="flex items-center gap-3">
-            <AlertCircle className="text-destructive" size={24} />
-            <div>
-              <p className="font-semibold text-destructive">Validation Failed</p>
-              <p className="text-sm text-muted-foreground">
-                There was an error processing this validation. Please try again.
-              </p>
-            </div>
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20">
+          <AlertCircle className="text-rose-400" size={20} />
+          <div>
+            <p className="font-medium text-rose-400">Validation Failed</p>
+            <p className="text-sm text-zinc-500 mt-0.5">
+              There was an error processing this validation. Please try again.
+            </p>
           </div>
         </div>
       )}
@@ -289,42 +289,40 @@ export default function ValidationDetailPage({ params }: { params: Promise<{ id:
         <>
           {/* Risk Score Section */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="bg-card border border-border rounded-xl p-6">
-              <h3 className="font-semibold mb-6 text-center">Risk Score</h3>
+            <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6">
+              <h3 className="font-medium text-zinc-300 mb-6 text-center text-sm">Risk Score</h3>
               <RiskScoreGauge score={validation.results.risk_score} />
             </div>
 
-            <div className="lg:col-span-2 bg-card border border-border rounded-xl p-6">
-              <h3 className="font-semibold mb-4">Quality Dimensions</h3>
+            <div className="lg:col-span-2 bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6">
+              <h3 className="font-medium text-zinc-300 mb-4 text-sm">Quality Dimensions</h3>
               <DimensionsChart dimensions={validation.results.dimensions} />
             </div>
           </div>
 
           {/* Detailed Breakdown */}
-          <div className="bg-card border border-border rounded-xl p-6">
-            <h3 className="font-semibold mb-4">Dimension Breakdown</h3>
+          <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6">
+            <h3 className="font-medium text-zinc-300 mb-4 text-sm">Dimension Breakdown</h3>
             <DimensionsBarChart dimensions={validation.results.dimensions} />
           </div>
 
           {/* Collapse Probability & Recommendations */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-card border border-border rounded-xl p-6">
+            <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-yellow-500/10 rounded-lg">
-                  <AlertTriangle className="text-yellow-500" size={20} />
+                <div className="p-2 bg-amber-500/10 rounded-lg">
+                  <AlertTriangle className="text-amber-400" size={18} />
                 </div>
                 <div>
-                  <h3 className="font-semibold">Collapse Probability</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Likelihood of model degradation
-                  </p>
+                  <h3 className="font-medium text-zinc-200 text-sm">Collapse Probability</h3>
+                  <p className="text-xs text-zinc-500">Likelihood of model degradation</p>
                 </div>
               </div>
-              <p className="text-4xl font-bold">
+              <p className="text-4xl font-bold text-zinc-100 tabular-nums">
                 {(validation.results.collapse_probability * 100).toFixed(1)}%
               </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                {validation.results.collapse_probability < 0.1 
+              <p className="text-sm text-zinc-500 mt-2">
+                {validation.results.collapse_probability < 0.1
                   ? 'Very low risk of model collapse'
                   : validation.results.collapse_probability < 0.3
                   ? 'Moderate risk - consider data augmentation'
@@ -332,29 +330,27 @@ export default function ValidationDetailPage({ params }: { params: Promise<{ id:
               </p>
             </div>
 
-            <div className="bg-card border border-border rounded-xl p-6">
+            <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Shield className="text-primary" size={20} />
+                <div className="p-2 bg-violet-500/10 rounded-lg">
+                  <Shield className="text-violet-400" size={18} />
                 </div>
                 <div>
-                  <h3 className="font-semibold">Recommendations</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Actions to improve data quality
-                  </p>
+                  <h3 className="font-medium text-zinc-200 text-sm">Recommendations</h3>
+                  <p className="text-xs text-zinc-500">Actions to improve data quality</p>
                 </div>
               </div>
               {validation.results.recommendations?.length ? (
                 <ul className="space-y-2">
                   {validation.results.recommendations.map((rec, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm">
-                      <CheckCircle size={14} className="text-primary mt-0.5 shrink-0" />
-                      <span>{rec}</span>
+                      <CheckCircle size={14} className="text-violet-400 mt-0.5 shrink-0" />
+                      <span className="text-zinc-400">{rec}</span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-zinc-600">
                   No specific recommendations at this time.
                 </p>
               )}
@@ -364,32 +360,32 @@ export default function ValidationDetailPage({ params }: { params: Promise<{ id:
       )}
 
       {/* Metadata */}
-      <div className="bg-card border border-border rounded-xl p-6">
-        <h3 className="font-semibold mb-4">Details</h3>
-        <dl className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+      <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6">
+        <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-4">Details</p>
+        <dl className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
           <div>
-            <dt className="text-muted-foreground">Created</dt>
-            <dd className="font-medium mt-1">
+            <dt className="text-zinc-600 text-xs">Created</dt>
+            <dd className="font-medium text-zinc-300 mt-1 tabular-nums">
               {new Date(validation.created_at).toLocaleString()}
             </dd>
           </div>
           {validation.completed_at && (
             <div>
-              <dt className="text-muted-foreground">Completed</dt>
-              <dd className="font-medium mt-1">
+              <dt className="text-zinc-600 text-xs">Completed</dt>
+              <dd className="font-medium text-zinc-300 mt-1 tabular-nums">
                 {new Date(validation.completed_at).toLocaleString()}
               </dd>
             </div>
           )}
           <div>
-            <dt className="text-muted-foreground">Model Size</dt>
-            <dd className="font-medium mt-1 capitalize">
+            <dt className="text-zinc-600 text-xs">Model Size</dt>
+            <dd className="font-medium text-zinc-300 mt-1 capitalize">
               {validation.options?.model_size || 'Medium'}
             </dd>
           </div>
           <div>
-            <dt className="text-muted-foreground">Priority</dt>
-            <dd className="font-medium mt-1 capitalize">
+            <dt className="text-zinc-600 text-xs">Priority</dt>
+            <dd className="font-medium text-zinc-300 mt-1 capitalize">
               {validation.options?.priority || 'Normal'}
             </dd>
           </div>

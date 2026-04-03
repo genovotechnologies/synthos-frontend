@@ -66,7 +66,7 @@ function ProfileSettings() {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-all"
+            className="w-full px-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 transition-all"
             placeholder="Enter your name"
           />
         </div>
@@ -88,7 +88,7 @@ function ProfileSettings() {
             type="text"
             value={company}
             onChange={(e) => setCompany(e.target.value)}
-            className="w-full px-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-all"
+            className="w-full px-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 transition-all"
             placeholder="Your company name"
           />
         </div>
@@ -99,7 +99,7 @@ function ProfileSettings() {
             type="text"
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            className="w-full px-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-all"
+            className="w-full px-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 transition-all"
             placeholder="Your role"
           />
         </div>
@@ -107,7 +107,7 @@ function ProfileSettings() {
         <button
           onClick={handleSave}
           disabled={updateProfileMutation.isPending}
-          className="w-fit px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+          className="w-fit px-6 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:bg-violet-600/50 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
         >
           {updateProfileMutation.isPending ? (
             <>
@@ -199,7 +199,7 @@ function SecuritySettings() {
               type={showCurrent ? 'text' : 'password'}
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full px-4 py-2.5 pr-10 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-all"
+              className="w-full px-4 py-2.5 pr-10 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 transition-all"
               placeholder="Enter current password"
             />
             <button
@@ -219,7 +219,7 @@ function SecuritySettings() {
               type={showNew ? 'text' : 'password'}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-4 py-2.5 pr-10 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-all"
+              className="w-full px-4 py-2.5 pr-10 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 transition-all"
               placeholder="Enter new password"
             />
             <button
@@ -240,7 +240,7 @@ function SecuritySettings() {
               type={showConfirm ? 'text' : 'password'}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-2.5 pr-10 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-all"
+              className="w-full px-4 py-2.5 pr-10 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 transition-all"
               placeholder="Confirm new password"
             />
             <button
@@ -256,7 +256,7 @@ function SecuritySettings() {
         <button
           onClick={handleChangePassword}
           disabled={changePasswordMutation.isPending}
-          className="w-fit px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+          className="w-fit px-6 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:bg-violet-600/50 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
         >
           {changePasswordMutation.isPending ? (
             <>
@@ -373,7 +373,7 @@ function NotificationSettings() {
               onClick={() => handleToggle(option.key)}
               disabled={updatePreferencesMutation.isPending}
               className={`relative w-11 h-6 rounded-full transition-colors ${
-                settings[option.key] ? 'bg-blue-600' : 'bg-zinc-700'
+                settings[option.key] ? 'bg-violet-600' : 'bg-zinc-700'
               }`}
             >
               <span
@@ -506,7 +506,7 @@ function ApiSettings() {
           href="https://docs.synthos.dev"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+          className="inline-flex items-center gap-2 text-sm text-violet-400 hover:text-violet-300 transition-colors"
         >
           View API Documentation
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -532,8 +532,8 @@ export default function SettingsPage() {
     <div className="min-h-full">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-white">Settings</h1>
-        <p className="text-zinc-500 mt-1">Manage your account settings and preferences</p>
+        <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Settings</h1>
+        <p className="text-sm text-zinc-500 mt-1">Manage your account settings and preferences</p>
       </div>
 
       {/* Tabs and Content */}
@@ -547,7 +547,7 @@ export default function SettingsPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors w-full text-left ${
                   activeTab === tab.id
-                    ? 'bg-zinc-800/80 text-white'
+                    ? 'bg-zinc-900/60 text-white'
                     : 'text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/40'
                 }`}
               >

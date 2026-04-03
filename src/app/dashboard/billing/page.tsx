@@ -92,8 +92,8 @@ export default function BillingPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold text-white">Billing & Credits</h1>
-        <p className="text-zinc-400 mt-1">Manage your credits, purchase packages, and view transaction history</p>
+        <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Billing & Credits</h1>
+        <p className="text-sm text-zinc-500 mt-1">Manage your credits, purchase packages, and view transaction history</p>
       </div>
 
       {/* Balance Cards */}

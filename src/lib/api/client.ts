@@ -1,7 +1,9 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import Cookies from 'js-cookie';
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.synthos.dev/api/v1';
+// Use relative URL to proxy through Next.js API routes (handles GCP auth server-side)
+// Falls back to direct URL if NEXT_PUBLIC_API_URL is set
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
 // A05:2021 - Security Misconfiguration: Configure secure defaults
 export const apiClient = axios.create({

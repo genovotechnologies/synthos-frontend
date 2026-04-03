@@ -3,23 +3,24 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { warrantiesApi, type Warranty } from '@/lib/api';
-import { 
-  Shield, 
+import {
+  Shield,
   CheckCircle,
   Clock,
   AlertTriangle,
   Loader2,
-  ExternalLink
+  ExternalLink,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
 function WarrantyCard({ warranty }: { warranty: Warranty }) {
   const statusConfig = {
-    active: { icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-500/10', label: 'Active' },
-    expired: { icon: Clock, color: 'text-muted-foreground', bg: 'bg-muted', label: 'Expired' },
-    claimed: { icon: AlertTriangle, color: 'text-yellow-500', bg: 'bg-yellow-500/10', label: 'Claimed' },
+    active: { icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10', label: 'Active' },
+    expired: { icon: Clock, color: 'text-zinc-500', bg: 'bg-zinc-800', label: 'Expired' },
+    claimed: { icon: AlertTriangle, color: 'text-amber-400', bg: 'bg-amber-500/10', label: 'Claimed' },
   };
 
   const config = statusConfig[warranty.status];
@@ -46,15 +47,15 @@ function WarrantyCard({ warranty }: { warranty: Warranty }) {
   );
 
   return (
-    <div className="bg-card border border-border rounded-xl p-6">
+    <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className={cn("p-2.5 rounded-lg", config.bg)}>
-            <Shield size={20} className={config.color} />
+            <Shield size={18} className={config.color} />
           </div>
           <div>
-            <p className="font-medium">{warranty.dataset_name}</p>
-            <p className="text-sm text-muted-foreground">{warranty.coverage_type}</p>
+            <p className="font-medium text-zinc-200 text-sm">{warranty.dataset_name}</p>
+            <p className="text-xs text-zinc-500 mt-0.5">{warranty.coverage_type}</p>
           </div>
         </div>
         <span className={cn(
@@ -67,50 +68,47 @@ function WarrantyCard({ warranty }: { warranty: Warranty }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 py-4 border-y border-border">
+      <div className="grid grid-cols-2 gap-4 py-4 border-y border-zinc-800/50">
         <div>
-          <p className="text-xs text-muted-foreground">Coverage</p>
-          <p className="text-lg font-semibold">{formatCurrency(warranty.coverage_amount)}</p>
+          <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Coverage</p>
+          <p className="text-lg font-semibold text-zinc-100 mt-1 tabular-nums">{formatCurrency(warranty.coverage_amount)}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">Risk Score</p>
+          <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Risk Score</p>
           <p className={cn(
-            "text-lg font-semibold",
-            warranty.risk_score < 30 ? "text-green-500" :
-            warranty.risk_score < 60 ? "text-yellow-500" : "text-red-500"
+            "text-lg font-semibold mt-1 tabular-nums",
+            warranty.risk_score < 30 ? "text-emerald-400" :
+            warranty.risk_score < 60 ? "text-amber-400" : "text-rose-400"
           )}>
             {warranty.risk_score}%
           </p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">Premium Paid</p>
-          <p className="font-medium">{formatCurrency(warranty.premium_paid)}</p>
+          <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Premium Paid</p>
+          <p className="font-medium text-zinc-300 mt-1 tabular-nums">{formatCurrency(warranty.premium_paid)}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-[11px] text-zinc-600 uppercase tracking-wider">
             {warranty.status === 'active' ? 'Expires' : 'Expired'}
           </p>
-          <p className="font-medium">{formatDate(warranty.valid_until)}</p>
+          <p className="font-medium text-zinc-300 mt-1 tabular-nums">{formatDate(warranty.valid_until)}</p>
         </div>
       </div>
 
       <div className="flex items-center justify-between mt-4">
         {warranty.status === 'active' && daysRemaining > 0 && (
-          <p className="text-sm text-muted-foreground">
-            {daysRemaining} days remaining
-          </p>
+          <p className="text-xs text-zinc-500">{daysRemaining} days remaining</p>
         )}
         {warranty.status === 'expired' && (
-          <p className="text-sm text-muted-foreground">
-            Coverage ended
-          </p>
+          <p className="text-xs text-zinc-500">Coverage ended</p>
         )}
+        {warranty.status === 'claimed' && <div />}
         <Link
           href={`/dashboard/validations/${warranty.validation_id}`}
-          className="text-sm text-primary hover:underline flex items-center gap-1"
+          className="text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1 transition-colors"
         >
           View validation
-          <ExternalLink size={12} />
+          <ExternalLink size={11} />
         </Link>
       </div>
     </div>
@@ -125,92 +123,88 @@ export default function WarrantiesPage() {
     queryFn: () => warrantiesApi.list(page, 12),
   });
 
-  // Group warranties by status
   const activeWarranties = data?.warranties?.filter(w => w.status === 'active') || [];
   const otherWarranties = data?.warranties?.filter(w => w.status !== 'active') || [];
+  const totalPages = data?.pagination?.total_pages || 1;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-12">
       <div>
-        <h1 className="text-2xl font-bold">Warranties</h1>
-        <p className="text-muted-foreground">
-          Manage your data quality warranties and coverage
-        </p>
+        <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Warranties</h1>
+        <p className="text-sm text-zinc-500 mt-1">Manage your data quality warranties and coverage</p>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-500/10 rounded-lg">
-              <Shield size={20} className="text-green-500" />
+      {/* Summary Stats */}
+      <section>
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-16 gap-y-10">
+          <div>
+            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">Active Warranties</p>
+            <div className="flex items-baseline gap-3">
+              <span className="text-3xl font-semibold text-zinc-100 tabular-nums tracking-tight">{activeWarranties.length}</span>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Active Warranties</p>
-              <p className="text-2xl font-bold">{activeWarranties.length}</p>
-            </div>
+            <div className="h-px bg-zinc-800 mt-4" />
           </div>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <CheckCircle size={20} className="text-primary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Coverage</p>
-              <p className="text-2xl font-bold">
+          <div>
+            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">Total Coverage</p>
+            <div className="flex items-baseline gap-3">
+              <span className="text-3xl font-semibold text-zinc-100 tabular-nums tracking-tight">
                 ${activeWarranties.reduce((sum, w) => sum + w.coverage_amount, 0).toLocaleString()}
-              </p>
+              </span>
             </div>
+            <div className="h-px bg-zinc-800 mt-4" />
           </div>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-yellow-500/10 rounded-lg">
-              <AlertTriangle size={20} className="text-yellow-500" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Avg Risk Score</p>
-              <p className="text-2xl font-bold">
-                {activeWarranties.length 
+          <div>
+            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">Avg Risk Score</p>
+            <div className="flex items-baseline gap-3">
+              <span className="text-3xl font-semibold text-zinc-100 tabular-nums tracking-tight">
+                {activeWarranties.length
                   ? Math.round(activeWarranties.reduce((sum, w) => sum + w.risk_score, 0) / activeWarranties.length)
                   : 0}%
-              </p>
+              </span>
             </div>
+            <div className="h-px bg-zinc-800 mt-4" />
           </div>
         </div>
-      </div>
+      </section>
 
       {isLoading ? (
-        <div className="p-12 text-center text-muted-foreground">
-          <Loader2 className="animate-spin mx-auto mb-2" size={24} />
-          Loading warranties...
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-5 h-5 animate-spin text-zinc-600" />
         </div>
       ) : error ? (
-        <div className="p-12 text-center text-destructive">
-          Failed to load warranties
+        <div className="flex items-center gap-2 text-sm text-amber-500/80">
+          <AlertTriangle size={14} />
+          <span>Failed to load warranties</span>
         </div>
       ) : !data?.warranties?.length ? (
-        <div className="bg-card border border-border rounded-xl p-12 text-center text-muted-foreground">
-          <Shield size={40} className="mx-auto mb-3 opacity-50" />
-          <p className="font-medium">No warranties yet</p>
-          <p className="text-sm mt-1">
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-16 h-16 rounded-full bg-zinc-800/50 flex items-center justify-center mb-4">
+            <Shield className="w-8 h-8 text-zinc-600" />
+          </div>
+          <h3 className="text-lg font-medium text-zinc-200 mb-1">No warranties yet</h3>
+          <p className="text-sm text-zinc-500 mb-6 max-w-sm">
             Complete a validation to get warranty coverage for your datasets
           </p>
-          <Link href="/dashboard/validations">
-            <Button className="mt-4">
-              Create Validation
-            </Button>
+          <Link
+            href="/dashboard/validations"
+            className={cn(
+              "flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm",
+              "bg-gradient-to-r from-violet-600 to-violet-500 text-white",
+              "hover:from-violet-500 hover:to-violet-400",
+              "transition-all duration-200"
+            )}
+          >
+            Create Validation
           </Link>
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-10">
           {activeWarranties.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <CheckCircle size={18} className="text-green-500" />
+              <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <CheckCircle size={12} className="text-emerald-400" />
                 Active Coverage ({activeWarranties.length})
-              </h2>
+              </p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {activeWarranties.map((warranty) => (
                   <WarrantyCard key={warranty.id} warranty={warranty} />
@@ -221,9 +215,9 @@ export default function WarrantiesPage() {
 
           {otherWarranties.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold mb-4">
+              <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-4">
                 Past Warranties ({otherWarranties.length})
-              </h2>
+              </p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {otherWarranties.map((warranty) => (
                   <WarrantyCard key={warranty.id} warranty={warranty} />
@@ -233,27 +227,25 @@ export default function WarrantiesPage() {
           )}
 
           {/* Pagination */}
-          {data.pagination.total_pages > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => p - 1)}
-                disabled={page === 1}
-              >
-                Previous
-              </Button>
-              <span className="text-sm text-muted-foreground px-4">
-                Page {page} of {data.pagination.total_pages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => p + 1)}
-                disabled={page >= data.pagination.total_pages}
-              >
-                Next
-              </Button>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-zinc-500">Page {page} of {totalPages}</p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="p-2 text-zinc-400 hover:text-white disabled:text-zinc-600 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  className="p-2 text-zinc-400 hover:text-white disabled:text-zinc-600 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           )}
         </div>

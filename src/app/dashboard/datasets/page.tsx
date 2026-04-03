@@ -95,7 +95,7 @@ function DatasetRow({ dataset, onDelete }: { dataset: Dataset; onDelete: (id: st
 
   const statusColors: Record<Dataset['status'], string> = {
     uploading: 'text-amber-400 bg-amber-400/10',
-    processing: 'text-blue-400 bg-blue-400/10',
+    processing: 'text-violet-400 bg-blue-400/10',
     ready: 'text-emerald-400 bg-emerald-400/10',
     error: 'text-red-400 bg-red-400/10',
   };
@@ -345,7 +345,7 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
                 : uploadState.status === 'success'
                 ? 'border-emerald-500/50 bg-emerald-500/5'
                 : file
-                ? 'border-blue-500/50 bg-blue-500/5'
+                ? 'border-violet-500/50 bg-violet-500/5'
                 : 'border-zinc-700 hover:border-zinc-600 bg-zinc-800/30'
             } ${isUploading ? 'pointer-events-none' : ''}`}
           >
@@ -376,7 +376,7 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
               </div>
             ) : file ? (
               <div>
-                <FileText className="w-12 h-12 mx-auto mb-3 text-blue-400" />
+                <FileText className="w-12 h-12 mx-auto mb-3 text-violet-400" />
                 <p className="font-medium text-white">{file.name}</p>
                 <p className="text-sm text-zinc-500 mt-1">{formatBytes(file.size)}</p>
                 {uploadState.canResume && uploadState.resumeInfo && (
@@ -415,7 +415,7 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
                 <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
                   <div
                     className={`h-full transition-all duration-300 ${
-                      uploadState.status === 'paused' ? 'bg-amber-500' : 'bg-blue-500'
+                      uploadState.status === 'paused' ? 'bg-amber-500' : 'bg-violet-500'
                     }`}
                     style={{ width: `${uploadState.progress.percentage}%` }}
                   />
@@ -482,7 +482,7 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
                 </button>
                 <button
                   onClick={handleUpload}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                  className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
                 >
                   <Play className="w-4 h-4" />
                   Resume
@@ -509,7 +509,7 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
                 <button
                   onClick={handleUpload}
                   disabled={!file || isUploading || uploadState.status === 'success'}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                  className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:bg-violet-600/50 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
                 >
                   {isUploading ? (
                     <>
@@ -574,12 +574,12 @@ export default function DatasetsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Datasets</h1>
-          <p className="text-zinc-500 mt-1">Manage your uploaded datasets</p>
+          <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Datasets</h1>
+          <p className="text-sm text-zinc-500 mt-1">Manage your uploaded datasets</p>
         </div>
         <button
           onClick={() => setShowUploadModal(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+          className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition-colors"
         >
           <Upload className="w-4 h-4" />
           Upload Dataset
@@ -598,7 +598,7 @@ export default function DatasetsPage() {
               setPage(1);
             }}
             placeholder="Search datasets..."
-            className="w-full pl-10 pr-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-all"
+            className="w-full pl-10 pr-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 transition-all"
           />
         </div>
       </div>
@@ -631,7 +631,7 @@ export default function DatasetsPage() {
             </p>
             <button
               onClick={() => setShowUploadModal(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition-colors"
             >
               <Upload className="w-4 h-4" />
               Upload Dataset
