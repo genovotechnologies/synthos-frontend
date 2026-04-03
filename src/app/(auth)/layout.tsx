@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { AuthProvider } from '@/providers/auth-provider';
 import { SynthosLogo } from '@/components/ui/synthos-logo';
@@ -58,9 +59,9 @@ function BrandPanel() {
       {/* Content */}
       <div className="relative z-10 flex flex-col justify-between p-12 w-full">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5">
-          <SynthosLogo size={28} />
-          <span className="text-lg font-semibold text-white tracking-tight">Synthos</span>
+        <Link href="/" className="flex items-center gap-3">
+          <Image src="/synthos-logo-icon.jpeg" alt="Synthos" width={32} height={32} className="rounded-md" priority />
+          <span className="text-lg font-semibold text-white tracking-widest uppercase">Synthos</span>
         </Link>
 
         {/* Main message */}
