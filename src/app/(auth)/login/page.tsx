@@ -8,10 +8,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/providers/auth-provider';
-import { SynthosLogo } from '@/components/ui/synthos-logo';
 import { isValidRedirectUrl } from '@/lib/utils';
 import { cn } from '@/lib/utils';
-import { Eye, EyeOff, Mail, Lock, AlertCircle, ArrowRight, Loader2, Gift } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, ArrowRight, Loader2, Gift } from 'lucide-react';
 import { creditsApi } from '@/lib/api/credits';
 
 const loginSchema = z.object({
@@ -44,13 +43,11 @@ function LoginFormContent() {
     try {
       await login(data);
 
-      // Auto-redeem promo code if present from registration
       const promoCode = searchParams.get('promo');
       if (promoCode) {
         try {
           await creditsApi.redeemPromo(promoCode);
         } catch {
-          // Promo redemption failure shouldn't block login
           console.warn('Failed to redeem promo code:', promoCode);
         }
       }
@@ -62,7 +59,7 @@ function LoginFormContent() {
         router.push(promoCode ? '/dashboard/billing' : '/dashboard');
       }
     } catch {
-      setError('Invalid credentials. Please try again.');
+      setError('Invalid email or password. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
@@ -70,177 +67,155 @@ function LoginFormContent() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="w-full max-w-md"
+      transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
-      {/* Glass Card */}
-      <div className="backdrop-blur-md bg-zinc-900/50 border border-white/10 rounded-2xl p-8 shadow-2xl">
-        {/* Logo */}
-        <Link href="/" className="inline-flex items-center gap-3 mb-8">
-          <SynthosLogo size={36} />
-          <span className="text-xl font-semibold text-white">Synthos</span>
-        </Link>
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-[26px] font-semibold text-white tracking-tight">
+          Welcome back
+        </h1>
+        <p className="text-zinc-500 text-[15px] mt-2">
+          Enter your credentials to access your account
+        </p>
+      </div>
 
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-white mb-2">Welcome back</h1>
-          <p className="text-zinc-400 text-sm">Sign in to your account to continue</p>
+      {/* Registration + Promo Success */}
+      {searchParams.get('registered') && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-start gap-3 p-3.5 mb-6 rounded-xl bg-emerald-500/8 border border-emerald-500/15 text-emerald-400"
+        >
+          {searchParams.get('promo') ? (
+            <>
+              <Gift size={16} className="mt-0.5 flex-shrink-0" />
+              <p className="text-sm leading-relaxed">Account created! Sign in to activate your free credits.</p>
+            </>
+          ) : (
+            <>
+              <ArrowRight size={16} className="mt-0.5 flex-shrink-0" />
+              <p className="text-sm leading-relaxed">Account created successfully. Please sign in.</p>
+            </>
+          )}
+        </motion.div>
+      )}
+
+      {/* Error */}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-start gap-3 p-3.5 mb-6 rounded-xl bg-red-500/8 border border-red-500/15 text-red-400"
+        >
+          <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+          <p className="text-sm leading-relaxed">{error}</p>
+        </motion.div>
+      )}
+
+      {/* Form */}
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        {/* Email */}
+        <div className="space-y-2">
+          <label htmlFor="email" className="block text-[13px] font-medium text-zinc-400">
+            Email address
+          </label>
+          <input
+            {...register('email')}
+            id="email"
+            type="email"
+            placeholder="you@company.com"
+            autoComplete="email"
+            className={cn(
+              "w-full px-4 py-2.5 rounded-lg text-[15px]",
+              "bg-zinc-900/50 border border-zinc-800/80",
+              "text-white placeholder:text-zinc-600",
+              "focus:outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/15",
+              "transition-all duration-150",
+              errors.email && "border-red-500/40 focus:border-red-500/60 focus:ring-red-500/15"
+            )}
+          />
+          {errors.email && (
+            <p className="text-xs text-red-400 mt-1">{errors.email.message}</p>
+          )}
         </div>
 
-        {/* Registration + Promo Success */}
-        {searchParams.get('registered') && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-2 p-3 mb-6 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm"
-          >
-            {searchParams.get('promo') ? (
-              <>
-                <Gift size={16} />
-                Account created! Sign in to activate your free credits.
-              </>
-            ) : (
-              <>
-                <ArrowRight size={16} />
-                Account created successfully! Please sign in.
-              </>
-            )}
-          </motion.div>
-        )}
-
-        {/* Error Display */}
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-2 p-3 mb-6 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm"
-          >
-            <AlertCircle size={16} />
-            {error}
-          </motion.div>
-        )}
-
-        {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          {/* Email Field */}
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium text-zinc-300">
-              Email
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-              <input
-                {...register('email')}
-                id="email"
-                type="email"
-                placeholder="you@company.com"
-                autoComplete="email"
-                className={cn(
-                  "w-full pl-10 pr-4 py-3 rounded-lg",
-                  "bg-zinc-950 border border-zinc-800",
-                  "text-white placeholder:text-zinc-600",
-                  "focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/20",
-                  "transition-colors duration-200",
-                  errors.email && "border-red-500/50 focus:border-red-500"
-                )}
-              />
-            </div>
-            {errors.email && (
-              <p className="text-xs text-red-400">{errors.email.message}</p>
-            )}
-          </div>
-
-          {/* Password Field */}
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-zinc-300">
+        {/* Password */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label htmlFor="password" className="block text-[13px] font-medium text-zinc-400">
               Password
             </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-              <input
-                {...register('password')}
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="••••••••"
-                autoComplete="current-password"
-                className={cn(
-                  "w-full pl-10 pr-12 py-3 rounded-lg",
-                  "bg-zinc-950 border border-zinc-800",
-                  "text-white placeholder:text-zinc-600",
-                  "focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/20",
-                  "transition-colors duration-200",
-                  errors.password && "border-red-500/50 focus:border-red-500"
-                )}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-            {errors.password && (
-              <p className="text-xs text-red-400">{errors.password.message}</p>
-            )}
-          </div>
-
-          {/* Forgot Password Link */}
-          <div className="flex justify-end">
-            <Link href="/forgot-password" className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
+            <Link
+              href="/forgot-password"
+              className="text-[13px] text-zinc-500 hover:text-violet-400 transition-colors"
+            >
               Forgot password?
             </Link>
           </div>
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className={cn(
-              "w-full py-3 px-4 rounded-lg font-medium text-sm",
-              "bg-gradient-to-r from-violet-600 to-violet-500",
-              "text-white",
-              "hover:from-violet-500 hover:to-violet-400",
-              "focus:outline-none focus:ring-2 focus:ring-violet-500/50",
-              "disabled:opacity-50 disabled:cursor-not-allowed",
-              "transition-all duration-200",
-              "flex items-center justify-center gap-2"
-            )}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 size={18} className="animate-spin" />
-                Signing in...
-              </>
-            ) : (
-              <>
-                Sign in
-                <ArrowRight size={18} />
-              </>
-            )}
-          </button>
-        </form>
-
-        {/* Divider */}
-        <div className="relative my-8">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-zinc-800" />
+          <div className="relative">
+            <input
+              {...register('password')}
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Enter your password"
+              autoComplete="current-password"
+              className={cn(
+                "w-full px-4 py-2.5 pr-11 rounded-lg text-[15px]",
+                "bg-zinc-900/50 border border-zinc-800/80",
+                "text-white placeholder:text-zinc-600",
+                "focus:outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/15",
+                "transition-all duration-150",
+                errors.password && "border-red-500/40 focus:border-red-500/60 focus:ring-red-500/15"
+              )}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400 transition-colors"
+              tabIndex={-1}
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-zinc-900/50 text-zinc-500">or</span>
-          </div>
+          {errors.password && (
+            <p className="text-xs text-red-400 mt-1">{errors.password.message}</p>
+          )}
         </div>
 
-        {/* Sign Up Link */}
-        <p className="text-center text-sm text-zinc-400">
-          Don&apos;t have an account?{' '}
-          <Link href="/register" className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
-            Create one
-          </Link>
-        </p>
-      </div>
+        {/* Submit */}
+        <button
+          type="submit"
+          disabled={isLoading}
+          className={cn(
+            "w-full py-2.5 px-4 rounded-lg font-medium text-[15px]",
+            "bg-violet-600 text-white",
+            "hover:bg-violet-500",
+            "focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:ring-offset-2 focus:ring-offset-zinc-950",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
+            "transition-all duration-150",
+            "flex items-center justify-center gap-2"
+          )}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              Signing in...
+            </>
+          ) : (
+            'Sign in'
+          )}
+        </button>
+      </form>
+
+      {/* Sign Up Link */}
+      <p className="text-center text-[14px] text-zinc-500 mt-8">
+        Don&apos;t have an account?{' '}
+        <Link href="/register" className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
+          Create one
+        </Link>
+      </p>
     </motion.div>
   );
 }
@@ -248,16 +223,21 @@ function LoginFormContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="w-full max-w-md">
-        <div className="backdrop-blur-md bg-zinc-900/50 border border-white/10 rounded-2xl p-8 animate-pulse">
-          <div className="h-10 bg-zinc-800 rounded w-32 mb-8" />
-          <div className="h-6 bg-zinc-800 rounded w-48 mb-2" />
-          <div className="h-4 bg-zinc-800 rounded w-64 mb-8" />
-          <div className="space-y-4">
-            <div className="h-12 bg-zinc-800 rounded-lg" />
-            <div className="h-12 bg-zinc-800 rounded-lg" />
-            <div className="h-12 bg-zinc-800 rounded-lg" />
+      <div className="animate-pulse space-y-6">
+        <div>
+          <div className="h-7 bg-zinc-800/50 rounded w-40 mb-3" />
+          <div className="h-4 bg-zinc-800/30 rounded w-64" />
+        </div>
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <div className="h-3 bg-zinc-800/30 rounded w-20" />
+            <div className="h-10 bg-zinc-800/40 rounded-lg" />
           </div>
+          <div className="space-y-2">
+            <div className="h-3 bg-zinc-800/30 rounded w-16" />
+            <div className="h-10 bg-zinc-800/40 rounded-lg" />
+          </div>
+          <div className="h-10 bg-zinc-800/50 rounded-lg" />
         </div>
       </div>
     }>
