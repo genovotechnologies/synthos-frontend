@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getVercelOidcToken } from '@vercel/oidc';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'https://synthos-api-gateway-1072864054735.us-central1.run.app';
 
@@ -21,9 +22,10 @@ async function getGCPToken(): Promise<string | null> {
   }
 
   // Method 1 (Primary): Workload Identity Federation via Vercel OIDC
-  // This auto-renews - no manual token management needed
+  // Uses @vercel/oidc to get auto-refreshing tokens - no manual management needed
   const wifToken = await getTokenViaWIF();
   if (wifToken) {
+    // Cache for 55 min (GCP identity tokens last 60 min)
     cachedGCPToken = { token: wifToken, expiry: Date.now() + 55 * 60 * 1000 };
     return wifToken;
   }
@@ -49,35 +51,29 @@ async function getGCPToken(): Promise<string | null> {
 
 /**
  * Exchange Vercel OIDC token for a GCP identity token via Workload Identity Federation.
- * This is the production-grade approach - tokens are auto-issued per deployment.
+ * Uses @vercel/oidc which handles token acquisition automatically on Vercel deployments.
  */
 async function getTokenViaWIF(): Promise<string | null> {
-  // Vercel injects VERCEL_OIDC_TOKEN when OIDC Federation is enabled
-  let oidcToken = process.env.VERCEL_OIDC_TOKEN;
+  let oidcToken: string | undefined;
 
-  // Some Vercel setups provide a URL endpoint instead
-  if (!oidcToken && process.env.VERCEL_OIDC_TOKEN_URL) {
-    try {
-      const res = await fetch(process.env.VERCEL_OIDC_TOKEN_URL, {
-        headers: process.env.VERCEL_OIDC_TOKEN_SECRET
-          ? { Authorization: `Bearer ${process.env.VERCEL_OIDC_TOKEN_SECRET}` }
-          : {},
-      });
-      if (res.ok) {
-        const data = await res.json();
-        oidcToken = data.token || data.access_token;
-      } else {
-        console.error('[proxy:wif] OIDC endpoint returned', res.status);
-      }
-    } catch (e) {
-      console.error('[proxy:wif] Failed to fetch OIDC token:', e);
+  try {
+    // @vercel/oidc reads VERCEL_OIDC_TOKEN automatically and handles refresh
+    oidcToken = await getVercelOidcToken();
+  } catch (e) {
+    // Not running on Vercel or OIDC not available
+    if (process.env.VERCEL) {
+      console.warn('[proxy:wif] getVercelOidcToken() failed:', e instanceof Error ? e.message : e);
     }
   }
 
+  // Fallback: check env var directly
   if (!oidcToken) {
-    // Not running on Vercel or OIDC not enabled - skip silently
+    oidcToken = process.env.VERCEL_OIDC_TOKEN;
+  }
+
+  if (!oidcToken) {
     if (process.env.VERCEL) {
-      console.warn('[proxy:wif] Running on Vercel but no OIDC token available. Enable OIDC Federation in Project Settings > General.');
+      console.warn('[proxy:wif] No OIDC token available on Vercel. Ensure @vercel/oidc is installed and OIDC Federation is enabled.');
     }
     return null;
   }
