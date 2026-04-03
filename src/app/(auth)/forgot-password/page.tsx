@@ -6,8 +6,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { SynthosLogo } from '@/components/ui/synthos-logo';
-import { Mail, AlertCircle, ArrowLeft, Loader2, CheckCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { apiClient } from '@/lib/api/client';
+import { AlertCircle, ArrowLeft, Loader2, CheckCircle } from 'lucide-react';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -33,14 +34,11 @@ export default function ForgotPasswordPage() {
     setError(null);
 
     try {
-      // TODO: Integrate with actual password reset API
-      // await authApi.forgotPassword(data.email);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await apiClient.post('/auth/forgot-password', { email: data.email });
       setIsSuccess(true);
     } catch {
-      setError('Failed to send reset email. Please try again.');
+      // Always show success to prevent email enumeration
+      setIsSuccess(true);
     } finally {
       setIsLoading(false);
     }
@@ -48,115 +46,112 @@ export default function ForgotPasswordPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="w-full max-w-md"
+      transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
-      {/* Glass Card */}
-      <div className="backdrop-blur-md bg-zinc-900/50 border border-white/10 rounded-2xl p-8 shadow-2xl">
-        {/* Logo */}
-        <Link href="/" className="inline-flex items-center gap-3 mb-8">
-          <SynthosLogo size={36} />
-          <span className="text-xl font-semibold text-white">Synthos</span>
-        </Link>
-
-        {isSuccess ? (
-          // Success State
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center py-6"
+      {isSuccess ? (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center py-4"
+        >
+          <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-emerald-500/10 border border-emerald-500/15 flex items-center justify-center">
+            <CheckCircle className="text-emerald-400" size={28} />
+          </div>
+          <h2 className="text-xl font-semibold text-white mb-2">Check your email</h2>
+          <p className="text-zinc-500 text-[15px] mb-6 leading-relaxed">
+            If an account exists with that email, we&apos;ve sent password reset instructions.
+          </p>
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 text-violet-400 hover:text-violet-300 text-sm font-medium transition-colors"
           >
-            <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center">
-              <CheckCircle className="text-green-400" size={32} />
-            </div>
-            <h2 className="text-xl font-semibold text-white mb-2">Check your email</h2>
-            <p className="text-zinc-400 text-sm mb-6">
-              We&apos;ve sent password reset instructions to your email address.
+            <ArrowLeft size={14} />
+            Back to sign in
+          </Link>
+        </motion.div>
+      ) : (
+        <>
+          <div className="mb-8">
+            <h1 className="text-[26px] font-semibold text-white tracking-tight">
+              Reset password
+            </h1>
+            <p className="text-zinc-500 text-[15px] mt-2">
+              Enter your email and we&apos;ll send you reset instructions.
             </p>
+          </div>
+
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-start gap-3 p-3.5 mb-6 rounded-xl bg-red-500/8 border border-red-500/15 text-red-400"
+            >
+              <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+              <p className="text-sm">{error}</p>
+            </motion.div>
+          )}
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            <div className="space-y-2">
+              <label htmlFor="email" className="block text-[13px] font-medium text-zinc-400">
+                Email address
+              </label>
+              <input
+                id="email"
+                type="email"
+                {...register('email')}
+                placeholder="you@company.com"
+                className={cn(
+                  "w-full px-4 py-2.5 rounded-lg text-[15px]",
+                  "bg-zinc-900/50 border border-zinc-800/80",
+                  "text-white placeholder:text-zinc-600",
+                  "focus:outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/15",
+                  "transition-all duration-150",
+                  errors.email && "border-red-500/40"
+                )}
+              />
+              {errors.email && (
+                <p className="text-xs text-red-400">{errors.email.message}</p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className={cn(
+                "w-full py-2.5 px-4 rounded-lg font-medium text-[15px]",
+                "bg-violet-600 text-white",
+                "hover:bg-violet-500",
+                "focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:ring-offset-2 focus:ring-offset-zinc-950",
+                "disabled:opacity-50 disabled:cursor-not-allowed",
+                "transition-all duration-150",
+                "flex items-center justify-center gap-2"
+              )}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                'Send reset instructions'
+              )}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
             <Link
               href="/login"
-              className="inline-flex items-center gap-2 text-violet-400 hover:text-violet-300 text-sm font-medium transition-colors"
+              className="inline-flex items-center gap-2 text-zinc-500 hover:text-zinc-300 text-sm transition-colors"
             >
-              <ArrowLeft size={16} />
+              <ArrowLeft size={14} />
               Back to sign in
             </Link>
-          </motion.div>
-        ) : (
-          <>
-            {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-2xl font-semibold text-white mb-2">Reset password</h1>
-              <p className="text-zinc-400 text-sm">
-                Enter your email and we&apos;ll send you instructions to reset your password.
-              </p>
-            </div>
-
-            {/* Error Display */}
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-2 p-3 mb-6 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm"
-              >
-                <AlertCircle size={16} />
-                {error}
-              </motion.div>
-            )}
-
-            {/* Form */}
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-              {/* Email Field */}
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium text-zinc-300">
-                  Email
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                  <input
-                    id="email"
-                    type="email"
-                    {...register('email')}
-                    placeholder="you@company.com"
-                    className="w-full pl-10 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-lg text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
-                  />
-                </div>
-                {errors.email && (
-                  <p className="text-red-400 text-xs">{errors.email.message}</p>
-                )}
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3 px-4 bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 text-white font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  'Send reset instructions'
-                )}
-              </button>
-            </form>
-
-            {/* Back to Login */}
-            <div className="mt-6 text-center">
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-2 text-zinc-400 hover:text-white text-sm transition-colors"
-              >
-                <ArrowLeft size={16} />
-                Back to sign in
-              </Link>
-            </div>
-          </>
-        )}
-      </div>
+          </div>
+        </>
+      )}
     </motion.div>
   );
 }
