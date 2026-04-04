@@ -66,7 +66,7 @@ const testimonials = [
     role: "Director of AI",
   },
   {
-    text: "Synthos identified issues in our synthetic data that we never would have caught.",
+    text: "Synthos identified issues in our training data that we never would have caught.",
     image: "https://randomuser.me/api/portraits/women/28.jpg",
     name: "Lisa Park",
     role: "Data Science Manager",
@@ -234,8 +234,7 @@ export default function SynthosLanding() {
               transition={{ duration: 1, delay: 0.9, ease: [0.25, 0.4, 0.25, 1] }}
             >
               <p className="text-base sm:text-lg md:text-xl text-white/40 mb-8 leading-relaxed font-light tracking-wide max-w-xl mx-auto px-4">
-                A professional validation platform for AI teams.
-                Predict training outcomes with 90%+ accuracy.
+                Validate any AI training data — synthetic, augmented, or collected — before it reaches your model. Predict training outcomes with 90%+ accuracy.
               </p>
             </motion.div>
 
@@ -371,7 +370,7 @@ export default function SynthosLanding() {
               48-Hour Validation Pipeline
             </h2>
             <p className="text-white/70 max-w-2xl mx-auto">
-              From upload to certification, our end-to-end validation ensures your training data is collapse-proof.
+              From upload to certification, our end-to-end validation ensures your AI training data — synthetic, augmented, or collected — is collapse-proof.
             </p>
             <p className="text-white/50 text-xs mt-4 max-w-xl mx-auto">
               Synthos runs on scalable cloud infrastructure leveraging AWS compute, storage, and ML pipelines to perform large-scale validation efficiently.

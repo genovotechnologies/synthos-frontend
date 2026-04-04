@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { adminApi } from '@/lib/api/admin';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { Users, Tag, ArrowRight } from 'lucide-react';
+import { Users, Tag, ArrowRight, Shield } from 'lucide-react';
 
 function Skeleton() {
   return (
@@ -92,7 +92,7 @@ export default function AdminOverview() {
 
       <section>
         <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-6">Quick Actions</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Link href="/admin/users" className="flex items-center justify-between bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5 hover:border-zinc-700/50 transition-colors group">
             <div className="flex items-center gap-3">
               <Users size={16} className="text-rose-400" />
@@ -104,6 +104,13 @@ export default function AdminOverview() {
             <div className="flex items-center gap-3">
               <Tag size={16} className="text-rose-400" />
               <span className="text-sm text-zinc-300 group-hover:text-zinc-100 transition-colors">Promo Codes</span>
+            </div>
+            <ArrowRight size={14} className="text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+          </Link>
+          <Link href="/admin/warranties" className="flex items-center justify-between bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5 hover:border-zinc-700/50 transition-colors group">
+            <div className="flex items-center gap-3">
+              <Shield size={16} className="text-emerald-400" />
+              <span className="text-sm text-zinc-300 group-hover:text-zinc-100 transition-colors">Manage Warranties</span>
             </div>
             <ArrowRight size={14} className="text-zinc-600 group-hover:text-zinc-400 transition-colors" />
           </Link>

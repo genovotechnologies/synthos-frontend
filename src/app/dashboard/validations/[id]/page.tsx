@@ -1,8 +1,9 @@
 'use client';
 
 import { use } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { validationsApi, type ValidationDimensions } from '@/lib/api';
+import apiClient from '@/lib/api/client';
 import {
   ArrowLeft,
   CheckCircle,
@@ -194,6 +195,7 @@ function ProcessingView({ progress }: { progress?: number }) {
 
 export default function ValidationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
+  const queryClient = useQueryClient();
 
   const { data: validation, isLoading, error } = useQuery({
     queryKey: ['validation', resolvedParams.id],
@@ -257,13 +259,30 @@ export default function ValidationDetailPage({ params }: { params: Promise<{ id:
             <p className="text-sm text-zinc-500 mt-0.5">{validation.validation_type}</p>
           </div>
         </div>
-        <div className={cn(
-          "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium",
-          config.bg,
-          config.color
-        )}>
-          <StatusIcon size={14} className={validation.status === 'processing' ? 'animate-spin' : ''} />
-          {config.label}
+        <div className="flex items-center gap-3">
+          {(validation.status === 'pending' || validation.status === 'processing') && (
+            <button
+              onClick={async () => {
+                if (confirm('Cancel this validation? Credits will be refunded.')) {
+                  try {
+                    await validationsApi.cancel(validation.id);
+                    queryClient.invalidateQueries({ queryKey: ['validation', resolvedParams.id] });
+                  } catch {}
+                }
+              }}
+              className="px-3 py-1.5 text-sm text-zinc-500 hover:text-rose-400 border border-zinc-800 hover:border-rose-500/30 rounded-md transition-colors"
+            >
+              Cancel
+            </button>
+          )}
+          <div className={cn(
+            "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium",
+            config.bg,
+            config.color
+          )}>
+            <StatusIcon size={14} className={validation.status === 'processing' ? 'animate-spin' : ''} />
+            {config.label}
+          </div>
         </div>
       </div>
 
@@ -357,6 +376,38 @@ export default function ValidationDetailPage({ params }: { params: Promise<{ id:
               )}
             </div>
           </div>
+
+          {/* Warranty Request */}
+          {validation.results.risk_score < 50 && (
+            <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-500/10 rounded-lg">
+                    <Shield className="text-emerald-400" size={18} />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-zinc-200 text-sm">Quality Warranty Available</h3>
+                    <p className="text-xs text-zinc-500">Your data qualifies for a performance warranty (risk score under 50%)</p>
+                  </div>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (confirm('Request a quality warranty for this validation? This costs 15 credits.')) {
+                      try {
+                        await apiClient.post(`/warranties/${validation.id}/request`, { coverage_type: 'performance' });
+                        alert('Warranty requested successfully!');
+                      } catch (err: any) {
+                        alert(err?.message || 'Failed to request warranty');
+                      }
+                    }
+                  }}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  Request Warranty
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Compare Link */}
           <div className="flex justify-center">

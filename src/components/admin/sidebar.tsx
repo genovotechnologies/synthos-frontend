@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Users, Tag, Mail, CheckCircle, Database, ScrollText, Settings, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, Tag, Mail, CheckCircle, Database, ScrollText, Settings, LogOut, Menu, X, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SynthosLogo } from '@/components/ui/synthos-logo';
 import { useAuth } from '@/providers/auth-provider';
@@ -14,6 +14,7 @@ const navigation = [
   { name: 'Promo Codes', href: '/admin/promo-codes', icon: Tag },
   { name: 'Invites', href: '/admin/invites', icon: Mail },
   { name: 'Validations', href: '/admin/validations', icon: CheckCircle },
+  { name: 'Warranties', href: '/admin/warranties', icon: Shield },
   { name: 'Datasets', href: '/admin/datasets', icon: Database },
   { name: 'Audit Log', href: '/admin/audit-log', icon: ScrollText },
   { name: 'Settings', href: '/admin/settings', icon: Settings },

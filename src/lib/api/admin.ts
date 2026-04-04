@@ -58,6 +58,16 @@ export const adminApi = {
     const { data } = await apiClient.get(`/admin/audit-log?page=${page}&page_size=${pageSize}`);
     return data;
   },
+  listAllWarranties: async (page = 1, pageSize = 20) => {
+    const { data } = await apiClient.get(`/admin/warranties?page=${page}&page_size=${pageSize}`);
+    return data;
+  },
+  approveWarranty: async (id: string) => {
+    await apiClient.patch(`/admin/warranties/${id}/approve`);
+  },
+  rejectWarranty: async (id: string, reason: string) => {
+    await apiClient.patch(`/admin/warranties/${id}/reject`, { reason });
+  },
   getSettings: async (): Promise<Record<string, any>> => {
     const { data } = await apiClient.get('/admin/settings');
     return data;

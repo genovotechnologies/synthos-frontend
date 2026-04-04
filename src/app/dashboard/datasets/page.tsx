@@ -11,7 +11,7 @@ import { datasetsApi, type Dataset, type UploadProgress } from '@/lib/api';
 
 // Max file size: 500GB
 const MAX_FILE_SIZE = 500 * 1024 * 1024 * 1024;
-const ALLOWED_EXTENSIONS = ['.csv', '.json', '.parquet', '.hdf5', '.h5', '.xlsx', '.xls'];
+const ALLOWED_EXTENSIONS = ['.csv', '.json', '.jsonl', '.parquet', '.hdf5', '.h5', '.xlsx', '.xls', '.tsv', '.arrow', '.feather', '.orc', '.avro', '.pkl', '.pickle'];
 
 interface UploadState {
   status: 'idle' | 'checking-resume' | 'preparing' | 'uploading' | 'completing' | 'paused' | 'success' | 'error';
@@ -320,7 +320,7 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
           <div>
             <h2 className="text-lg font-semibold text-white">Upload Dataset</h2>
             <p className="text-sm text-zinc-500 mt-0.5">
-              CSV, JSON, Parquet, HDF5, Excel (max {formatBytes(MAX_FILE_SIZE)})
+              CSV, JSON, JSONL, Parquet, HDF5, Excel, TSV, Arrow, ORC, Avro (max 500 GB)
             </p>
           </div>
           <button

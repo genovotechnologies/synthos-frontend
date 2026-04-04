@@ -115,7 +115,7 @@ function CreateValidationModal({
   onSuccess: () => void;
 }) {
   const [datasetId, setDatasetId] = useState('');
-  const [validationType, setValidationType] = useState('comprehensive');
+  const [validationType, setValidationType] = useState('full');
   const [modelSize, setModelSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [priority, setPriority] = useState<'low' | 'normal' | 'high'>('normal');
 
@@ -149,7 +149,7 @@ function CreateValidationModal({
 
   const handleClose = () => {
     setDatasetId('');
-    setValidationType('comprehensive');
+    setValidationType('full');
     setModelSize('medium');
     setPriority('normal');
     onClose();
@@ -219,11 +219,19 @@ function CreateValidationModal({
                 onChange={(e) => setValidationType(e.target.value)}
                 className={selectClasses}
               >
+                <option value="full">Full Validation (All Checks)</option>
                 <option value="comprehensive">Comprehensive Analysis</option>
                 <option value="distribution">Distribution Check</option>
                 <option value="correlation">Feature Correlation</option>
                 <option value="temporal">Temporal Consistency</option>
               </select>
+              <p className="text-[11px] text-zinc-600 mt-1">
+                {validationType === 'full' && 'Runs all validation checks at maximum depth. Most thorough analysis.'}
+                {validationType === 'comprehensive' && 'Analyzes distribution, correlation, temporal, and schema dimensions.'}
+                {validationType === 'distribution' && 'Focuses on distribution fidelity and statistical properties.'}
+                {validationType === 'correlation' && 'Focuses on feature correlations and relationship preservation.'}
+                {validationType === 'temporal' && 'Focuses on temporal consistency and time-series patterns.'}
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
