@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/api/client';
+import Cookies from 'js-cookie';
 import { AlertCircle, ArrowLeft, Loader2, CheckCircle, Mail } from 'lucide-react';
 
 function VerifyEmailContent() {
@@ -48,7 +49,29 @@ function VerifyEmailContent() {
     setError(null);
 
     try {
-      await apiClient.post('/auth/verify-email', { email, otp: code });
+      const response = await apiClient.post('/auth/verify-email', { email, otp: code });
+      const data = response.data;
+
+      // If backend returned a JWT, auto-login the user
+      if (data.access_token) {
+        Cookies.set('access_token', data.access_token, {
+          expires: 7,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          path: '/',
+        });
+        // Route based on role
+        const role = data.user?.role || 'user';
+        const roleRoutes: Record<string, string> = {
+          admin: '/admin',
+          developer: '/developer',
+          support: '/support',
+        };
+        router.push(roleRoutes[role] || '/dashboard');
+        return;
+      }
+
+      // Fallback: redirect to login
       router.push('/login?verified=true');
     } catch (err: any) {
       const message = err?.message || 'Verification failed. Please try again.';
