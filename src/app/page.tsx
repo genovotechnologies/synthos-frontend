@@ -2,19 +2,20 @@
 import React from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { 
-  Home, 
-  Shield, 
-  Zap, 
-  Users, 
-  ChevronRight, 
-  CheckCircle, 
+import {
+  Home,
+  Shield,
+  Zap,
+  Users,
+  ChevronRight,
+  CheckCircle,
   ArrowRight,
   Lock,
   Clock,
   Cpu,
   TrendingUp,
-  Target
+  Target,
+  BookOpen,
 } from "lucide-react";
 import { NavBar } from "@/components/ui/tubelight-navbar";
 import { SparklesCore } from "@/components/ui/sparkles";
@@ -29,6 +30,7 @@ const navItems = [
   { name: "Features", url: "#features", icon: Zap },
   { name: "Validation", url: "#validation", icon: Shield },
   { name: "Testimonials", url: "#testimonials", icon: Users },
+  { name: "API Docs", url: "/docs", icon: BookOpen },
 ];
 
 const testimonials = [
@@ -570,9 +572,10 @@ export default function SynthosLanding() {
             <div className="flex flex-col items-center md:items-end gap-2">
               <div className="flex items-center gap-6 text-sm text-white/50">
                 <a href="/about" className="hover:text-white/80 transition-colors">About</a>
-                <a 
-                  href="https://www.genovotech.com" 
-                  target="_blank" 
+                <a href="/docs" className="hover:text-white/80 transition-colors">API Docs</a>
+                <a
+                  href="https://www.genovotech.com"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-white/80 transition-colors"
                 >

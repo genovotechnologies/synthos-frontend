@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { analyticsApi, validationsApi, datasetsApi, type UsageAnalytics } from '@/lib/api';
-import { ArrowUpRight, ArrowDownRight, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, AlertCircle, Loader2, Upload, CheckCircle, Code, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -80,6 +80,8 @@ export default function DashboardOverview() {
     rows_this_month: analytics?.rows_this_month ?? 0,
   };
 
+  const isNewUser = stats.total_datasets === 0 && stats.total_validations === 0;
+
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const firstName = user?.name?.split(' ')[0] || '';
@@ -105,6 +107,62 @@ export default function DashboardOverview() {
           <AlertCircle size={14} />
           <span>Unable to connect to analytics service</span>
         </div>
+      )}
+
+      {isNewUser && (
+        <section className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-8">
+          <h2 className="text-lg font-semibold text-white mb-1">Welcome to Synthos! Let&apos;s get started.</h2>
+          <p className="text-sm text-zinc-400 mb-6">Complete these steps to begin validating your training data.</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              {
+                title: 'Upload your first dataset',
+                description: 'Upload a training dataset to analyze for collapse risk and quality issues.',
+                href: '/dashboard/datasets',
+                icon: Upload,
+                done: stats.total_datasets > 0,
+              },
+              {
+                title: 'Run your first validation',
+                description: 'Start a validation job to get quality scores and training predictions.',
+                href: '/dashboard/validations',
+                icon: CheckCircle,
+                done: stats.total_validations > 0,
+              },
+              {
+                title: 'Explore API documentation',
+                description: 'Integrate Synthos into your ML pipeline with our comprehensive API.',
+                href: '/docs',
+                icon: Code,
+                done: false,
+              },
+            ].map((step) => (
+              <Link
+                key={step.title}
+                href={step.href}
+                className="group relative flex flex-col gap-3 p-5 rounded-lg border border-zinc-800/50 bg-zinc-900/30 hover:bg-zinc-800/30 hover:border-zinc-700/50 transition-all"
+              >
+                <div className="flex items-center justify-between">
+                  <div className={cn(
+                    'w-9 h-9 rounded-lg flex items-center justify-center',
+                    step.done ? 'bg-emerald-500/15' : 'bg-violet-500/15'
+                  )}>
+                    {step.done ? (
+                      <CheckCircle className="w-5 h-5 text-emerald-400" />
+                    ) : (
+                      <step.icon className="w-5 h-5 text-violet-400" />
+                    )}
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 group-hover:translate-x-0.5 transition-all" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-zinc-200">{step.title}</p>
+                  <p className="text-xs text-zinc-500 mt-1">{step.description}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
 
       <section>

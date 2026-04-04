@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { User, Settings, Shield, Key, Bell, Eye, EyeOff, Copy, RefreshCw, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
@@ -502,17 +503,15 @@ function ApiSettings() {
         <p className="text-sm text-zinc-500 mb-4">
           Use the API to integrate Synthos with your workflows and applications.
         </p>
-        <a
-          href="https://docs.synthos.dev"
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          href="/docs"
           className="inline-flex items-center gap-2 text-sm text-violet-400 hover:text-violet-300 transition-colors"
         >
           View API Documentation
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
           </svg>
-        </a>
+        </Link>
       </div>
     </div>
   );
