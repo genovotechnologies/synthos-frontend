@@ -14,8 +14,12 @@ export const adminApi = {
     const { data } = await apiClient.get(`/admin/users?${params}`);
     return data;
   },
-  getUserDetail: async (id: string): Promise<AdminUser> => {
+  getUserDetail: async (id: string): Promise<AdminUser & { credit_balance?: number; validation_count?: number; dataset_count?: number }> => {
     const { data } = await apiClient.get(`/admin/users/${id}`);
+    // Backend wraps user in {user: {...}, credit_balance, ...} - flatten it
+    if (data.user) {
+      return { ...data.user, credit_balance: data.credit_balance, validation_count: data.validation_count, dataset_count: data.dataset_count };
+    }
     return data;
   },
   updateUserRole: async (id: string, role: string): Promise<void> => {
