@@ -131,9 +131,13 @@ export default function DashboardOverview() {
       )}
 
       {isNewUser && (
-        <section className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-8">
-          <h2 className="text-lg font-semibold text-white mb-1">Welcome to Synthos! Let&apos;s get started.</h2>
-          <p className="text-sm text-zinc-400 mb-6">Complete these steps to begin validating your training data.</p>
+        <section className="rounded-xl border border-violet-500/20 bg-gradient-to-br from-violet-500/10 via-violet-500/5 to-transparent p-8">
+          <h2 className="text-lg font-semibold text-white mb-1">
+            Welcome to Synthos{firstName ? `, ${firstName}` : ''}! Let&apos;s get you set up.
+          </h2>
+          <p className="text-sm text-zinc-400 mb-6">
+            You&apos;re just a few steps away from AI-powered training data validation. Follow the steps below to get started.
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
               {

@@ -5,10 +5,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { creditsApi, CreditPackage, CreditTransaction } from '@/lib/api/credits';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/providers/auth-provider';
 import {
   Coins, CreditCard, History, Zap, Shield, TrendingUp,
   Check, ArrowRight, Loader2, AlertCircle, Tag, Star, Gift
 } from 'lucide-react';
+
+declare global {
+  interface Window {
+    Paddle?: {
+      Setup: (config: Record<string, unknown>) => void;
+      Checkout: { open: (config: Record<string, unknown>) => void };
+    };
+  }
+}
 
 function formatCredits(n: number) {
   return n.toLocaleString();
@@ -40,8 +50,10 @@ const packageColors: Record<string, string> = {
 
 export default function BillingPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [promoCode, setPromoCode] = useState('');
   const [promoMessage, setPromoMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const { data: balance, isLoading: balanceLoading } = useQuery({
     queryKey: ['credits', 'balance'],
@@ -77,6 +89,38 @@ export default function BillingPage() {
     },
   });
 
+  // Payment success banner
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('success=true')) {
+      setShowSuccess(true);
+      window.history.replaceState({}, '', '/dashboard/billing');
+      setTimeout(() => setShowSuccess(false), 5000);
+    }
+  }, []);
+
+  // Load Paddle.js
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.Paddle) return;
+
+    const script = document.createElement('script');
+    script.src = 'https://cdn.paddle.com/paddle/v2/paddle.js';
+    script.async = true;
+    script.onload = () => {
+      if (window.Paddle) {
+        window.Paddle.Setup({
+          token: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN || '',
+          eventCallback: (event: Record<string, unknown>) => {
+            if (event.name === 'checkout.completed') {
+              queryClient.invalidateQueries({ queryKey: ['credits'] });
+            }
+          },
+        });
+      }
+    };
+    document.head.appendChild(script);
+  }, [queryClient]);
+
   // Auto-redeem promo from URL params (after registration)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -95,6 +139,14 @@ export default function BillingPage() {
         <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Billing & Credits</h1>
         <p className="text-sm text-zinc-500 mt-1">Manage your credits, purchase packages, and view transaction history</p>
       </div>
+
+      {/* Payment Success Banner */}
+      {showSuccess && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">
+          <Check size={16} />
+          Payment successful! Credits have been added to your account.
+        </div>
+      )}
 
       {/* Balance Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -271,8 +323,21 @@ export default function BillingPage() {
 
                   <button
                     onClick={() => {
-                      if (confirm(`Purchase ${pkg.name} for ${formatCurrency(pkg.price_cents)}?\n\nYou will receive ${formatCredits(pkg.credits + pkg.bonus_credits)} credits.\n\nNote: Payment processing is coming soon. Credits will be added to your account for testing purposes.`)) {
-                        purchaseMutation.mutate(pkg.id);
+                      if (typeof window !== 'undefined' && window.Paddle) {
+                        window.Paddle.Checkout.open({
+                          items: [{ priceId: (pkg as CreditPackage & { paddle_price_id?: string }).paddle_price_id || pkg.id, quantity: 1 }],
+                          customer: { email: user?.email },
+                          customData: { user_id: user?.id, package_id: pkg.id },
+                          settings: {
+                            theme: 'dark',
+                            successUrl: `${window.location.origin}/dashboard/billing?success=true`,
+                          },
+                        });
+                      } else {
+                        // Dev mode fallback
+                        if (confirm(`Purchase ${pkg.name} for ${formatCurrency(pkg.price_cents)}?`)) {
+                          purchaseMutation.mutate(pkg.id);
+                        }
                       }
                     }}
                     disabled={purchaseMutation.isPending}

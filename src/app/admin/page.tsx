@@ -2,9 +2,16 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { adminApi } from '@/lib/api/admin';
+import { developerApi } from '@/lib/api/developer';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { Users, Tag, ArrowRight, Shield } from 'lucide-react';
+import { Users, Tag, ArrowRight, Shield, Clock, Server } from 'lucide-react';
+
+const statusDotColor: Record<string, string> = {
+  healthy: 'bg-emerald-500',
+  degraded: 'bg-amber-500',
+  down: 'bg-rose-500',
+};
 
 function Skeleton() {
   return (
@@ -32,6 +39,18 @@ export default function AdminOverview() {
     retry: 1,
   });
 
+  const { data: auditData } = useQuery({
+    queryKey: ['admin', 'audit-log', 'recent'],
+    queryFn: () => adminApi.getAuditLog(1, 5),
+    retry: 1,
+  });
+
+  const { data: servicesData } = useQuery({
+    queryKey: ['developer', 'services'],
+    queryFn: developerApi.getServices,
+    retry: 1,
+  });
+
   if (isLoading) return <Skeleton />;
 
   const stats = [
@@ -42,6 +61,8 @@ export default function AdminOverview() {
   ];
 
   const roleEntries = Object.entries(data?.users_by_role ?? {});
+  const auditEvents = auditData?.events ?? [];
+  const services = servicesData?.services ?? [];
 
   return (
     <div className="space-y-16">
@@ -62,6 +83,71 @@ export default function AdminOverview() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* System Health */}
+      {services.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">System Health</p>
+            <Link href="/developer/services" className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+              View details
+            </Link>
+          </div>
+          <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5">
+            <div className="flex flex-wrap gap-4">
+              {services.map((svc) => (
+                <div key={svc.name} className="flex items-center gap-2">
+                  <span className={cn('w-2 h-2 rounded-full', statusDotColor[svc.status] || statusDotColor.down)} />
+                  <span className="text-sm text-zinc-400">{svc.name}</span>
+                  {svc.latency_ms !== undefined && (
+                    <span className="text-xs text-zinc-600 tabular-nums">{svc.latency_ms}ms</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Recent Activity (Audit Log) */}
+      <section>
+        <div className="flex items-center justify-between mb-6">
+          <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Recent Activity</p>
+          <Link href="/admin/audit-log" className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+            View full audit log
+          </Link>
+        </div>
+        {auditEvents.length === 0 ? (
+          <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6 text-center">
+            <p className="text-sm text-zinc-600">No recent admin activity</p>
+          </div>
+        ) : (
+          <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl overflow-hidden">
+            <div className="divide-y divide-zinc-800/50">
+              {auditEvents.slice(0, 5).map((event: Record<string, unknown>, idx: number) => (
+                <div key={String(event.id ?? idx)} className="flex items-center gap-4 px-5 py-3.5">
+                  <div className="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center shrink-0">
+                    <Clock size={14} className="text-rose-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-zinc-300 truncate">
+                      {String(event.action || event.event_type || event.description || 'Admin action')}
+                    </p>
+                    <p className="text-xs text-zinc-600 mt-0.5">
+                      {event.user_email ? String(event.user_email) : event.actor ? String(event.actor) : 'System'}
+                    </p>
+                  </div>
+                  <span className="text-xs text-zinc-600 tabular-nums shrink-0">
+                    {event.created_at
+                      ? new Date(String(event.created_at)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                      : '—'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       {roleEntries.length > 0 && (

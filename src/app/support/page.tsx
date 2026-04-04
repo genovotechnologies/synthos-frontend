@@ -55,14 +55,17 @@ export default function SupportOverviewPage() {
 
   if (overviewLoading) return <Skeleton />;
 
+  const tickets = ticketsData?.tickets ?? [];
+  const urgentCount = tickets.filter((t) => t.priority === 'urgent').length;
+  const highCount = tickets.filter((t) => t.priority === 'high').length;
+  const unassignedCount = tickets.filter((t) => !t.assigned_to).length;
+
   const stats = [
     { label: 'Open Tickets', value: overview?.open_tickets ?? 0 },
     { label: 'In Progress', value: overview?.in_progress_tickets ?? 0 },
     { label: 'Resolved Today', value: overview?.resolved_today ?? 0 },
     { label: 'Avg Response Time', value: `${(overview?.avg_response_time_hours ?? 0).toFixed(1)}h` },
   ];
-
-  const tickets = ticketsData?.tickets ?? [];
 
   return (
     <div className="space-y-16">
@@ -82,6 +85,31 @@ export default function SupportOverviewPage() {
               <div className="h-px bg-zinc-800 mt-4" />
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Urgency + Unassigned Indicators */}
+      <section>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {urgentCount > 0 && (
+            <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-5">
+              <p className="text-[11px] font-medium text-rose-400 uppercase tracking-wider mb-1">Urgent</p>
+              <span className="text-2xl font-semibold text-rose-400 tabular-nums">{urgentCount}</span>
+              <p className="text-xs text-rose-400/60 mt-1">tickets need immediate attention</p>
+            </div>
+          )}
+          {highCount > 0 && (
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-5">
+              <p className="text-[11px] font-medium text-amber-400 uppercase tracking-wider mb-1">High Priority</p>
+              <span className="text-2xl font-semibold text-amber-400 tabular-nums">{highCount}</span>
+              <p className="text-xs text-amber-400/60 mt-1">tickets awaiting resolution</p>
+            </div>
+          )}
+          <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-5">
+            <p className="text-[11px] font-medium text-blue-400 uppercase tracking-wider mb-1">Unassigned</p>
+            <span className="text-2xl font-semibold text-blue-400 tabular-nums">{unassignedCount}</span>
+            <p className="text-xs text-blue-400/60 mt-1">tickets need assignment</p>
+          </div>
         </div>
       </section>
 
