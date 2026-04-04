@@ -69,7 +69,14 @@ function LoginFormContent() {
         router.push(`/verify-email?email=${encodeURIComponent(err.email || data.email)}`);
         return;
       }
-      setError('Invalid email or password. Please check your credentials.');
+      const message = err?.message || '';
+      if (message.toLowerCase().includes('locked')) {
+        setError('Your account has been temporarily locked due to too many failed attempts. Please try again later.');
+      } else if (message.toLowerCase().includes('inactive') || message.toLowerCase().includes('suspended')) {
+        setError('Your account has been suspended. Please contact support for assistance.');
+      } else {
+        setError('Incorrect email or password. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }

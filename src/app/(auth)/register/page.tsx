@@ -14,11 +14,12 @@ import { Eye, EyeOff, AlertCircle, ArrowRight, Loader2, Check, Tag, ChevronDown,
 
 const registerSchema = z.object({
   name: z.string()
-    .min(2, 'Name must be at least 2 characters')
+    .min(2, 'Full name is required (at least 2 characters)')
     .max(100, 'Name must be less than 100 characters'),
   email: z.string()
     .email('Please enter a valid email address'),
-  company: z.string().optional(),
+  company: z.string()
+    .min(1, 'Company name is required'),
   promoCode: z.string().optional(),
   password: z.string()
     .min(8, 'Password must be at least 8 characters')
@@ -157,8 +158,15 @@ function RegisterFormContent() {
         }
         router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
       }
-    } catch {
-      setError('Registration failed. This email may already be in use.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '';
+      if (message.toLowerCase().includes('email') && message.toLowerCase().includes('exists')) {
+        setError('An account with this email already exists. Please sign in instead.');
+      } else if (message.toLowerCase().includes('required')) {
+        setError('Please fill in all required fields: name, email, company, and password.');
+      } else {
+        setError('Something went wrong. Please check your details and try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -235,7 +243,7 @@ function RegisterFormContent() {
 
           <div className="space-y-1.5">
             <label htmlFor="company" className="block text-[13px] font-medium text-zinc-400">
-              Company <span className="text-zinc-700">(optional)</span>
+              Company
             </label>
             <input
               {...register('company')}
@@ -243,8 +251,11 @@ function RegisterFormContent() {
               type="text"
               placeholder="Acme Inc."
               autoComplete="organization"
-              className={inputClasses}
+              className={cn(inputClasses, errors.company && "border-red-500/40")}
             />
+            {errors.company && (
+              <p className="text-[11px] text-red-400">{errors.company.message}</p>
+            )}
           </div>
         </div>
 
