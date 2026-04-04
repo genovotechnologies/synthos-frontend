@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { adminApi } from '@/lib/api/admin';
 import { cn } from '@/lib/utils';
-import { Search, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Loader2, Trash2 } from 'lucide-react';
 
 const ROLES = ['all', 'admin', 'developer', 'support', 'user'] as const;
 const STATUSES = ['all', 'active', 'suspended'] as const;
@@ -22,7 +24,8 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [confirmAction, setConfirmAction] = useState<{ type: 'role' | 'status'; userId: string; value: string } | null>(null);
+  const router = useRouter();
+  const [confirmAction, setConfirmAction] = useState<{ type: 'role' | 'status' | 'delete'; userId: string; value: string } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin', 'users', page, search, roleFilter, statusFilter],
@@ -42,6 +45,11 @@ export default function AdminUsersPage() {
 
   const statusMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => adminApi.updateUserStatus(id, isActive),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }); setConfirmAction(null); },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => adminApi.deleteUser(id),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }); setConfirmAction(null); },
   });
 
@@ -95,22 +103,23 @@ export default function AdminUsersPage() {
             <div className="col-span-3">Email</div>
             <div className="col-span-2">Role</div>
             <div className="col-span-2">Status</div>
-            <div className="col-span-2 text-right">Created</div>
+            <div className="col-span-1 text-right">Created</div>
+            <div className="col-span-1 text-right"></div>
           </div>
           {users.length === 0 ? (
             <div className="py-12 text-center text-sm text-zinc-600">No users found</div>
           ) : (
             users.map((user) => (
-              <div key={user.id} className="grid grid-cols-12 gap-4 py-3.5 border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors items-center">
-                <div className="col-span-3 flex items-center gap-3">
+              <div key={user.id} className="grid grid-cols-12 gap-4 py-3.5 border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors items-center group">
+                <Link href={`/admin/users/${user.id}`} className="col-span-3 flex items-center gap-3">
                   <div className="w-7 h-7 rounded-md bg-zinc-800/80 flex items-center justify-center text-xs font-medium text-zinc-400">
                     {user.full_name?.charAt(0).toUpperCase() || 'U'}
                   </div>
-                  <span className="text-sm text-zinc-300 truncate">{user.full_name}</span>
-                </div>
-                <div className="col-span-3">
+                  <span className="text-sm text-zinc-300 truncate hover:text-zinc-100">{user.full_name}</span>
+                </Link>
+                <Link href={`/admin/users/${user.id}`} className="col-span-3">
                   <span className="text-sm text-zinc-500 truncate">{user.email}</span>
-                </div>
+                </Link>
                 <div className="col-span-2">
                   <select
                     value={user.role}
@@ -136,10 +145,19 @@ export default function AdminUsersPage() {
                     </span>
                   </button>
                 </div>
-                <div className="col-span-2 text-right">
+                <div className="col-span-1 text-right">
                   <span className="text-sm text-zinc-500 tabular-nums">
-                    {new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </span>
+                </div>
+                <div className="col-span-1 text-right">
+                  <button
+                    onClick={() => setConfirmAction({ type: 'delete', userId: user.id, value: user.email })}
+                    className="p-1.5 rounded-md text-zinc-700 hover:text-rose-400 hover:bg-rose-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                    title="Delete user"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               </div>
             ))
@@ -178,9 +196,11 @@ export default function AdminUsersPage() {
             <p className="text-sm text-zinc-400">
               {confirmAction.type === 'role'
                 ? `Change this user's role to "${confirmAction.value}"?`
-                : confirmAction.value === 'suspend'
-                  ? 'Suspend this user? They will lose access to the platform.'
-                  : 'Reactivate this user? They will regain access to the platform.'}
+                : confirmAction.type === 'delete'
+                  ? `Permanently delete user "${confirmAction.value}"? This action cannot be undone.`
+                  : confirmAction.value === 'suspend'
+                    ? 'Suspend this user? They will lose access to the platform.'
+                    : 'Reactivate this user? They will regain access to the platform.'}
             </p>
             <div className="flex items-center gap-3 pt-2">
               <button
@@ -193,14 +213,16 @@ export default function AdminUsersPage() {
                 onClick={() => {
                   if (confirmAction.type === 'role') {
                     roleMutation.mutate({ id: confirmAction.userId, role: confirmAction.value });
+                  } else if (confirmAction.type === 'delete') {
+                    deleteMutation.mutate(confirmAction.userId);
                   } else {
                     statusMutation.mutate({ id: confirmAction.userId, isActive: confirmAction.value === 'reactivate' });
                   }
                 }}
-                disabled={roleMutation.isPending || statusMutation.isPending}
+                disabled={roleMutation.isPending || statusMutation.isPending || deleteMutation.isPending}
                 className="flex-1 px-4 py-2 text-sm text-white bg-rose-600 hover:bg-rose-500 rounded-lg disabled:opacity-50 transition-colors"
               >
-                {roleMutation.isPending || statusMutation.isPending ? 'Updating...' : 'Confirm'}
+                {roleMutation.isPending || statusMutation.isPending || deleteMutation.isPending ? 'Processing...' : confirmAction.type === 'delete' ? 'Delete' : 'Confirm'}
               </button>
             </div>
           </div>

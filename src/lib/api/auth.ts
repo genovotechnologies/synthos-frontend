@@ -85,21 +85,17 @@ export const authApi = {
   },
 
   getNotificationPreferences: async (): Promise<NotificationPreferences> => {
-    // Backend does not have a dedicated notification preferences endpoint.
-    // Return defaults so the UI renders without crashing.
-    console.warn('getNotificationPreferences: endpoint not available, returning defaults');
-    return {
-      email_notifications: true,
-      validation_complete: true,
-      warranty_expiring: true,
-      weekly_digest: false,
-    };
+    try {
+      const response = await apiClient.get<NotificationPreferences>('/auth/notification-preferences');
+      return response.data;
+    } catch {
+      return { email_notifications: true, validation_complete: true, warranty_expiring: true, weekly_digest: false };
+    }
   },
 
   updateNotificationPreferences: async (data: NotificationPreferences): Promise<NotificationPreferences> => {
-    // Backend does not have a dedicated notification preferences endpoint.
-    console.warn('updateNotificationPreferences: endpoint not available, returning input');
-    return data;
+    const response = await apiClient.put<NotificationPreferences>('/auth/notification-preferences', data);
+    return response.data;
   },
 
   getApiKey: async (): Promise<{ api_key: string }> => {

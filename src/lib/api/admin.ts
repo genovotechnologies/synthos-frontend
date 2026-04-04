@@ -51,4 +51,19 @@ export const adminApi = {
     const { data } = await apiClient.get(`/admin/datasets?page=${page}&page_size=${perPage}`);
     return data;
   },
+  deleteUser: async (id: string, hard = false): Promise<void> => {
+    await apiClient.delete(`/admin/users/${id}${hard ? '?hard=true' : ''}`);
+  },
+  getAuditLog: async (page = 1, pageSize = 50): Promise<{ events: any[]; pagination: Pagination }> => {
+    const { data } = await apiClient.get(`/admin/audit-log?page=${page}&page_size=${pageSize}`);
+    return data;
+  },
+  getSettings: async (): Promise<Record<string, any>> => {
+    const { data } = await apiClient.get('/admin/settings');
+    return data;
+  },
+  updateSettings: async (settings: Record<string, any>): Promise<Record<string, any>> => {
+    const { data } = await apiClient.patch('/admin/settings', settings);
+    return data;
+  },
 };
