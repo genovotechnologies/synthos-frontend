@@ -201,18 +201,33 @@ export const datasetsApi = {
     file: File,
     onProgress?: (progress: number) => void
   ): Promise<string> => {
-    const response = await axios.put(uploadUrl, file, {
-      headers: {
-        'Content-Type': file.type || 'application/octet-stream',
-      },
-      onUploadProgress: (progressEvent: AxiosProgressEvent) => {
-        if (progressEvent.total && onProgress) {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+    // Use XMLHttpRequest for large file uploads - better streaming support than axios
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', uploadUrl, true);
+      xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+      xhr.timeout = 0; // No timeout for large uploads
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable && onProgress) {
+          const progress = Math.round((event.loaded * 100) / event.total);
           onProgress(progress);
         }
-      },
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const etag = xhr.getResponseHeader('etag')?.replace(/"/g, '') || '';
+          resolve(etag);
+        } else {
+          reject(new Error(`Upload failed with status ${xhr.status}`));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error during upload'));
+      xhr.ontimeout = () => reject(new Error('Upload timed out'));
+      xhr.send(file);
     });
-    return response.headers.etag?.replace(/"/g, '') || '';
   },
 
   completeUpload: async (datasetId: string, data: CompleteUploadRequest): Promise<Dataset> => {
