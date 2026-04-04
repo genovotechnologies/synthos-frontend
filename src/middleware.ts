@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 const protectedRoutes = ['/dashboard', '/admin', '/developer', '/support'];
-const authRoutes = ['/login', '/register'];
+const authRoutes = ['/login', '/register', '/forgot-password', '/verify-email', '/reset-password'];
 
 // Role required for each route prefix
 const roleRoutes: Record<string, string> = {

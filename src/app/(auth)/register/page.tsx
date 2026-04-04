@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useRef, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/providers/auth-provider';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/api/client';
-import { Eye, EyeOff, AlertCircle, ArrowRight, Loader2, Check, Tag, ChevronDown } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, ArrowRight, Loader2, Check, Tag, ChevronDown, UserPlus } from 'lucide-react';
 
 const registerSchema = z.object({
   name: z.string()
@@ -75,8 +75,10 @@ function PasswordStrength({ password }: { password: string }) {
   );
 }
 
-export default function RegisterPage() {
+function RegisterFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams.get('invite');
   const { register: registerUser } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -139,11 +141,22 @@ export default function RegisterPage() {
         email: data.email,
         password: data.password,
         company: data.company,
+        invite_token: inviteToken || undefined,
       });
-      const promoParam = data.promoCode && promoValidation.status === 'valid'
-        ? `&promo=${encodeURIComponent(data.promoCode.trim())}`
-        : '';
-      router.push(`/login?registered=true${promoParam}`);
+
+      if (inviteToken) {
+        // Invited users are auto-verified
+        router.push('/login?registered=true');
+      } else {
+        const promoParam = data.promoCode && promoValidation.status === 'valid'
+          ? `&promo=${encodeURIComponent(data.promoCode.trim())}`
+          : '';
+        if (promoParam) {
+          // Store promo for after verification
+          sessionStorage.setItem('pending_promo', data.promoCode!.trim());
+        }
+        router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
+      }
     } catch {
       setError('Registration failed. This email may already be in use.');
     } finally {
@@ -165,6 +178,18 @@ export default function RegisterPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
+      {/* Invite Banner */}
+      {inviteToken && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-start gap-3 p-3.5 mb-6 rounded-xl bg-violet-500/8 border border-violet-500/15 text-violet-400"
+        >
+          <UserPlus size={16} className="mt-0.5 flex-shrink-0" />
+          <p className="text-sm leading-relaxed">You&apos;ve been invited to join Synthos</p>
+        </motion.div>
+      )}
+
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-[26px] font-semibold text-white tracking-tight">
@@ -407,5 +432,34 @@ export default function RegisterPage() {
         </Link>
       </p>
     </motion.div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="animate-pulse space-y-6">
+          <div>
+            <div className="h-7 bg-zinc-800/50 rounded w-48 mb-3" />
+            <div className="h-4 bg-zinc-800/30 rounded w-64" />
+          </div>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="h-10 bg-zinc-800/40 rounded-lg" />
+              <div className="h-10 bg-zinc-800/40 rounded-lg" />
+            </div>
+            <div className="h-10 bg-zinc-800/40 rounded-lg" />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="h-10 bg-zinc-800/40 rounded-lg" />
+              <div className="h-10 bg-zinc-800/40 rounded-lg" />
+            </div>
+            <div className="h-10 bg-zinc-800/50 rounded-lg" />
+          </div>
+        </div>
+      }
+    >
+      <RegisterFormContent />
+    </Suspense>
   );
 }

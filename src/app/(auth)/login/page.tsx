@@ -10,7 +10,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/providers/auth-provider';
 import { isValidRedirectUrl } from '@/lib/utils';
 import { cn } from '@/lib/utils';
-import { Eye, EyeOff, AlertCircle, ArrowRight, Loader2, Gift } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, ArrowRight, Loader2, Gift, CheckCircle } from 'lucide-react';
 import { creditsApi } from '@/lib/api/credits';
 
 const loginSchema = z.object({
@@ -64,7 +64,11 @@ function LoginFormContent() {
         };
         router.push(roleRoutes[role] || '/dashboard');
       }
-    } catch {
+    } catch (err: any) {
+      if (err?.message === 'EMAIL_VERIFICATION_REQUIRED') {
+        router.push(`/verify-email?email=${encodeURIComponent(err.email || data.email)}`);
+        return;
+      }
       setError('Invalid email or password. Please check your credentials.');
     } finally {
       setIsLoading(false);
@@ -86,6 +90,30 @@ function LoginFormContent() {
           Enter your credentials to access your account
         </p>
       </div>
+
+      {/* Email Verified Success */}
+      {searchParams.get('verified') && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-start gap-3 p-3.5 mb-6 rounded-xl bg-emerald-500/8 border border-emerald-500/15 text-emerald-400"
+        >
+          <CheckCircle size={16} className="mt-0.5 flex-shrink-0" />
+          <p className="text-sm leading-relaxed">Email verified successfully. Please sign in.</p>
+        </motion.div>
+      )}
+
+      {/* Password Reset Success */}
+      {searchParams.get('reset') && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-start gap-3 p-3.5 mb-6 rounded-xl bg-emerald-500/8 border border-emerald-500/15 text-emerald-400"
+        >
+          <CheckCircle size={16} className="mt-0.5 flex-shrink-0" />
+          <p className="text-sm leading-relaxed">Password reset successfully. Please sign in with your new password.</p>
+        </motion.div>
+      )}
 
       {/* Registration + Promo Success */}
       {searchParams.get('registered') && (

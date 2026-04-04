@@ -26,14 +26,29 @@ export const notificationsApi = {
   },
 
   markAsRead: async (id: string): Promise<void> => {
-    await apiClient.patch(`/notifications/${id}/read`);
+    // Backend supports batch mark-as-read via POST /notifications/read with {ids: [...]}
+    await apiClient.post('/notifications/read', { ids: [id] });
   },
 
   markAllAsRead: async (): Promise<void> => {
-    await apiClient.post('/notifications/mark-all-read');
+    // Backend only supports batch mark-as-read. Fetch all unread, then mark them.
+    try {
+      const response = await apiClient.get<NotificationsResponse>('/notifications');
+      const unreadIds = response.data.notifications
+        .filter((n) => !n.read)
+        .map((n) => n.id);
+      if (unreadIds.length > 0) {
+        await apiClient.post('/notifications/read', { ids: unreadIds });
+      }
+    } catch {
+      // Silently fail if we can't fetch or mark
+    }
   },
 
   delete: async (id: string): Promise<void> => {
-    await apiClient.delete(`/notifications/${id}`);
+    // Backend does not support deleting notifications.
+    // Mark as read instead so the UI can hide it.
+    console.warn('notificationsApi.delete: not supported by backend, marking as read instead');
+    await apiClient.post('/notifications/read', { ids: [id] });
   },
 };

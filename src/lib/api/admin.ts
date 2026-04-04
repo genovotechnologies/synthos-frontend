@@ -7,7 +7,7 @@ export const adminApi = {
     return data;
   },
   listUsers: async (page = 1, perPage = 20, search?: string, role?: string, status?: string): Promise<{ users: AdminUser[]; pagination: Pagination }> => {
-    const params = new URLSearchParams({ page: String(page), per_page: String(perPage) });
+    const params = new URLSearchParams({ page: String(page), page_size: String(perPage) });
     if (search) params.set('search', search);
     if (role) params.set('role', role);
     if (status) params.set('status', status);
@@ -44,11 +44,11 @@ export const adminApi = {
     return data;
   },
   listAllValidations: async (page = 1, perPage = 20): Promise<{ validations: Validation[]; pagination: Pagination }> => {
-    const { data } = await apiClient.get(`/admin/validations?page=${page}&per_page=${perPage}`);
+    const { data } = await apiClient.get(`/admin/validations?page=${page}&page_size=${perPage}`);
     return data;
   },
   listAllDatasets: async (page = 1, perPage = 20): Promise<{ datasets: Dataset[]; pagination: Pagination }> => {
-    const { data } = await apiClient.get(`/admin/datasets?page=${page}&per_page=${perPage}`);
+    const { data } = await apiClient.get(`/admin/datasets?page=${page}&page_size=${perPage}`);
     return data;
   },
 };

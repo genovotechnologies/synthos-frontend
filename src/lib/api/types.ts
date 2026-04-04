@@ -26,6 +26,7 @@ export interface RegisterRequest {
   password: string;
   name: string;
   company?: string;
+  invite_token?: string;
 }
 
 export interface RegisterResponse {
