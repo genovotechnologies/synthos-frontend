@@ -6,7 +6,18 @@ export const validationsApi = {
     const response = await apiClient.get<ValidationListResponse>('/validations', {
       params: { page, per_page: perPage },
     });
-    return response.data;
+    const data = response.data;
+    // Map backend pagination (page_size/total_count) to frontend (per_page/total)
+    if (data.pagination) {
+      const p = data.pagination as any;
+      data.pagination = {
+        page: p.page,
+        per_page: p.per_page || p.page_size || perPage,
+        total: p.total ?? p.total_count ?? 0,
+        total_pages: p.total_pages,
+      };
+    }
+    return data;
   },
 
   get: async (id: string): Promise<Validation> => {

@@ -1,6 +1,16 @@
 import apiClient from './client';
 import type { AdminUser, SystemOverview, PromoCode, Invite, Validation, Dataset, Pagination } from './types';
 
+// Helper to map backend pagination (page_size/total_count) to frontend Pagination type (per_page/total)
+function mapPagination(p: any): Pagination {
+  return {
+    page: p.page,
+    per_page: p.per_page || p.page_size || 20,
+    total: p.total ?? p.total_count ?? 0,
+    total_pages: p.total_pages,
+  };
+}
+
 export const adminApi = {
   getOverview: async (): Promise<SystemOverview> => {
     const { data } = await apiClient.get('/admin/overview');
@@ -12,7 +22,10 @@ export const adminApi = {
     if (role) params.set('role', role);
     if (status) params.set('status', status);
     const { data } = await apiClient.get(`/admin/users?${params}`);
-    return data;
+    return {
+      users: data.users || [],
+      pagination: mapPagination(data.pagination || {}),
+    };
   },
   getUserDetail: async (id: string): Promise<AdminUser & { credit_balance?: number; validation_count?: number; dataset_count?: number }> => {
     const { data } = await apiClient.get(`/admin/users/${id}`);
@@ -49,11 +62,21 @@ export const adminApi = {
   },
   listAllValidations: async (page = 1, perPage = 20): Promise<{ validations: Validation[]; pagination: Pagination }> => {
     const { data } = await apiClient.get(`/admin/validations?page=${page}&page_size=${perPage}`);
-    return data;
+    return {
+      validations: data.validations || [],
+      pagination: mapPagination(data.pagination || {}),
+    };
   },
   listAllDatasets: async (page = 1, perPage = 20): Promise<{ datasets: Dataset[]; pagination: Pagination }> => {
     const { data } = await apiClient.get(`/admin/datasets?page=${page}&page_size=${perPage}`);
-    return data;
+    return {
+      datasets: (data.datasets || []).map((d: any) => ({
+        ...d,
+        id: d.id || d.dataset_id,
+        name: d.name || d.filename || '',
+      })),
+      pagination: mapPagination(data.pagination || {}),
+    };
   },
   deleteUser: async (id: string, hard = false): Promise<void> => {
     await apiClient.delete(`/admin/users/${id}${hard ? '?hard=true' : ''}`);

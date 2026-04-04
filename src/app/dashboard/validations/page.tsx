@@ -157,7 +157,9 @@ function CreateValidationModal({
 
   if (!isOpen) return null;
 
-  const readyDatasets = datasetsData?.datasets?.filter(d => d.status === 'ready') || [];
+  const readyDatasets = datasetsData?.datasets?.filter(d =>
+    d.status === 'ready' || d.status === 'processed' || d.status === 'processing'
+  ) || [];
   const selectClasses = cn(
     "w-full px-4 py-2.5 rounded-lg appearance-none",
     "bg-zinc-950 border border-zinc-800",

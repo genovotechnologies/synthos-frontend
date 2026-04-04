@@ -50,6 +50,8 @@ export interface UploadProgress {
 export interface UploadUrlResponse {
   upload_url: string;
   dataset_id: string;
+  upload_method?: 'resumable' | 'direct';
+  chunk_size?: number;
 }
 
 export interface CompleteUploadRequest {
@@ -173,12 +175,44 @@ export const datasetsApi = {
     const response = await apiClient.get<DatasetListResponse>('/datasets', {
       params: { page, per_page: perPage },
     });
-    return response.data;
+    const data = response.data;
+    // Map backend field names to frontend types
+    // Backend sends dataset_id (json tag) but frontend Dataset type expects id
+    // Backend sends filename but frontend expects name
+    if (data.datasets) {
+      data.datasets = data.datasets.map((d: any) => ({
+        ...d,
+        id: d.id || d.dataset_id,
+        name: d.name || d.filename || '',
+        file_name: d.file_name || d.filename || '',
+        row_count: d.row_count ?? 0,
+        column_count: d.column_count ?? 0,
+      }));
+    }
+    // Map backend pagination (page_size/total_count) to frontend (per_page/total)
+    if (data.pagination) {
+      const p = data.pagination as any;
+      data.pagination = {
+        page: p.page,
+        per_page: p.per_page || p.page_size || perPage,
+        total: p.total ?? p.total_count ?? 0,
+        total_pages: p.total_pages,
+      };
+    }
+    return data;
   },
 
   get: async (id: string): Promise<Dataset> => {
     const response = await apiClient.get<Dataset>(`/datasets/${id}`);
-    return response.data;
+    const d = response.data as any;
+    return {
+      ...d,
+      id: d.id || d.dataset_id,
+      name: d.name || d.filename || '',
+      file_name: d.file_name || d.filename || '',
+      row_count: d.row_count ?? 0,
+      column_count: d.column_count ?? 0,
+    };
   },
 
   delete: async (id: string): Promise<void> => {
@@ -199,35 +233,93 @@ export const datasetsApi = {
   uploadToS3: async (
     uploadUrl: string,
     file: File,
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
+    uploadMethod: 'resumable' | 'direct' = 'direct',
+    chunkSize: number = 8 * 1024 * 1024
   ): Promise<string> => {
-    // Use XMLHttpRequest for large file uploads - better streaming support than axios
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open('PUT', uploadUrl, true);
-      xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-      xhr.timeout = 0; // No timeout for large uploads
+    const totalSize = file.size;
+    const CHUNK_SIZE = chunkSize;
 
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable && onProgress) {
-          const progress = Math.round((event.loaded * 100) / event.total);
-          onProgress(progress);
+    // For small files (<chunkSize) or direct upload method, do a single PUT
+    if (totalSize <= CHUNK_SIZE || uploadMethod === 'direct') {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', uploadUrl, true);
+        xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+        xhr.timeout = 0; // No timeout for large uploads
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable && onProgress) {
+            const progress = Math.round((event.loaded * 100) / event.total);
+            onProgress(progress);
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 400) {
+            const etag = xhr.getResponseHeader('etag')?.replace(/"/g, '') || 'uploaded';
+            resolve(etag);
+          } else {
+            reject(new Error(`Upload failed with status ${xhr.status}`));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error('Network error during upload'));
+        xhr.ontimeout = () => reject(new Error('Upload timed out'));
+        xhr.send(file);
+      });
+    }
+
+    // For large files with resumable upload, upload in chunks using Content-Range
+    const totalChunks = Math.ceil(totalSize / CHUNK_SIZE);
+    let uploadedBytes = 0;
+
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * CHUNK_SIZE;
+      const end = Math.min(start + CHUNK_SIZE, totalSize);
+      const chunk = file.slice(start, end);
+      const contentRange = `bytes ${start}-${end - 1}/${totalSize}`;
+
+      // Retry each chunk up to 3 times
+      let lastError: Error | null = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const response = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: {
+              'Content-Range': contentRange,
+              'Content-Length': String(end - start),
+            },
+            body: chunk,
+          });
+
+          // GCS returns 308 for intermediate chunks, 200/201 for the last one
+          if (response.status === 308 || response.status === 200 || response.status === 201) {
+            uploadedBytes = end;
+            if (onProgress) {
+              onProgress(Math.round((uploadedBytes * 100) / totalSize));
+            }
+            lastError = null;
+            break; // Success, move to next chunk
+          } else {
+            const body = await response.text();
+            throw new Error(`Chunk upload failed (${response.status}): ${body}`);
+          }
+        } catch (err) {
+          lastError = err instanceof Error ? err : new Error('Unknown error');
+          if (attempt < 2) {
+            // Exponential backoff
+            await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
+          }
         }
-      };
+      }
 
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          const etag = xhr.getResponseHeader('etag')?.replace(/"/g, '') || '';
-          resolve(etag);
-        } else {
-          reject(new Error(`Upload failed with status ${xhr.status}`));
-        }
-      };
+      if (lastError) {
+        throw lastError;
+      }
+    }
 
-      xhr.onerror = () => reject(new Error('Network error during upload'));
-      xhr.ontimeout = () => reject(new Error('Upload timed out'));
-      xhr.send(file);
-    });
+    return 'uploaded';
   },
 
   completeUpload: async (datasetId: string, data: CompleteUploadRequest): Promise<Dataset> => {
@@ -293,13 +385,16 @@ export const datasetsApi = {
     if (fileSize < MULTIPART_THRESHOLD && !existingState) {
       onProgress?.({ phase: 'preparing', totalBytes: fileSize, uploadedBytes: 0, percentage: 0 });
       
-      const { upload_url, dataset_id } = await datasetsApi.getUploadUrl(fileName, fileSize);
-      
+      const uploadResponse = await datasetsApi.getUploadUrl(fileName, fileSize);
+      const { upload_url, dataset_id } = uploadResponse;
+      const uploadMethod = uploadResponse.upload_method || 'direct';
+      const chunkSizeFromServer = uploadResponse.chunk_size || 8 * 1024 * 1024;
+
       onProgress?.({ phase: 'uploading', totalBytes: fileSize, uploadedBytes: 0, percentage: 0 });
-      
+
       const startTime = Date.now();
       let lastLoaded = 0;
-      
+
       const etag = await datasetsApi.uploadToS3(upload_url, file, (progress) => {
         const uploadedBytes = Math.round((progress / 100) * fileSize);
         const elapsed = (Date.now() - startTime) / 1000;
@@ -315,11 +410,11 @@ export const datasetsApi = {
           remainingTime: remaining,
         });
         lastLoaded = uploadedBytes;
-      });
-      
+      }, uploadMethod, chunkSizeFromServer);
+
       onProgress?.({ phase: 'completing', totalBytes: fileSize, uploadedBytes: fileSize, percentage: 100 });
-      
-      return await datasetsApi.completeUpload(dataset_id, { etag });
+
+      return await datasetsApi.completeUpload(dataset_id, { etag: etag || 'uploaded' });
     }
 
     // Multipart upload for large files

@@ -96,6 +96,7 @@ function DatasetRow({ dataset, onDelete }: { dataset: Dataset; onDelete: (id: st
   const statusColors: Record<Dataset['status'], string> = {
     uploading: 'text-amber-400 bg-amber-400/10',
     processing: 'text-violet-400 bg-blue-400/10',
+    processed: 'text-emerald-400 bg-emerald-400/10',
     ready: 'text-emerald-400 bg-emerald-400/10',
     error: 'text-red-400 bg-red-400/10',
   };
@@ -103,6 +104,7 @@ function DatasetRow({ dataset, onDelete }: { dataset: Dataset; onDelete: (id: st
   const statusLabels: Record<Dataset['status'], string> = {
     uploading: 'Uploading',
     processing: 'Processing',
+    processed: 'Processed',
     ready: 'Ready',
     error: 'Error',
   };

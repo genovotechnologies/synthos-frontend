@@ -43,7 +43,7 @@ export interface Dataset {
   file_size: number;
   row_count: number;
   column_count: number;
-  status: 'uploading' | 'processing' | 'ready' | 'error';
+  status: 'uploading' | 'processing' | 'processed' | 'ready' | 'error';
   created_at: string;
   updated_at: string;
 }
