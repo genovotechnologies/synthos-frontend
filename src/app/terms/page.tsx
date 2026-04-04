@@ -114,9 +114,8 @@ export default function TermsPage() {
                 The Service operates on a credit-based billing system:
               </p>
               <ul className="list-disc list-inside space-y-2 ml-4 mb-4">
-                <li><strong className="text-white">Credit Purchases:</strong> Credits are purchased through our platform via Paddle (our payment processor). All prices are displayed in USD and are exclusive of applicable taxes.</li>
+                <li><strong className="text-white">Credit Purchases:</strong> Credits are purchased through our platform via Paddle (paddle.com), our Merchant of Record. Paddle handles all billing, payments, tax compliance, and invoicing on our behalf. All prices are displayed in USD and are exclusive of applicable taxes.</li>
                 <li><strong className="text-white">Credit Consumption:</strong> Each validation operation consumes credits based on the dataset size and validation type selected. Credit costs are displayed before you confirm any operation.</li>
-                <li><strong className="text-white">Non-Refundable:</strong> Purchased credits are non-refundable except where required by applicable law or in the case of documented Service errors that prevented credit usage.</li>
                 <li><strong className="text-white">Expiration:</strong> Credits do not expire as long as your account remains active and in good standing.</li>
                 <li><strong className="text-white">Promotional Credits:</strong> Promotional or bonus credits may have specific expiration dates and usage restrictions as stated at the time of issuance.</li>
               </ul>
@@ -125,8 +124,25 @@ export default function TermsPage() {
               </p>
             </section>
 
+            <section className="p-6 rounded-xl border border-violet-500/20 bg-violet-900/10">
+              <h2 className="text-xl font-semibold text-white mb-4">6. Refund Policy</h2>
+              <p className="leading-relaxed mb-4">
+                We want you to be completely satisfied with Synthos. If for any reason you are not happy with your purchase, you may request a full refund within 14 days of the purchase date.
+              </p>
+              <p className="leading-relaxed mb-4">
+                Refunds are processed through our payment partner, Paddle (paddle.com), who handles all billing, payments, and refunds on our behalf. Paddle acts as the Merchant of Record for all transactions.
+              </p>
+              <p className="leading-relaxed">
+                To request a refund, contact our support team at{' '}
+                <a href="mailto:support@synthos.dev" className="text-violet-400 hover:text-violet-300 transition-colors">
+                  support@synthos.dev
+                </a>
+                {' '}or submit a ticket through your dashboard. Refunds are typically processed within 5-10 business days.
+              </p>
+            </section>
+
             <section className="p-6 rounded-xl border border-white/10 bg-zinc-900/30">
-              <h2 className="text-xl font-semibold text-white mb-4">6. Data Handling and Privacy</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">7. Data Handling and Privacy</h2>
               <p className="leading-relaxed mb-4">
                 We take data security and privacy seriously:
               </p>
@@ -147,7 +163,7 @@ export default function TermsPage() {
             </section>
 
             <section className="p-6 rounded-xl border border-white/10 bg-zinc-900/30">
-              <h2 className="text-xl font-semibold text-white mb-4">7. Intellectual Property</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">8. Intellectual Property</h2>
               <p className="leading-relaxed mb-4">
                 <strong className="text-white">Our IP:</strong> The Service, including its multi-scale cascade validation technology, collapse signature library, prediction algorithms, user interface, documentation, and all related intellectual property, is owned by Genovo Technologies and protected by applicable copyright, patent, and trade secret laws. You may not copy, modify, distribute, or create derivative works based on our technology.
               </p>
@@ -160,7 +176,7 @@ export default function TermsPage() {
             </section>
 
             <section className="p-6 rounded-xl border border-white/10 bg-zinc-900/30">
-              <h2 className="text-xl font-semibold text-white mb-4">8. Performance Warranties</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">9. Performance Warranties</h2>
               <p className="leading-relaxed mb-4">
                 Synthos offers performance warranties on validated datasets under the following conditions:
               </p>
@@ -177,7 +193,7 @@ export default function TermsPage() {
             </section>
 
             <section className="p-6 rounded-xl border border-white/10 bg-zinc-900/30">
-              <h2 className="text-xl font-semibold text-white mb-4">9. Limitation of Liability</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">10. Limitation of Liability</h2>
               <p className="leading-relaxed mb-4">
                 TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW:
               </p>
@@ -193,7 +209,7 @@ export default function TermsPage() {
             </section>
 
             <section className="p-6 rounded-xl border border-white/10 bg-zinc-900/30">
-              <h2 className="text-xl font-semibold text-white mb-4">10. Termination</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">11. Termination</h2>
               <p className="leading-relaxed mb-4">
                 <strong className="text-white">By You:</strong> You may close your account at any time through the dashboard settings or by contacting support. Upon termination, your remaining credits are forfeited, and your data will be deleted according to our retention policy.
               </p>
@@ -206,7 +222,7 @@ export default function TermsPage() {
             </section>
 
             <section className="p-6 rounded-xl border border-white/10 bg-zinc-900/30">
-              <h2 className="text-xl font-semibold text-white mb-4">11. Governing Law and Dispute Resolution</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">12. Governing Law and Dispute Resolution</h2>
               <p className="leading-relaxed mb-4">
                 These Terms shall be governed by and construed in accordance with the laws of the State of Delaware, United States, without regard to its conflict of law provisions.
               </p>
@@ -219,14 +235,14 @@ export default function TermsPage() {
             </section>
 
             <section className="p-6 rounded-xl border border-white/10 bg-zinc-900/30">
-              <h2 className="text-xl font-semibold text-white mb-4">12. Modifications to Terms</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">13. Modifications to Terms</h2>
               <p className="leading-relaxed">
                 We reserve the right to modify these Terms at any time. We will notify users of material changes at least 30 days in advance via email or in-app notification. Your continued use of the Service after such modifications constitutes acceptance of the updated Terms. If you do not agree to the modified Terms, you should discontinue use of the Service before the changes take effect.
               </p>
             </section>
 
             <section className="p-6 rounded-xl border border-white/10 bg-zinc-900/30">
-              <h2 className="text-xl font-semibold text-white mb-4">13. Contact</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">14. Contact</h2>
               <p className="leading-relaxed">
                 For questions about these Terms of Service, please contact us at{' '}
                 <a href="mailto:legal@synthos.dev" className="text-violet-400 hover:text-violet-300 transition-colors">

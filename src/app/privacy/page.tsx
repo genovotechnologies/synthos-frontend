@@ -149,7 +149,9 @@ export default function PrivacyPage() {
                   <strong className="text-white">Google Cloud Platform (GCP):</strong> Infrastructure hosting, data storage, and compute services. Data may be processed in GCP regions as configured for your account.
                 </li>
                 <li>
-                  <strong className="text-white">Paddle:</strong> Payment processing and subscription management. Paddle acts as our Merchant of Record and handles all payment card data.
+                  <strong className="text-white">Paddle.com (Merchant of Record):</strong> Processes payments, manages subscriptions, handles tax compliance and invoicing. Paddle acts as the Merchant of Record for all transactions.{' '}
+                  <a href="https://www.paddle.com/legal/privacy" target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:text-violet-300 transition-colors">Paddle&apos;s privacy policy</a>{' '}
+                  applies to payment data.
                 </li>
                 <li>
                   <strong className="text-white">Resend:</strong> Transactional email delivery (verification codes, validation notifications, password resets). Receives your email address and name.

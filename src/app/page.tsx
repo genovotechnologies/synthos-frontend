@@ -29,6 +29,7 @@ const navItems = [
   { name: "Home", url: "#hero", icon: Home },
   { name: "Features", url: "#features", icon: Zap },
   { name: "Validation", url: "#validation", icon: Shield },
+  { name: "Pricing", url: "/pricing", icon: Target },
   { name: "Testimonials", url: "#testimonials", icon: Users },
   { name: "API Docs", url: "/docs", icon: BookOpen },
 ];
@@ -570,10 +571,14 @@ export default function SynthosLanding() {
               </p>
             </div>
             <div className="flex flex-col items-center md:items-end gap-2">
-              <div className="flex items-center gap-6 text-sm text-white/50">
+              <div className="flex flex-wrap items-center gap-6 text-sm text-white/50">
                 <a href="/about" className="hover:text-white/80 transition-colors">About</a>
+                <a href="/pricing" className="hover:text-white/80 transition-colors">Pricing</a>
                 <a href="/docs" className="hover:text-white/80 transition-colors">API Docs</a>
                 <a href="/status" className="hover:text-white/80 transition-colors">Status</a>
+                <a href="/terms" className="hover:text-white/80 transition-colors">Terms</a>
+                <a href="/privacy" className="hover:text-white/80 transition-colors">Privacy</a>
+                <a href="/refund-policy" className="hover:text-white/80 transition-colors">Refund Policy</a>
                 <a
                   href="https://www.genovotech.com"
                   target="_blank"
