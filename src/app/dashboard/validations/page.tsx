@@ -11,7 +11,8 @@ import {
   Loader2,
   X,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  GitCompare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -26,7 +27,15 @@ function StatusDot({ status }: { status: string }) {
   return <span className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", colors[status] || colors.pending)} />;
 }
 
-function ValidationRow({ validation }: { validation: Validation }) {
+function ValidationRow({
+  validation,
+  isSelected,
+  onToggleSelect,
+}: {
+  validation: Validation;
+  isSelected: boolean;
+  onToggleSelect: (id: string) => void;
+}) {
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('en-US', {
       month: 'short',
@@ -36,37 +45,63 @@ function ValidationRow({ validation }: { validation: Validation }) {
     });
   };
 
+  const isCompleted = validation.status === 'completed';
+
   return (
-    <Link
-      href={`/dashboard/validations/${validation.id}`}
-      className="grid grid-cols-12 gap-4 py-3.5 border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors group items-center"
-    >
-      <div className="col-span-4 flex items-center gap-3">
-        <div className="w-7 h-7 rounded-md bg-zinc-800/80 flex items-center justify-center text-xs font-medium text-zinc-400 group-hover:bg-zinc-800 transition-colors">
-          {validation.dataset_name?.charAt(0).toUpperCase() || 'D'}
+    <div className="grid grid-cols-12 gap-4 py-3.5 border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors group items-center">
+      <div className="col-span-1 flex items-center justify-center">
+        {isCompleted ? (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              onToggleSelect(validation.id);
+            }}
+            className={cn(
+              'w-4 h-4 rounded border flex items-center justify-center transition-colors',
+              isSelected
+                ? 'bg-violet-600 border-violet-500'
+                : 'border-zinc-700 hover:border-zinc-500'
+            )}
+          >
+            {isSelected && (
+              <CheckCircle size={10} className="text-white" />
+            )}
+          </button>
+        ) : (
+          <span className="w-4 h-4" />
+        )}
+      </div>
+      <Link
+        href={`/dashboard/validations/${validation.id}`}
+        className="col-span-11 grid grid-cols-11 gap-4 items-center"
+      >
+        <div className="col-span-3 flex items-center gap-3">
+          <div className="w-7 h-7 rounded-md bg-zinc-800/80 flex items-center justify-center text-xs font-medium text-zinc-400 group-hover:bg-zinc-800 transition-colors">
+            {validation.dataset_name?.charAt(0).toUpperCase() || 'D'}
+          </div>
+          <div className="min-w-0">
+            <span className="text-sm text-zinc-300 truncate block group-hover:text-zinc-100 transition-colors">
+              {validation.dataset_name || 'Untitled validation'}
+            </span>
+          </div>
         </div>
-        <div className="min-w-0">
-          <span className="text-sm text-zinc-300 truncate block group-hover:text-zinc-100 transition-colors">
-            {validation.dataset_name || 'Untitled validation'}
+        <div className="col-span-2 flex items-center">
+          <span className="text-sm text-zinc-500">{validation.validation_type}</span>
+        </div>
+        <div className="col-span-2 flex items-center justify-end">
+          <span className="text-sm text-zinc-400 tabular-nums">
+            {validation.results?.risk_score !== undefined ? `${validation.results.risk_score}%` : '\u2014'}
           </span>
         </div>
-      </div>
-      <div className="col-span-2 flex items-center">
-        <span className="text-sm text-zinc-500">{validation.validation_type}</span>
-      </div>
-      <div className="col-span-2 flex items-center justify-end">
-        <span className="text-sm text-zinc-400 tabular-nums">
-          {validation.results?.risk_score !== undefined ? `${validation.results.risk_score}%` : '—'}
-        </span>
-      </div>
-      <div className="col-span-2 flex items-center justify-end">
-        <span className="text-sm text-zinc-500 tabular-nums">{formatDate(validation.created_at)}</span>
-      </div>
-      <div className="col-span-2 flex items-center justify-end gap-2">
-        <StatusDot status={validation.status} />
-        <span className="text-sm text-zinc-500 capitalize">{validation.status}</span>
-      </div>
-    </Link>
+        <div className="col-span-2 flex items-center justify-end">
+          <span className="text-sm text-zinc-500 tabular-nums">{formatDate(validation.created_at)}</span>
+        </div>
+        <div className="col-span-2 flex items-center justify-end gap-2">
+          <StatusDot status={validation.status} />
+          <span className="text-sm text-zinc-500 capitalize">{validation.status}</span>
+        </div>
+      </Link>
+    </div>
   );
 }
 
@@ -259,6 +294,15 @@ export default function ValidationsPage() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
+
+  const toggleCompareSelection = (id: string) => {
+    setSelectedForCompare((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 2) return [prev[1], id];
+      return [...prev, id];
+    });
+  };
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['validations', page],
@@ -287,18 +331,37 @@ export default function ValidationsPage() {
           <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Validations</h1>
           <p className="text-sm text-zinc-500 mt-1">Monitor and manage your data validation jobs</p>
         </div>
-        <button
-          onClick={() => setCreateModalOpen(true)}
-          className={cn(
-            "flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm",
-            "bg-gradient-to-r from-violet-600 to-violet-500 text-white",
-            "hover:from-violet-500 hover:to-violet-400",
-            "transition-all duration-200"
+        <div className="flex items-center gap-3">
+          {selectedForCompare.length === 2 && (
+            <Link
+              href={`/dashboard/validations/compare?id1=${selectedForCompare[0]}&id2=${selectedForCompare[1]}`}
+              className={cn(
+                "flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm",
+                "bg-gradient-to-r from-indigo-600 to-indigo-500 text-white",
+                "hover:from-indigo-500 hover:to-indigo-400",
+                "transition-all duration-200"
+              )}
+            >
+              <GitCompare size={16} />
+              Compare Selected
+            </Link>
           )}
-        >
-          <Plus size={16} />
-          New Validation
-        </button>
+          {selectedForCompare.length > 0 && selectedForCompare.length < 2 && (
+            <span className="text-xs text-zinc-500">Select 1 more to compare</span>
+          )}
+          <button
+            onClick={() => setCreateModalOpen(true)}
+            className={cn(
+              "flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm",
+              "bg-gradient-to-r from-violet-600 to-violet-500 text-white",
+              "hover:from-violet-500 hover:to-violet-400",
+              "transition-all duration-200"
+            )}
+          >
+            <Plus size={16} />
+            New Validation
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -348,7 +411,8 @@ export default function ValidationsPage() {
           <section>
             <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl overflow-hidden">
               <div className="grid grid-cols-12 gap-4 px-5 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-zinc-800/50">
-                <div className="col-span-4">Dataset</div>
+                <div className="col-span-1"></div>
+                <div className="col-span-3">Dataset</div>
                 <div className="col-span-2">Type</div>
                 <div className="col-span-2 text-right">Risk Score</div>
                 <div className="col-span-2 text-right">Date</div>
@@ -356,7 +420,12 @@ export default function ValidationsPage() {
               </div>
               <div className="px-5">
                 {data.validations.map((v) => (
-                  <ValidationRow key={v.id} validation={v} />
+                  <ValidationRow
+                    key={v.id}
+                    validation={v}
+                    isSelected={selectedForCompare.includes(v.id)}
+                    onToggleSelect={toggleCompareSelection}
+                  />
                 ))}
               </div>
             </div>

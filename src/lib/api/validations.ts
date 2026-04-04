@@ -22,4 +22,9 @@ export const validationsApi = {
   cancel: async (id: string): Promise<void> => {
     await apiClient.post(`/validations/${id}/cancel`);
   },
+
+  compare: async (id1: string, id2: string) => {
+    const { data } = await apiClient.get(`/validations/compare?id1=${id1}&id2=${id2}`);
+    return data;
+  },
 };

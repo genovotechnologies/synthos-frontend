@@ -1,8 +1,8 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { analyticsApi, validationsApi, datasetsApi, type UsageAnalytics } from '@/lib/api';
-import { ArrowUpRight, ArrowDownRight, AlertCircle, Loader2, Upload, CheckCircle, Code, ArrowRight } from 'lucide-react';
+import { analyticsApi, validationsApi, datasetsApi, apiClient, type UsageAnalytics } from '@/lib/api';
+import { ArrowUpRight, ArrowDownRight, AlertCircle, Loader2, Upload, CheckCircle, Code, ArrowRight, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -68,6 +68,24 @@ export default function DashboardOverview() {
     retry: 1,
   });
 
+  const { data: qualityTrends } = useQuery({
+    queryKey: ['analytics', 'quality-trends'],
+    queryFn: async () => {
+      const { data } = await apiClient.get('/analytics/quality-trends?period=30d');
+      return data;
+    },
+    retry: 1,
+  });
+
+  const { data: benchmarksData } = useQuery({
+    queryKey: ['analytics', 'benchmarks'],
+    queryFn: async () => {
+      const { data } = await apiClient.get('/analytics/benchmarks');
+      return data;
+    },
+    retry: 1,
+  });
+
   if (analyticsLoading) return <DashboardSkeleton />;
 
   const stats: UsageAnalytics = {
@@ -85,10 +103,13 @@ export default function DashboardOverview() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const firstName = user?.name?.split(' ')[0] || '';
-  const chartData = [
-    { name: 'Jan', value: 32 }, { name: 'Feb', value: 45 }, { name: 'Mar', value: 78 },
-    { name: 'Apr', value: 62 }, { name: 'May', value: 89 }, { name: 'Jun', value: 54 }, { name: 'Jul', value: 67 },
-  ];
+  const trendPoints = qualityTrends?.data_points || qualityTrends?.points || qualityTrends;
+  const chartData = Array.isArray(trendPoints) && trendPoints.length > 0
+    ? trendPoints.map((point: { date?: string; name?: string; label?: string; risk_score?: number; value?: number; score?: number }) => ({
+        name: point.date || point.name || point.label || '',
+        value: point.risk_score ?? point.value ?? point.score ?? 0,
+      }))
+    : null;
   const qualityScore = Math.max(0, 100 - (stats.avg_risk_score || 0));
   const readyDatasets = datasetsData?.datasets?.filter(d => d.status === 'ready').length || 0;
   const failedValidations = validationsData?.validations?.filter(v => v.status === 'failed').length || 0;
@@ -211,6 +232,94 @@ export default function DashboardOverview() {
         </div>
       </section>
 
+      {!isNewUser && benchmarksData && (
+        <section>
+          <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-6">Performance Benchmarks</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Your Performance */}
+            <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5">
+              <p className="text-xs text-zinc-500 mb-1">Your Average Risk Score</p>
+              <p className="text-2xl font-semibold text-zinc-100 tabular-nums">
+                {benchmarksData.user_avg_risk_score?.toFixed(1) ?? stats.avg_risk_score?.toFixed(1) ?? '0'}%
+              </p>
+            </div>
+
+            {/* Platform Average */}
+            <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5">
+              <p className="text-xs text-zinc-500 mb-1">Platform Average</p>
+              <p className="text-2xl font-semibold text-zinc-100 tabular-nums">
+                {benchmarksData.platform_avg_risk_score?.toFixed(1) ?? '—'}%
+              </p>
+            </div>
+
+            {/* Percentile */}
+            <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5">
+              <p className="text-xs text-zinc-500 mb-2">
+                Better than {benchmarksData.percentile ?? '—'}% of validated datasets
+              </p>
+              <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-violet-600 to-violet-400 rounded-full transition-all duration-500"
+                  style={{ width: `${benchmarksData.percentile ?? 0}%` }}
+                />
+              </div>
+              <p className="text-xs text-zinc-600 mt-1 tabular-nums">
+                {benchmarksData.percentile ?? 0}th percentile
+              </p>
+            </div>
+          </div>
+
+          {/* Dimension comparison */}
+          {benchmarksData.dimensions && (
+            <div className="mt-4 bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5">
+              <p className="text-xs text-zinc-500 mb-4">Dimension Comparison (You vs Platform Average)</p>
+              <div className="space-y-3">
+                {(
+                  [
+                    { key: 'distribution_fidelity', label: 'Distribution Fidelity' },
+                    { key: 'feature_correlation', label: 'Feature Correlation' },
+                    { key: 'temporal_consistency', label: 'Temporal Consistency' },
+                    { key: 'outlier_detection', label: 'Outlier Detection' },
+                    { key: 'schema_compliance', label: 'Schema Compliance' },
+                  ] as const
+                ).map((dim) => {
+                  const userVal = benchmarksData.dimensions?.[dim.key]?.user ?? 0;
+                  const platformVal = benchmarksData.dimensions?.[dim.key]?.platform ?? 0;
+                  return (
+                    <div key={dim.key}>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-zinc-500">{dim.label}</span>
+                        <span className="text-zinc-600 tabular-nums">
+                          {userVal} / {platformVal}
+                        </span>
+                      </div>
+                      <div className="flex gap-1">
+                        <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-violet-500 rounded-full"
+                            style={{ width: `${userVal}%` }}
+                          />
+                        </div>
+                        <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-zinc-600 rounded-full"
+                            style={{ width: `${platformVal}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="flex items-center gap-4 mt-2 text-[10px] text-zinc-600">
+                  <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-violet-500" />You</span>
+                  <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-zinc-600" />Platform Avg</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
       <section className="flex items-center gap-16 text-sm">
         <div className="flex items-center gap-3">
           <span className="text-zinc-500">Active jobs</span>
@@ -230,23 +339,29 @@ export default function DashboardOverview() {
         <div className="lg:col-span-3">
           <div className="flex items-center justify-between mb-6">
             <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Validation Trend</p>
-            <span className="text-xs text-zinc-600">Last 7 months</span>
+            <span className="text-xs text-zinc-600">{chartData ? `Last ${chartData.length} data points` : 'Last 30 days'}</span>
           </div>
           <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#a78bfa" stopOpacity={0.15} />
-                    <stop offset="100%" stopColor="#a78bfa" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#52525b', fontSize: 11 }} dy={8} />
-                <YAxis hide />
-                <Tooltip content={<ChartTooltip />} cursor={false} />
-                <Area type="monotone" dataKey="value" stroke="#a78bfa" strokeWidth={1.5} fill="url(#chartGradient)" />
-              </AreaChart>
-            </ResponsiveContainer>
+            {chartData ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#a78bfa" stopOpacity={0.15} />
+                      <stop offset="100%" stopColor="#a78bfa" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#52525b', fontSize: 11 }} dy={8} />
+                  <YAxis hide />
+                  <Tooltip content={<ChartTooltip />} cursor={false} />
+                  <Area type="monotone" dataKey="value" stroke="#a78bfa" strokeWidth={1.5} fill="url(#chartGradient)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-sm text-zinc-600">
+                No trend data yet. Complete validations to see quality trends.
+              </div>
+            )}
           </div>
         </div>
 

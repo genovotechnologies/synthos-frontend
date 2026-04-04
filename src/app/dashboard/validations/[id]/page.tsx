@@ -10,7 +10,8 @@ import {
   AlertCircle,
   Loader2,
   AlertTriangle,
-  Shield
+  Shield,
+  GitCompare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -355,6 +356,22 @@ export default function ValidationDetailPage({ params }: { params: Promise<{ id:
                 </p>
               )}
             </div>
+          </div>
+
+          {/* Compare Link */}
+          <div className="flex justify-center">
+            <Link
+              href={`/dashboard/validations/compare?id1=${resolvedParams.id}`}
+              className={cn(
+                "flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm",
+                "border border-zinc-800 text-zinc-400",
+                "hover:border-zinc-700 hover:text-zinc-200",
+                "transition-all duration-200"
+              )}
+            >
+              <GitCompare size={16} />
+              Compare with another validation
+            </Link>
           </div>
         </>
       )}
