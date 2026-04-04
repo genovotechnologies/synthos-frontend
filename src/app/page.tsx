@@ -573,6 +573,7 @@ export default function SynthosLanding() {
               <div className="flex items-center gap-6 text-sm text-white/50">
                 <a href="/about" className="hover:text-white/80 transition-colors">About</a>
                 <a href="/docs" className="hover:text-white/80 transition-colors">API Docs</a>
+                <a href="/status" className="hover:text-white/80 transition-colors">Status</a>
                 <a
                   href="https://www.genovotech.com"
                   target="_blank"

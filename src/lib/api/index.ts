@@ -14,4 +14,6 @@ export { adminApi } from './admin';
 export { supportApi } from './support';
 export { developerApi } from './developer';
 export { ticketsApi } from './tickets';
+export { webhooksApi } from './webhooks';
+export type { Webhook, WebhookDelivery } from './webhooks';
 export * from './types';
