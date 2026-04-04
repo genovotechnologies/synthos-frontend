@@ -60,6 +60,9 @@ export const adminApi = {
     const { data } = await apiClient.get('/admin/invites');
     return data;
   },
+  deleteInvite: async (id: string): Promise<void> => {
+    await apiClient.delete(`/admin/invites/${id}`);
+  },
   listAllValidations: async (page = 1, perPage = 20): Promise<{ validations: Validation[]; pagination: Pagination }> => {
     const { data } = await apiClient.get(`/admin/validations?page=${page}&page_size=${perPage}`);
     return {

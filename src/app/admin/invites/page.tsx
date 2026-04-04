@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/lib/api/admin';
 import { cn } from '@/lib/utils';
-import { Plus, X, Loader2, Send } from 'lucide-react';
+import { Plus, X, Loader2, Send, Trash2 } from 'lucide-react';
 
 const INVITE_ROLES = ['admin', 'developer', 'support'] as const;
 
@@ -108,7 +108,8 @@ export default function AdminInvitesPage() {
             <div className="col-span-2">Status</div>
             <div className="col-span-2">Sent By</div>
             <div className="col-span-1">Expires</div>
-            <div className="col-span-2 text-right">Created</div>
+            <div className="col-span-1 text-right">Created</div>
+            <div className="col-span-1 text-right"></div>
           </div>
           {invites.length === 0 ? (
             <div className="py-12 text-center text-sm text-zinc-600">No invites sent yet</div>
@@ -144,10 +145,25 @@ export default function AdminInvitesPage() {
                     {new Date(invite.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </span>
                 </div>
-                <div className="col-span-2 text-right">
+                <div className="col-span-1 text-right">
                   <span className="text-sm text-zinc-500 tabular-nums">
-                    {new Date(invite.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {new Date(invite.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </span>
+                </div>
+                <div className="col-span-1 flex justify-end">
+                  <button
+                    onClick={() => {
+                      if (confirm(`Delete invite for ${invite.email}?`)) {
+                        adminApi.deleteInvite(invite.id).then(() => {
+                          queryClient.invalidateQueries({ queryKey: ['admin', 'invites'] });
+                        });
+                      }
+                    }}
+                    className="p-1.5 text-zinc-600 hover:text-rose-400 transition-colors"
+                    title="Delete invite"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               </div>
             ))
