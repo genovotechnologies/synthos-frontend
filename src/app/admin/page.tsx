@@ -57,12 +57,18 @@ export default function AdminOverview() {
     { label: 'Total Users', value: data?.total_users ?? 0 },
     { label: 'Total Validations', value: data?.total_validations ?? 0 },
     { label: 'Total Datasets', value: data?.total_datasets ?? 0 },
-    { label: 'Revenue', value: `$${((data?.total_revenue_cents ?? 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}` },
+    { label: 'Credits Purchased', value: (data?.total_credits_purchased ?? 0).toLocaleString() },
   ];
 
   const roleEntries = Object.entries(data?.users_by_role ?? {});
   const auditEvents = auditData?.events ?? [];
-  const services = servicesData?.services ?? [];
+  const rawServices = servicesData?.services ?? {};
+  const services = Array.isArray(rawServices)
+    ? rawServices
+    : Object.entries(rawServices).map(([key, value]) => ({
+        name: key.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+        ...(value as Record<string, unknown>),
+      })) as { name: string; status: string; latency_ms?: number }[];
 
   return (
     <div className="space-y-16">

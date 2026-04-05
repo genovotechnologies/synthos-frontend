@@ -6,7 +6,7 @@ export const developerApi = {
     const { data } = await apiClient.get('/developer/overview');
     return data;
   },
-  getServices: async (): Promise<{ services: ServiceStatus[] }> => {
+  getServices: async (): Promise<{ services: ServiceStatus[] | Record<string, unknown> }> => {
     const { data } = await apiClient.get('/developer/services');
     return data;
   },

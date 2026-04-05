@@ -17,6 +17,7 @@ export interface NotificationPreferences {
   validation_complete: boolean;
   warranty_expiring: boolean;
   weekly_digest: boolean;
+  ticket_updates: boolean;
 }
 
 export const authApi = {
@@ -73,7 +74,11 @@ export const authApi = {
       company_name: data.company,
       job_title: data.role,
     });
-    const user = response.data;
+    // Handle both flat response and wrapped {user: {...}} response
+    let user = response.data;
+    if ((user as any).user) {
+      user = (user as any).user;
+    }
     const u = user as unknown as Record<string, unknown>;
     if (u.full_name && !u.name) user.name = u.full_name as string;
     if (u.company_name && !u.company) user.company = u.company_name as string;
@@ -89,7 +94,7 @@ export const authApi = {
       const response = await apiClient.get<NotificationPreferences>('/auth/notification-preferences');
       return response.data;
     } catch {
-      return { email_notifications: true, validation_complete: true, warranty_expiring: true, weekly_digest: false };
+      return { email_notifications: true, validation_complete: true, warranty_expiring: true, weekly_digest: false, ticket_updates: true };
     }
   },
 
@@ -101,10 +106,10 @@ export const authApi = {
   getApiKey: async (): Promise<{ api_key: string }> => {
     // Backend uses /api-keys (list). Return the first key if available.
     try {
-      const response = await apiClient.get<{ api_keys: { id: string; key: string }[] }>('/api-keys');
-      const keys = response.data.api_keys;
-      if (keys && keys.length > 0) {
-        return { api_key: keys[0].key };
+      const response = await apiClient.get('/api-keys');
+      const keys = response.data?.api_keys || response.data || [];
+      if (Array.isArray(keys) && keys.length > 0) {
+        return { api_key: keys[0].key_prefix + '...' };
       }
       return { api_key: '' };
     } catch {
@@ -113,20 +118,24 @@ export const authApi = {
   },
 
   regenerateApiKey: async (): Promise<{ api_key: string }> => {
-    // Backend uses DELETE /api-keys/:id + POST /api-keys to regenerate.
+    // Delete existing keys first
     try {
-      // First, list existing keys to delete the old one
-      const listResponse = await apiClient.get<{ api_keys: { id: string; key: string }[] }>('/api-keys');
-      const keys = listResponse.data.api_keys;
-      if (keys && keys.length > 0) {
-        await apiClient.delete(`/api-keys/${keys[0].id}`);
+      const response = await apiClient.get('/api-keys');
+      const keys = response.data?.api_keys || response.data || [];
+      if (Array.isArray(keys)) {
+        for (const key of keys) {
+          await apiClient.delete(`/api-keys/${key.id}`);
+        }
       }
     } catch {
       // Ignore deletion errors; proceed to create new key
     }
-    // Create a new API key
-    const response = await apiClient.post<{ id: string; key: string }>('/api-keys');
-    return { api_key: response.data.key };
+    // Create new key with default scopes
+    const response = await apiClient.post<{ id: string; key: string; key_prefix: string }>('/api-keys', {
+      name: 'Default API Key',
+      scopes: ['read:datasets', 'write:datasets', 'read:validations', 'write:validations', 'read:analytics', 'read:warranties', 'write:warranties'],
+    });
+    return { api_key: response.data.key || response.data.key_prefix + '...' };
   },
 
   logout: async (): Promise<void> => {

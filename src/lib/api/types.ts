@@ -18,6 +18,9 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   access_token: string;
+  refresh_token: string;
+  token_type: string;
+  expires_in: number;
   user: User;
 }
 
@@ -204,7 +207,7 @@ export interface SystemOverview {
   total_users: number;
   total_validations: number;
   total_datasets: number;
-  total_revenue_cents: number;
+  total_credits_purchased: number;
   active_jobs: number;
   users_by_role: Record<string, number>;
 }
@@ -259,10 +262,8 @@ export interface TicketMessage {
 }
 
 export interface SupportOverview {
-  open_tickets: number;
-  in_progress_tickets: number;
-  resolved_today: number;
-  avg_response_time_hours: number;
+  tickets_by_status: Record<string, number>;
+  recent_tickets: SupportTicket[];
 }
 
 // Developer types
@@ -274,10 +275,11 @@ export interface ServiceStatus {
 }
 
 export interface DevOverview {
-  services: ServiceStatus[];
-  total_api_calls_today: number;
-  error_rate_percent: number;
-  avg_latency_ms: number;
+  database_healthy: boolean;
+  recent_errors_24h: number;
+  validations_today: number;
+  total_users: number;
+  uptime: string;
 }
 
 export interface APIEndpoint {

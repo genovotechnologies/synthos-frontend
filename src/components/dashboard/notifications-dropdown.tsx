@@ -44,7 +44,7 @@ function NotificationItem({
   const content = (
     <div 
       className={`group relative px-4 py-3 hover:bg-zinc-800/50 transition-colors ${
-        !notification.read ? 'bg-blue-500/5' : ''
+        !notification.is_read ? 'bg-blue-500/5' : ''
       }`}
     >
       <div className="flex gap-3">
@@ -52,7 +52,7 @@ function NotificationItem({
           <NotificationIcon type={notification.type} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className={`text-sm ${notification.read ? 'text-zinc-400' : 'text-white font-medium'}`}>
+          <p className={`text-sm ${notification.is_read ? 'text-zinc-400' : 'text-white font-medium'}`}>
             {notification.title}
           </p>
           <p className="text-xs text-zinc-500 mt-0.5 line-clamp-2">
@@ -62,7 +62,7 @@ function NotificationItem({
             {formatTimeAgo(notification.created_at)}
           </p>
         </div>
-        {!notification.read && (
+        {!notification.is_read && (
           <div className="flex-shrink-0">
             <div className="w-2 h-2 rounded-full bg-blue-500" />
           </div>
@@ -71,7 +71,7 @@ function NotificationItem({
       
       {/* Actions on hover */}
       <div className="absolute right-2 top-2 hidden group-hover:flex items-center gap-1">
-        {!notification.read && (
+        {!notification.is_read && (
           <button
             onClick={(e) => {
               e.preventDefault();

@@ -69,7 +69,22 @@ export default function DeveloperOverviewPage() {
 
   if (isLoading) return <Skeleton />;
 
-  const services = data?.services ?? [];
+  // Services come from a separate endpoint, not the overview
+  const { data: servicesData } = useQuery({
+    queryKey: ['developer', 'services'],
+    queryFn: developerApi.getServices,
+    retry: 1,
+    refetchInterval: 15000,
+  });
+
+  const rawServices = servicesData?.services ?? {};
+  const services = Array.isArray(rawServices)
+    ? rawServices
+    : Object.entries(rawServices).map(([key, value]) => ({
+        name: key.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+        ...(value as Record<string, unknown>),
+      })) as { name: string; status: string; latency_ms?: number; last_checked: string }[];
+
   const recentErrors = (logsData?.logs ?? []).filter(
     (log) => log.status_code >= 400 || log.level === 'error'
   ).slice(0, 5);
@@ -77,23 +92,23 @@ export default function DeveloperOverviewPage() {
   const metrics = [
     {
       label: 'API Requests (24h)',
-      value: (metricsData?.total_requests_today ?? data?.total_api_calls_today ?? 0).toLocaleString(),
+      value: (metricsData?.total_requests_today ?? 0).toLocaleString(),
       icon: BarChart3,
     },
     {
-      label: 'Error Rate',
-      value: `${(data?.error_rate_percent ?? 0).toFixed(2)}%`,
+      label: 'Errors (24h)',
+      value: (data?.recent_errors_24h ?? metricsData?.error_count_today ?? 0).toLocaleString(),
       icon: AlertTriangle,
-      warn: (data?.error_rate_percent ?? 0) > 5,
+      warn: (data?.recent_errors_24h ?? 0) > 10,
     },
     {
       label: 'Avg Latency',
-      value: `${(metricsData?.avg_latency_ms ?? data?.avg_latency_ms ?? 0).toFixed(0)}ms`,
+      value: `${(metricsData?.avg_latency_ms ?? 0).toFixed(0)}ms`,
       icon: Clock,
     },
     {
-      label: 'Active Validations',
-      value: '—',
+      label: 'Validations Today',
+      value: (data?.validations_today ?? 0).toLocaleString(),
       icon: Activity,
     },
   ];

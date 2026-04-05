@@ -61,10 +61,10 @@ export default function SupportOverviewPage() {
   const unassignedCount = tickets.filter((t) => !t.assigned_to).length;
 
   const stats = [
-    { label: 'Open Tickets', value: overview?.open_tickets ?? 0 },
-    { label: 'In Progress', value: overview?.in_progress_tickets ?? 0 },
-    { label: 'Resolved Today', value: overview?.resolved_today ?? 0 },
-    { label: 'Avg Response Time', value: `${(overview?.avg_response_time_hours ?? 0).toFixed(1)}h` },
+    { label: 'Open Tickets', value: overview?.tickets_by_status?.open ?? 0 },
+    { label: 'In Progress', value: overview?.tickets_by_status?.in_progress ?? 0 },
+    { label: 'Resolved', value: overview?.tickets_by_status?.resolved ?? 0 },
+    { label: 'Closed', value: overview?.tickets_by_status?.closed ?? 0 },
   ];
 
   return (

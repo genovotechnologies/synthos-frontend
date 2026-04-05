@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { developerApi } from '@/lib/api/developer';
+import type { ServiceStatus } from '@/lib/api/types';
 import { cn } from '@/lib/utils';
 import { Loader2, ScrollText, RotateCcw, Server, Database, Cpu, MemoryStick, Clock } from 'lucide-react';
 
@@ -87,7 +88,13 @@ export default function DeveloperServicesPage() {
     retry: 1,
   });
 
-  const services = data?.services ?? [];
+  const rawServices = data?.services ?? {};
+  const services = Array.isArray(rawServices)
+    ? rawServices
+    : Object.entries(rawServices).map(([key, value]) => ({
+        name: key.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+        ...(value as Record<string, unknown>),
+      })) as ServiceStatus[];
 
   const handleRestart = (serviceName: string) => {
     setConfirmRestart(serviceName);

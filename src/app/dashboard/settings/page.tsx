@@ -436,6 +436,7 @@ function NotificationSettings() {
     validation_complete: true,
     warranty_expiring: true,
     weekly_digest: false,
+    ticket_updates: true,
   });
 
   useEffect(() => {
