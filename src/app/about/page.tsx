@@ -2,7 +2,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Home, Shield, Zap, Users, ArrowLeft, Building2, ExternalLink } from "lucide-react";
+import { Home, Shield, Zap, ArrowLeft, Building2, ExternalLink } from "lucide-react";
 import { NavBar } from "@/components/ui/tubelight-navbar";
 import { SparklesCore } from "@/components/ui/sparkles";
 import { SynthosLogoWithText } from "@/components/ui/synthos-logo";
@@ -11,7 +11,7 @@ const navItems = [
   { name: "Home", url: "/", icon: Home },
   { name: "Features", url: "/#features", icon: Zap },
   { name: "Validation", url: "/#validation", icon: Shield },
-  { name: "Testimonials", url: "/#testimonials", icon: Users },
+
 ];
 
 export default function AboutPage() {

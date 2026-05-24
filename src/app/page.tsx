@@ -6,7 +6,6 @@ import {
   Home,
   Shield,
   Zap,
-  Users,
   ChevronRight,
   CheckCircle,
   ArrowRight,
@@ -20,7 +19,7 @@ import {
 import { NavBar } from "@/components/ui/tubelight-navbar";
 import { SparklesCore } from "@/components/ui/sparkles";
 import { ShaderAnimation } from "@/components/ui/shader-animation";
-import { TestimonialsColumn } from "@/components/ui/testimonials-columns";
+
 import { GooeyText } from "@/components/ui/gooey-text-morphing";
 import RadialOrbitalTimeline, { TimelineItem } from "@/components/ui/radial-orbital-timeline";
 import { SynthosLogoWithText } from "@/components/ui/synthos-logo";
@@ -30,70 +29,11 @@ const navItems = [
   { name: "Features", url: "#features", icon: Zap },
   { name: "Validation", url: "#validation", icon: Shield },
   { name: "Pricing", url: "/pricing", icon: Target },
-  { name: "Testimonials", url: "#testimonials", icon: Users },
+
   { name: "API Docs", url: "/docs", icon: BookOpen },
 ];
 
-const testimonials = [
-  {
-    text: "Synthos validation saved us from a $50M training disaster. Their collapse detection is incredibly accurate.",
-    image: "https://randomuser.me/api/portraits/men/32.jpg",
-    name: "David Chen",
-    role: "VP Engineering, AI Labs",
-  },
-  {
-    text: "The 48-hour turnaround and 90%+ accuracy predictions have transformed our ML pipeline.",
-    image: "https://randomuser.me/api/portraits/women/44.jpg",
-    name: "Sarah Mitchell",
-    role: "Head of ML, TechCorp",
-  },
-  {
-    text: "Finally, a platform that guarantees data quality with financial backing. Game changer.",
-    image: "https://randomuser.me/api/portraits/men/75.jpg",
-    name: "Michael Rodriguez",
-    role: "CTO, DataStream AI",
-  },
-  {
-    text: "Their multi-scale cascade validation is unlike anything else in the market.",
-    image: "https://randomuser.me/api/portraits/women/65.jpg",
-    name: "Emily Watson",
-    role: "ML Research Lead",
-  },
-  {
-    text: "The warranty program gives us confidence to train models without fear of collapse.",
-    image: "https://randomuser.me/api/portraits/men/22.jpg",
-    name: "James Kim",
-    role: "Director of AI",
-  },
-  {
-    text: "Synthos identified issues in our training data that we never would have caught.",
-    image: "https://randomuser.me/api/portraits/women/28.jpg",
-    name: "Lisa Park",
-    role: "Data Science Manager",
-  },
-  {
-    text: "The ROI on using Synthos is incredible - prevented multiple costly training failures.",
-    image: "https://randomuser.me/api/portraits/men/55.jpg",
-    name: "Robert Thompson",
-    role: "CEO, Neural Systems",
-  },
-  {
-    text: "Their collapse signature library gets better with every validation. True network effect.",
-    image: "https://randomuser.me/api/portraits/women/33.jpg",
-    name: "Amanda Foster",
-    role: "Principal Engineer",
-  },
-  {
-    text: "Best investment we made in our AI infrastructure. Essential for any serious ML team.",
-    image: "https://randomuser.me/api/portraits/men/41.jpg",
-    name: "Chris Anderson",
-    role: "VP of Technology",
-  },
-];
 
-const firstColumn = testimonials.slice(0, 3);
-const secondColumn = testimonials.slice(3, 6);
-const thirdColumn = testimonials.slice(6, 9);
 
 // Orbital timeline data for core features
 const featureTimelineData: TimelineItem[] = [
@@ -197,18 +137,7 @@ export default function SynthosLanding() {
         {/* Hero Content */}
         <div className="relative z-10 container mx-auto px-4 md:px-6">
           <div className="max-w-3xl mx-auto text-center">
-            {/* Badge Pill */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1, delay: 0.5, ease: [0.25, 0.4, 0.25, 1] }}
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] mb-8 md:mb-12"
-            >
-              <Shield className="h-2 w-2 fill-cyan-500/80 text-cyan-500" />
-              <span className="text-sm text-white/60 tracking-wide">
-                Synthos Validation
-              </span>
-            </motion.div>
+
 
             {/* Headline - Clean gradient text */}
             <motion.div
@@ -312,10 +241,7 @@ export default function SynthosLanding() {
             viewport={{ once: true }}
             className="text-center mb-8"
           >
-            <div className="inline-flex items-center gap-2 border border-white/20 rounded-full px-4 py-1.5 mb-4 bg-white/[0.03] backdrop-blur-md">
-              <Zap className="w-3 h-3 text-cyan-400" />
-              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/70">Core Features</span>
-            </div>
+
             <h2 className="text-3xl md:text-5xl font-bold tracking-tighter mb-4 text-white">
               Enterprise-Grade Validation
             </h2>
@@ -362,10 +288,7 @@ export default function SynthosLanding() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <div className="inline-flex items-center gap-2 border border-white/20 rounded-full px-4 py-1.5 mb-4 bg-white/[0.03] backdrop-blur-md">
-              <Shield className="w-3 h-3 text-cyan-400" />
-              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/70">How It Works</span>
-            </div>
+
             <h2 className="text-3xl md:text-5xl font-bold tracking-tighter mb-4 text-white">
               48-Hour Validation Pipeline
             </h2>
@@ -451,38 +374,7 @@ export default function SynthosLanding() {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section id="testimonials" className="py-24 relative overflow-hidden bg-background">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <div className="inline-flex items-center gap-2 border border-white/20 rounded-full px-4 py-1.5 mb-4 bg-white/[0.03] backdrop-blur-md">
-              <Users className="w-3 h-3 text-cyan-400" />
-              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/70">Testimonials</span>
-            </div>
-            <h2 className="text-3xl md:text-5xl font-bold tracking-tighter mb-4 text-white">
-              Trusted by AI Leaders
-            </h2>
-            <p className="text-white/70 max-w-2xl mx-auto">
-              See what industry leaders say about Synthos validation platform.
-            </p>
-            <p className="text-white/50 text-xs mt-4 max-w-xl mx-auto italic">
-              Testimonials shown are from private beta users and enterprise pilots. Company names anonymized.
-            </p>
-          </motion.div>
 
-          <div className="flex justify-center gap-6 [mask-image:linear-gradient(to_bottom,transparent,black_25%,black_75%,transparent)] max-h-[700px] overflow-hidden">
-            <TestimonialsColumn testimonials={firstColumn} duration={15} />
-            <TestimonialsColumn testimonials={secondColumn} className="hidden md:block" duration={19} />
-            <TestimonialsColumn testimonials={thirdColumn} className="hidden lg:block" duration={17} />
-          </div>
-        </div>
-      </section>
 
       {/* CTA Section */}
       <section className="py-24 relative">
