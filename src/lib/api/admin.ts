@@ -90,6 +90,15 @@ export const adminApi = {
   },
   listAllWarranties: async (page = 1, pageSize = 20) => {
     const { data } = await apiClient.get(`/admin/warranties?page=${page}&page_size=${pageSize}`);
+    // Backend returns warranty_id / warranty_type; normalize so approve/reject (which
+    // use `.id`) and the UI work.
+    if (Array.isArray(data?.warranties)) {
+      data.warranties = data.warranties.map((w: Record<string, unknown>) => ({
+        ...w,
+        id: w.id ?? w.warranty_id,
+        coverage_type: w.coverage_type ?? w.warranty_type,
+      }));
+    }
     return data;
   },
   approveWarranty: async (id: string) => {

@@ -21,8 +21,11 @@ function ProfileSettings() {
 
   useEffect(() => {
     if (user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(user.name || '');
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCompany(user.company || '');
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRole(user.role || '');
     }
   }, [user]);
@@ -441,6 +444,7 @@ function NotificationSettings() {
 
   useEffect(() => {
     if (preferences) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSettings(preferences);
     }
   }, [preferences]);

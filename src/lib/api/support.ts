@@ -36,6 +36,12 @@ export const supportApi = {
   },
   getUserValidations: async (userId: string, page = 1): Promise<{ validations: Validation[]; pagination: Pagination }> => {
     const { data } = await apiClient.get(`/support/users/${userId}/validations?page=${page}`);
+    if (Array.isArray(data?.validations)) {
+      data.validations = data.validations.map((v: Record<string, unknown>) => ({
+        ...v,
+        id: v.id ?? v.validation_id,
+      }));
+    }
     return data;
   },
 };

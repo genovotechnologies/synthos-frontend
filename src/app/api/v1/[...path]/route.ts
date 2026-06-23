@@ -1,185 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getVercelOidcToken } from '@vercel/oidc';
 
-const BACKEND_URL = process.env.BACKEND_URL || 'https://synthos-api-gateway-1072864054735.us-central1.run.app';
-
-const GCP_PROJECT_NUMBER = process.env.GCP_PROJECT_NUMBER || '1072864054735';
-const WIF_POOL_ID = process.env.WIF_POOL_ID || 'vercel-pool';
-const WIF_PROVIDER_ID = process.env.WIF_PROVIDER_ID || 'vercel-provider';
-const GCP_SA_EMAIL = process.env.GCP_SA_EMAIL || 'synthos-vercel-proxy@cs-poc-eeli19j6nx85aphvzv6bmeb.iam.gserviceaccount.com';
-
-// Cached GCP identity token (from WIF or SA key exchange)
-let cachedGCPToken: { token: string; expiry: number } | null = null;
-
-/**
- * Get a GCP identity token to authenticate with Cloud Run.
- * Priority: WIF (auto-renewing) > SA Key > Static token (fallback)
- */
-async function getGCPToken(): Promise<string | null> {
-  // Return cached token if still valid (with 2-min buffer)
-  if (cachedGCPToken && Date.now() < cachedGCPToken.expiry - 120_000) {
-    return cachedGCPToken.token;
-  }
-
-  // Method 1 (Primary): Workload Identity Federation via Vercel OIDC
-  // Uses @vercel/oidc to get auto-refreshing tokens - no manual management needed
-  const wifToken = await getTokenViaWIF();
-  if (wifToken) {
-    // Cache for 55 min (GCP identity tokens last 60 min)
-    cachedGCPToken = { token: wifToken, expiry: Date.now() + 55 * 60 * 1000 };
-    return wifToken;
-  }
-
-  // Method 2: Service account JSON key
-  const saToken = await getTokenViaSAKey();
-  if (saToken) {
-    cachedGCPToken = { token: saToken, expiry: Date.now() + 55 * 60 * 1000 };
-    return saToken;
-  }
-
-  // Method 3 (Fallback): Static identity token from env var
-  // Only for local dev or emergency - expires in 1 hour
-  const staticToken = process.env.GCP_IDENTITY_TOKEN;
-  if (staticToken) {
-    console.warn('[proxy] Using static GCP_IDENTITY_TOKEN - this expires in 1 hour');
-    return staticToken;
-  }
-
-  console.error('[proxy] No GCP auth method available. Set BACKEND_URL, enable Vercel OIDC, or provide GCP_SA_KEY_JSON');
-  return null;
-}
-
-/**
- * Exchange Vercel OIDC token for a GCP identity token via Workload Identity Federation.
- * Uses @vercel/oidc which handles token acquisition automatically on Vercel deployments.
- */
-async function getTokenViaWIF(): Promise<string | null> {
-  let oidcToken: string | undefined;
-
-  try {
-    // @vercel/oidc reads VERCEL_OIDC_TOKEN automatically and handles refresh
-    oidcToken = await getVercelOidcToken();
-  } catch (e) {
-    // Not running on Vercel or OIDC not available
-    if (process.env.VERCEL) {
-      console.warn('[proxy:wif] getVercelOidcToken() failed:', e instanceof Error ? e.message : e);
-    }
-  }
-
-  // Fallback: check env var directly
-  if (!oidcToken) {
-    oidcToken = process.env.VERCEL_OIDC_TOKEN;
-  }
-
-  if (!oidcToken) {
-    if (process.env.VERCEL) {
-      console.warn('[proxy:wif] No OIDC token available on Vercel. Ensure @vercel/oidc is installed and OIDC Federation is enabled.');
-    }
-    return null;
-  }
-
-  try {
-    // Step 1: Exchange Vercel OIDC token for federated access token via STS
-    const stsAudience = `//iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/${WIF_POOL_ID}/providers/${WIF_PROVIDER_ID}`;
-
-    const stsRes = await fetch('https://sts.googleapis.com/v1/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
-        audience: stsAudience,
-        scope: 'https://www.googleapis.com/auth/cloud-platform',
-        requested_token_type: 'urn:ietf:params:oauth:token-type:access_token',
-        subject_token_type: 'urn:ietf:params:oauth:token-type:jwt',
-        subject_token: oidcToken,
-      }),
-    });
-
-    if (!stsRes.ok) {
-      const err = await stsRes.text();
-      console.error('[proxy:wif] STS exchange failed:', stsRes.status, err);
-      return null;
-    }
-
-    const stsData = await stsRes.json();
-
-    // Step 2: Use federated token to generate a Cloud Run identity token
-    const idTokenRes = await fetch(
-      `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${GCP_SA_EMAIL}:generateIdToken`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${stsData.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          audience: BACKEND_URL,
-          includeEmail: true,
-        }),
-      }
-    );
-
-    if (idTokenRes.ok) {
-      const idTokenData = await idTokenRes.json();
-      console.log('[proxy:wif] GCP identity token obtained via WIF');
-      return idTokenData.token;
-    }
-
-    const err = await idTokenRes.text();
-    console.error('[proxy:wif] ID token generation failed:', idTokenRes.status, err);
-    return null;
-  } catch (e) {
-    console.error('[proxy:wif] WIF auth error:', e);
-    return null;
-  }
-}
-
-/**
- * Generate a GCP identity token using a service account JSON key.
- */
-async function getTokenViaSAKey(): Promise<string | null> {
-  const saKey = process.env.GCP_SA_KEY_JSON;
-  if (!saKey) return null;
-
-  try {
-    const keyData = JSON.parse(Buffer.from(saKey, 'base64').toString('utf-8'));
-    const now = Math.floor(Date.now() / 1000);
-    const crypto = await import('crypto');
-
-    const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
-    const payload = Buffer.from(JSON.stringify({
-      iss: keyData.client_email,
-      sub: keyData.client_email,
-      aud: 'https://oauth2.googleapis.com/token',
-      iat: now,
-      exp: now + 3600,
-      target_audience: BACKEND_URL,
-    })).toString('base64url');
-
-    const sign = crypto.createSign('RSA-SHA256');
-    sign.update(`${header}.${payload}`);
-    const signature = sign.sign(keyData.private_key, 'base64url');
-    const jwt = `${header}.${payload}.${signature}`;
-
-    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
-    });
-
-    if (tokenRes.ok) {
-      const tokenData = await tokenRes.json();
-      console.log('[proxy:sa] GCP identity token obtained via SA key');
-      return tokenData.id_token;
-    }
-
-    console.error('[proxy:sa] Token exchange failed:', tokenRes.status);
-    return null;
-  } catch (e) {
-    console.error('[proxy:sa] SA key auth error:', e);
-    return null;
-  }
-}
+// The backend is a public API gateway (AWS ALB) at api.synthos.dev. This route is an
+// optional same-origin pass-through proxy: it avoids CORS and keeps the backend URL
+// out of the client bundle. It forwards the caller's app JWT (Authorization), the
+// query string, and the request body unchanged. (No cloud-provider auth needed — the
+// previous GCP Workload-Identity/Cloud-Run machinery was removed.)
+const BACKEND_URL = (process.env.BACKEND_URL || 'https://api.synthos.dev').replace(/\/+$/, '');
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -190,37 +16,30 @@ const CORS_HEADERS = {
 
 async function proxyHandler(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;
-  const apiPath = `/api/v1/${path.join('/')}`;
-  const url = new URL(apiPath, BACKEND_URL);
-
+  const url = new URL(`/api/v1/${path.join('/')}`, BACKEND_URL);
   req.nextUrl.searchParams.forEach((value, key) => url.searchParams.set(key, value));
 
   const headers: Record<string, string> = {};
   const contentType = req.headers.get('content-type');
   if (contentType) headers['Content-Type'] = contentType;
-
-  // Forward app JWT
   const authHeader = req.headers.get('authorization');
   if (authHeader) headers['Authorization'] = authHeader;
 
-  // Add GCP auth
-  const gcpToken = await getGCPToken();
-  if (gcpToken) {
-    if (authHeader) {
-      headers['X-Serverless-Authorization'] = `Bearer ${gcpToken}`;
-    } else {
-      headers['Authorization'] = `Bearer ${gcpToken}`;
-    }
-  }
-
   try {
     const body = ['GET', 'HEAD'].includes(req.method) ? undefined : await req.text();
-    const response = await fetch(url.toString(), { method: req.method, headers, body: body || undefined });
+    const response = await fetch(url.toString(), {
+      method: req.method,
+      headers,
+      body: body || undefined,
+      cache: 'no-store',
+    });
     const responseBody = await response.text();
-
     return new NextResponse(responseBody, {
       status: response.status,
-      headers: { 'Content-Type': response.headers.get('content-type') || 'application/json', ...CORS_HEADERS },
+      headers: {
+        'Content-Type': response.headers.get('content-type') || 'application/json',
+        ...CORS_HEADERS,
+      },
     });
   } catch (error) {
     console.error('[proxy] Backend unreachable:', error);

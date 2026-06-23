@@ -237,7 +237,7 @@ export default function ValidationDetailPage({ params }: { params: Promise<{ id:
     );
   }
 
-  const config = statusConfig[validation.status];
+  const config = statusConfig[validation.status as keyof typeof statusConfig] ?? statusConfig.pending;
   const StatusIcon = config.icon;
 
   return (

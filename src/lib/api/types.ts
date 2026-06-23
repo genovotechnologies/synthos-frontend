@@ -93,7 +93,7 @@ export interface CompleteUploadRequest {
 }
 
 // Validation Types
-export type ValidationStatus = 'pending' | 'processing' | 'completed' | 'failed';
+export type ValidationStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
 export type ValidationPriority = 'low' | 'normal' | 'high';
 export type ModelSize = 'small' | 'medium' | 'large';
 
@@ -118,22 +118,34 @@ export interface ValidationDimensions {
 
 export interface ValidationResults {
   risk_score: number;
+  risk_level?: string;
   dimensions: ValidationDimensions;
   collapse_probability: number;
+  predicted_performance?: number | Record<string, unknown>;
+  // Backend returns a single `recommendation` string; the API layer also exposes a
+  // normalized `recommendations` array for the UI.
+  recommendation?: string;
   recommendations?: string[];
 }
 
 export interface Validation {
   id: string;
+  validation_id?: string;
   dataset_id: string;
   dataset_name?: string;
   validation_type: string;
   status: ValidationStatus;
   progress?: number;
-  options: ValidationOptions;
+  options?: ValidationOptions;
   results?: ValidationResults;
+  // List items carry flat risk fields (no nested `results` object).
+  risk_score?: number;
+  risk_level?: string;
+  warranty_eligible?: boolean;
+  report_url?: string;
+  certificate_url?: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   completed_at?: string;
 }
 
@@ -145,15 +157,19 @@ export interface ValidationListResponse {
 // Warranty Types
 export interface Warranty {
   id: string;
+  warranty_id?: string;
   validation_id: string;
-  dataset_name: string;
+  dataset_name?: string;
   coverage_type: string;
-  status: 'active' | 'expired' | 'claimed';
-  risk_score: number;
+  warranty_type?: string;
+  status: 'active' | 'expired' | 'claimed' | 'pending' | 'pending_review' | 'approved' | 'rejected';
+  risk_score?: number;
   coverage_amount: number;
-  premium_paid: number;
+  premium_paid?: number;
   valid_from: string;
   valid_until: string;
+  start_date?: string;
+  end_date?: string;
   created_at: string;
 }
 

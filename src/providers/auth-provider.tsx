@@ -49,12 +49,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // A07:2021 - Check if token is expired before making request
+    // If the access token is expired, renew it with the refresh token before giving
+    // up — otherwise the user is logged out roughly every hour.
     if (isTokenExpired(token)) {
-      Cookies.remove('access_token', { path: '/' });
-      setUser(null);
-      setIsLoading(false);
-      return;
+      const refreshToken = Cookies.get('refresh_token');
+      if (!refreshToken) {
+        Cookies.remove('access_token', { path: '/' });
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+      try {
+        const refreshed = await authApi.refresh(refreshToken);
+        Cookies.set('access_token', refreshed.access_token, { ...COOKIE_OPTIONS, expires: 7 });
+        if (refreshed.refresh_token) {
+          Cookies.set('refresh_token', refreshed.refresh_token, { ...COOKIE_OPTIONS, expires: 30 });
+        }
+      } catch {
+        Cookies.remove('access_token', { path: '/' });
+        Cookies.remove('refresh_token', { path: '/' });
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
     }
 
     try {
@@ -89,6 +106,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const response = await authApi.login(data);
     // A07:2021 - Use secure cookie options
     Cookies.set('access_token', response.access_token, COOKIE_OPTIONS);
+    // Persist the rotating refresh token so the session renews silently instead of
+    // logging the user out when the ~1h access token expires.
+    if (response.refresh_token) {
+      Cookies.set('refresh_token', response.refresh_token, { ...COOKIE_OPTIONS, expires: 30 });
+    }
     setUser(response.user);
 
     // Return the role so the login page can route appropriately
@@ -102,8 +124,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
-    // A07:2021 - Ensure cookie is properly removed with same options
+    // Best-effort server-side session revocation (don't block the UI on it).
+    authApi.logout().catch(() => {});
+    // A07:2021 - Ensure cookies are properly removed with same options
     Cookies.remove('access_token', { path: '/' });
+    Cookies.remove('refresh_token', { path: '/' });
     setUser(null);
     // Clear any cached data
     if (typeof window !== 'undefined') {

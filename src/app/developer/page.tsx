@@ -67,8 +67,6 @@ export default function DeveloperOverviewPage() {
     return () => clearInterval(interval);
   }, []);
 
-  if (isLoading) return <Skeleton />;
-
   // Services come from a separate endpoint, not the overview
   const { data: servicesData } = useQuery({
     queryKey: ['developer', 'services'],
@@ -76,6 +74,8 @@ export default function DeveloperOverviewPage() {
     retry: 1,
     refetchInterval: 15000,
   });
+
+  if (isLoading) return <Skeleton />;
 
   const rawServices = servicesData?.services ?? {};
   const services = Array.isArray(rawServices)

@@ -40,6 +40,11 @@ export const authApi = {
     return result;
   },
 
+  refresh: async (refreshToken: string): Promise<LoginResponse> => {
+    const response = await apiClient.post<LoginResponse>('/auth/refresh', { refresh_token: refreshToken });
+    return response.data;
+  },
+
   register: async (data: RegisterRequest): Promise<RegisterResponse> => {
     const body: Record<string, string | undefined> = {
       email: data.email,

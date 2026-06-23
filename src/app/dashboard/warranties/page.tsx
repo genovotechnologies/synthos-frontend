@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { warrantiesApi, type Warranty } from '@/lib/api';
 import {
@@ -19,11 +19,15 @@ import Link from 'next/link';
 function WarrantyCard({ warranty }: { warranty: Warranty }) {
   const statusConfig = {
     active: { icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10', label: 'Active' },
+    pending: { icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10', label: 'Pending' },
+    pending_review: { icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10', label: 'Pending Review' },
+    approved: { icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10', label: 'Approved' },
+    rejected: { icon: AlertTriangle, color: 'text-rose-400', bg: 'bg-rose-500/10', label: 'Rejected' },
     expired: { icon: Clock, color: 'text-zinc-500', bg: 'bg-zinc-800', label: 'Expired' },
     claimed: { icon: AlertTriangle, color: 'text-amber-400', bg: 'bg-amber-500/10', label: 'Claimed' },
   };
 
-  const config = statusConfig[warranty.status];
+  const config = statusConfig[warranty.status as keyof typeof statusConfig] ?? statusConfig.pending;
   const StatusIcon = config.icon;
 
   const formatCurrency = (amount: number) => {
@@ -42,9 +46,15 @@ function WarrantyCard({ warranty }: { warranty: Warranty }) {
     });
   };
 
-  const daysRemaining = Math.ceil(
-    (new Date(warranty.valid_until).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-  );
+  const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
+
+  useEffect(() => {
+    const diff = Math.ceil(
+      (new Date(warranty.valid_until).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+    );
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDaysRemaining(diff);
+  }, [warranty.valid_until]);
 
   return (
     <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6">
@@ -77,15 +87,15 @@ function WarrantyCard({ warranty }: { warranty: Warranty }) {
           <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Risk Score</p>
           <p className={cn(
             "text-lg font-semibold mt-1 tabular-nums",
-            warranty.risk_score < 30 ? "text-emerald-400" :
-            warranty.risk_score < 60 ? "text-amber-400" : "text-rose-400"
+            (warranty.risk_score ?? 0) < 30 ? "text-emerald-400" :
+            (warranty.risk_score ?? 0) < 60 ? "text-amber-400" : "text-rose-400"
           )}>
-            {warranty.risk_score}%
+            {warranty.risk_score != null ? `${warranty.risk_score}%` : '—'}
           </p>
         </div>
         <div>
           <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Premium Paid</p>
-          <p className="font-medium text-zinc-300 mt-1 tabular-nums">{formatCurrency(warranty.premium_paid)}</p>
+          <p className="font-medium text-zinc-300 mt-1 tabular-nums">{formatCurrency(warranty.premium_paid ?? 0)}</p>
         </div>
         <div>
           <p className="text-[11px] text-zinc-600 uppercase tracking-wider">
@@ -96,7 +106,7 @@ function WarrantyCard({ warranty }: { warranty: Warranty }) {
       </div>
 
       <div className="flex items-center justify-between mt-4">
-        {warranty.status === 'active' && daysRemaining > 0 && (
+        {warranty.status === 'active' && daysRemaining !== null && daysRemaining > 0 && (
           <p className="text-xs text-zinc-500">{daysRemaining} days remaining</p>
         )}
         {warranty.status === 'expired' && (
@@ -158,7 +168,7 @@ export default function WarrantiesPage() {
             <div className="flex items-baseline gap-3">
               <span className="text-3xl font-semibold text-zinc-100 tabular-nums tracking-tight">
                 {activeWarranties.length
-                  ? Math.round(activeWarranties.reduce((sum, w) => sum + w.risk_score, 0) / activeWarranties.length)
+                  ? Math.round(activeWarranties.reduce((sum, w) => sum + (w.risk_score ?? 0), 0) / activeWarranties.length)
                   : 0}%
               </span>
             </div>

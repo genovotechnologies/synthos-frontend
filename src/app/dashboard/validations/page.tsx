@@ -90,7 +90,7 @@ function ValidationRow({
         </div>
         <div className="col-span-2 flex items-center justify-end">
           <span className="text-sm text-zinc-400 tabular-nums">
-            {validation.results?.risk_score !== undefined ? `${validation.results.risk_score}%` : '\u2014'}
+            {(validation.risk_score ?? validation.results?.risk_score) !== undefined ? `${validation.risk_score ?? validation.results?.risk_score}%` : '\u2014'}
           </span>
         </div>
         <div className="col-span-2 flex items-center justify-end">

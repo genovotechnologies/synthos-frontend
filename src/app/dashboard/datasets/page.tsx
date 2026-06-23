@@ -170,13 +170,6 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Check for resumable upload when file is selected
-  useEffect(() => {
-    if (file) {
-      checkResumableUpload(file);
-    }
-  }, [file]);
-
   const checkResumableUpload = async (selectedFile: File) => {
     setUploadState(prev => ({ ...prev, status: 'checking-resume' }));
     try {
@@ -210,6 +203,14 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
       });
     }
   };
+
+  // Check for resumable upload when file is selected
+  useEffect(() => {
+    if (file) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      checkResumableUpload(file);
+    }
+  }, [file]);
 
   const handleFileSelect = useCallback((selectedFile: File) => {
     const validation = validateFile(selectedFile);
