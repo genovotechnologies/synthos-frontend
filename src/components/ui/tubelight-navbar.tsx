@@ -1,8 +1,9 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { SynthosLogo } from "@/components/ui/synthos-logo"
@@ -18,8 +19,35 @@ interface NavBarProps {
   className?: string
 }
 
+/** Path part of a nav url ("/#features" -> "/", "/pricing" -> "/pricing", "#hero" -> ""). */
+function pathOf(url: string) {
+  return url.split("#")[0]
+}
+
 export function NavBar({ items, className }: NavBarProps) {
-  const [activeTab, setActiveTab] = useState(items[0].name)
+  const pathname = usePathname()
+  // Tracks the last clicked item so hash links (same-page scroll) can be marked active.
+  const [clickedTab, setClickedTab] = useState<string | null>(null)
+
+  const activeTab = useMemo(() => {
+    // A clicked item stays active while we are still on the page it belongs to
+    // (hash links don't change the pathname).
+    if (clickedTab) {
+      const clicked = items.find((item) => item.name === clickedTab)
+      if (clicked) {
+        const path = pathOf(clicked.url)
+        if (path === "" || path === pathname) return clickedTab
+      }
+    }
+    // Otherwise derive from the current route: exact path match first,
+    // then a hash link whose base path matches (e.g. "/#features" on "/").
+    const exact = items.find((item) => item.url === pathname)
+    if (exact) return exact.name
+    const hashMatch = items.find(
+      (item) => item.url.includes("#") && pathOf(item.url) === pathname,
+    )
+    return hashMatch ? hashMatch.name : null
+  }, [clickedTab, items, pathname])
 
   return (
     <div
@@ -30,7 +58,7 @@ export function NavBar({ items, className }: NavBarProps) {
     >
       <div className="flex items-center gap-3 bg-background/5 border border-border backdrop-blur-lg py-1 px-1 rounded-full shadow-lg pointer-events-auto">
         {/* Logo */}
-        <Link href="#hero" className="pl-2 pr-1 hidden sm:block select-none" draggable={false}>
+        <Link href="/" className="pl-2 pr-1 hidden sm:block select-none" draggable={false}>
           <SynthosLogo size={28} />
         </Link>
         {items.map((item) => {
@@ -41,8 +69,9 @@ export function NavBar({ items, className }: NavBarProps) {
             <Link
               key={item.name}
               href={item.url}
-              onClick={() => setActiveTab(item.name)}
+              onClick={() => setClickedTab(item.name)}
               draggable={false}
+              aria-label={item.name}
               className={cn(
                 "relative cursor-pointer text-sm font-semibold px-6 py-2 rounded-full transition-colors select-none",
                 "text-foreground/80 hover:text-primary",

@@ -64,12 +64,13 @@ function LoginFormContent() {
         };
         router.push(roleRoutes[role] || '/dashboard');
       }
-    } catch (err: any) {
-      if (err?.message === 'EMAIL_VERIFICATION_REQUIRED') {
-        router.push(`/verify-email?email=${encodeURIComponent(err.email || data.email)}`);
+    } catch (err: unknown) {
+      const e = err as { message?: string; email?: string };
+      if (e?.message === 'EMAIL_VERIFICATION_REQUIRED') {
+        router.push(`/verify-email?email=${encodeURIComponent(e.email || data.email)}`);
         return;
       }
-      const message = err?.message || '';
+      const message = e?.message || '';
       if (message.toLowerCase().includes('locked')) {
         setError('Your account has been temporarily locked due to too many failed attempts. Please try again later.');
       } else if (message.toLowerCase().includes('inactive') || message.toLowerCase().includes('suspended')) {
@@ -214,8 +215,8 @@ function LoginFormContent() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
               className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400 transition-colors"
-              tabIndex={-1}
             >
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>

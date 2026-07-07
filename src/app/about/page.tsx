@@ -2,16 +2,18 @@
 import React from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Home, Shield, Zap, ArrowLeft, Building2, ExternalLink } from "lucide-react";
+import { Home, Shield, Zap, ArrowLeft, Building2, ExternalLink, Target, BookOpen } from "lucide-react";
 import { NavBar } from "@/components/ui/tubelight-navbar";
 import { SparklesCore } from "@/components/ui/sparkles";
-import { SynthosLogoWithText } from "@/components/ui/synthos-logo";
+import { SiteFooter } from "@/components/marketing/site-footer";
 
 const navItems = [
   { name: "Home", url: "/", icon: Home },
   { name: "Features", url: "/#features", icon: Zap },
   { name: "Validation", url: "/#validation", icon: Shield },
+  { name: "Pricing", url: "/pricing", icon: Target },
 
+  { name: "API Docs", url: "/docs", icon: BookOpen },
 ];
 
 export default function AboutPage() {
@@ -31,7 +33,7 @@ export default function AboutPage() {
             maxSize={1.2}
             particleDensity={40}
             className="w-full h-full"
-            particleColor="#4A90D9"
+            particleColor="#8b5cf6"
             speed={0.5}
           />
         </div>
@@ -53,7 +55,7 @@ export default function AboutPage() {
               
               <h1 className="text-4xl md:text-6xl font-bold tracking-tighter mb-6">
                 <span className="text-white">About </span>
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-400">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-indigo-400">
                   SynthOS
                 </span>
               </h1>
@@ -78,7 +80,7 @@ export default function AboutPage() {
               className="p-8 md:p-12 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-sm"
             >
               <div className="flex items-center gap-3 mb-6">
-                <Building2 className="w-6 h-6 text-cyan-400" />
+                <Building2 className="w-6 h-6 text-violet-400" />
                 <h2 className="text-2xl md:text-3xl font-bold text-white">Company</h2>
               </div>
               
@@ -109,7 +111,7 @@ export default function AboutPage() {
                     href="https://www.genovotech.com"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold text-sm hover:opacity-90 transition-opacity"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-violet-500 to-indigo-500 text-white font-semibold text-sm hover:opacity-90 transition-opacity"
                   >
                     Visit Genovo Technologies
                     <ExternalLink className="w-4 h-4" />
@@ -127,7 +129,7 @@ export default function AboutPage() {
               className="mt-8 p-8 md:p-12 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-sm"
             >
               <div className="flex items-center gap-3 mb-6">
-                <Shield className="w-6 h-6 text-cyan-400" />
+                <Shield className="w-6 h-6 text-violet-400" />
                 <h2 className="text-2xl md:text-3xl font-bold text-white">Our Mission</h2>
               </div>
               
@@ -151,7 +153,7 @@ export default function AboutPage() {
                     { value: "48h", label: "Turnaround Time" },
                   ].map((stat) => (
                     <div key={stat.label} className="text-center p-4 rounded-lg bg-white/[0.03]">
-                      <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-400 font-mono">
+                      <div className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-indigo-400 font-mono">
                         {stat.value}
                       </div>
                       <div className="text-sm text-white/60 mt-1">{stat.label}</div>
@@ -165,42 +167,7 @@ export default function AboutPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 border-t border-white/10">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex flex-col items-center md:items-start gap-2">
-              <SynthosLogoWithText logoSize={36} showTagline />
-              <p className="text-xs text-white/60">
-                SynthOS is a product of{" "}
-                <a 
-                  href="https://www.genovotech.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-cyan-400 hover:text-cyan-300 transition-colors underline underline-offset-2"
-                >
-                  Genovo Technologies
-                </a>
-              </p>
-            </div>
-            <div className="flex flex-col items-center md:items-end gap-2">
-              <div className="flex items-center gap-6 text-sm text-white/50">
-                <Link href="/" className="hover:text-white/80 transition-colors">Home</Link>
-                <a 
-                  href="https://www.genovotech.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="hover:text-white/80 transition-colors"
-                >
-                  Genovo Technologies
-                </a>
-              </div>
-              <p className="text-sm text-white/50">
-                © 2025 Genovo Technologies. All rights reserved.
-              </p>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }

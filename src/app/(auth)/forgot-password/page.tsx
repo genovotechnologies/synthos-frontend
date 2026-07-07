@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/api/client';
-import { AlertCircle, ArrowLeft, Loader2, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, CheckCircle } from 'lucide-react';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -17,7 +17,6 @@ const forgotPasswordSchema = z.object({
 type ForgotPasswordForm = z.infer<typeof forgotPasswordSchema>;
 
 export default function ForgotPasswordPage() {
-  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -31,7 +30,6 @@ export default function ForgotPasswordPage() {
 
   const onSubmit = async (data: ForgotPasswordForm) => {
     setIsLoading(true);
-    setError(null);
 
     try {
       await apiClient.post('/auth/forgot-password', { email: data.email });
@@ -81,17 +79,6 @@ export default function ForgotPasswordPage() {
               Enter your email and we&apos;ll send you reset instructions.
             </p>
           </div>
-
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-start gap-3 p-3.5 mb-6 rounded-xl bg-red-500/8 border border-red-500/15 text-red-400"
-            >
-              <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
-              <p className="text-sm">{error}</p>
-            </motion.div>
-          )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="space-y-2">

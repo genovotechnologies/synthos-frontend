@@ -22,12 +22,12 @@ import { ShaderAnimation } from "@/components/ui/shader-animation";
 
 import { GooeyText } from "@/components/ui/gooey-text-morphing";
 import RadialOrbitalTimeline, { TimelineItem } from "@/components/ui/radial-orbital-timeline";
-import { SynthosLogoWithText } from "@/components/ui/synthos-logo";
+import { SiteFooter } from "@/components/marketing/site-footer";
 
 const navItems = [
-  { name: "Home", url: "#hero", icon: Home },
-  { name: "Features", url: "#features", icon: Zap },
-  { name: "Validation", url: "#validation", icon: Shield },
+  { name: "Home", url: "/", icon: Home },
+  { name: "Features", url: "/#features", icon: Zap },
+  { name: "Validation", url: "/#validation", icon: Shield },
   { name: "Pricing", url: "/pricing", icon: Target },
 
   { name: "API Docs", url: "/docs", icon: BookOpen },
@@ -109,7 +109,7 @@ export default function SynthosLanding() {
 
 
   return (
-    <main className="bg-background text-foreground min-h-screen overflow-x-hidden select-none">
+    <main className="bg-background text-foreground min-h-screen overflow-x-hidden">
       {/* Navigation */}
       <NavBar items={navItems} />
 
@@ -129,7 +129,7 @@ export default function SynthosLanding() {
             maxSize={1.2}
             particleDensity={50}
             className="w-full h-full"
-            particleColor="#4A90D9"
+            particleColor="#8b5cf6"
             speed={0.5}
           />
         </div>
@@ -150,7 +150,7 @@ export default function SynthosLanding() {
                   Build collapse-proof
                 </span>
                 <br />
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-300 via-white/90 to-blue-300">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-300 via-white/90 to-indigo-300">
                   models, faster.
                 </span>
               </h1>
@@ -178,8 +178,8 @@ export default function SynthosLanding() {
                 href="/register"
                 className="group relative px-8 py-3.5 rounded-full font-semibold text-sm transition-all duration-300 overflow-hidden cursor-pointer"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity pointer-events-none" />
-                <div className="absolute inset-0 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-full pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-b from-violet-500 to-indigo-500 rounded-full pointer-events-none" />
                 <div className="absolute inset-[1px] bg-gradient-to-b from-white/20 to-transparent rounded-full opacity-50 pointer-events-none" />
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none" />
                 <span className="relative z-10 flex items-center gap-2 text-white">
@@ -225,7 +225,7 @@ export default function SynthosLanding() {
               morphTime={1.5}
               cooldownTime={0.5}
               className="font-bold"
-              textClassName="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400"
+              textClassName="bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-indigo-400"
             />
           </div>
         </div>
@@ -275,7 +275,7 @@ export default function SynthosLanding() {
             maxSize={0.8}
             particleDensity={30}
             className="w-full h-full"
-            particleColor="#4A90D9"
+            particleColor="#8b5cf6"
             speed={0.3}
           />
         </div>
@@ -329,13 +329,13 @@ export default function SynthosLanding() {
                 viewport={{ once: true }}
                 className="relative p-8 rounded-xl border border-white/10 bg-white/[0.02] backdrop-blur-sm"
               >
-                <div className="text-5xl font-bold text-cyan-400/20 mb-4">{item.step}</div>
+                <div className="text-5xl font-bold text-violet-400/20 mb-4">{item.step}</div>
                 <h3 className="text-xl font-semibold mb-2 text-white">{item.title}</h3>
-                <p className="text-sm text-cyan-400 mb-4 font-mono">{item.time}</p>
+                <p className="text-sm text-violet-400 mb-4 font-mono">{item.time}</p>
                 <ul className="space-y-2">
                   {item.points.map((point, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm text-white/60">
-                      <CheckCircle className="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+                      <CheckCircle className="w-4 h-4 text-violet-400 mt-0.5 flex-shrink-0" />
                       <span>{point}</span>
                     </li>
                   ))}
@@ -364,7 +364,7 @@ export default function SynthosLanding() {
                 viewport={{ once: true }}
                 className="text-center"
               >
-                <div className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-400 mb-2 font-mono">
+                <div className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-indigo-400 mb-2 font-mono">
                   {stat.value}
                 </div>
                 <div className="text-sm text-white/60">{stat.label}</div>
@@ -386,7 +386,7 @@ export default function SynthosLanding() {
             maxSize={1}
             particleDensity={40}
             className="w-full h-full"
-            particleColor="#4A90D9"
+            particleColor="#8b5cf6"
             speed={0.4}
           />
         </div>
@@ -401,7 +401,7 @@ export default function SynthosLanding() {
           >
             <h2 className="text-3xl md:text-5xl font-bold tracking-tighter mb-6">
               <span className="text-white">Stop Burning Millions on</span>
-              <span className="block bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-400">
+              <span className="block bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-indigo-400">
                 Broken Training Data
               </span>
             </h2>
@@ -415,8 +415,8 @@ export default function SynthosLanding() {
                 href="/register"
                 className="group relative px-8 py-3 rounded-lg font-semibold text-sm transition-all duration-300 overflow-hidden cursor-pointer"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg blur-xl opacity-50 group-hover:opacity-75 transition-opacity pointer-events-none" />
-                <div className="absolute inset-0 bg-gradient-to-b from-cyan-400 to-blue-500 rounded-lg pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-indigo-500 rounded-lg blur-xl opacity-50 group-hover:opacity-75 transition-opacity pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-b from-violet-500 to-indigo-500 rounded-lg pointer-events-none" />
                 <div className="absolute inset-[1px] bg-gradient-to-b from-white/20 to-transparent rounded-lg opacity-50 pointer-events-none" />
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none" />
                 <span className="relative z-10 flex items-center gap-2 text-white">
@@ -444,48 +444,7 @@ export default function SynthosLanding() {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 border-t border-white/10">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex flex-col items-center md:items-start gap-2">
-              <SynthosLogoWithText logoSize={36} showTagline />
-              <p className="text-xs text-white/60">
-                SynthOS is a product of{" "}
-                <a 
-                  href="https://www.genovotech.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-cyan-400 hover:text-cyan-300 transition-colors underline underline-offset-2"
-                >
-                  Genovo Technologies
-                </a>
-              </p>
-            </div>
-            <div className="flex flex-col items-center md:items-end gap-2">
-              <div className="flex flex-wrap items-center gap-6 text-sm text-white/50">
-                <a href="/about" className="hover:text-white/80 transition-colors">About</a>
-                <a href="/pricing" className="hover:text-white/80 transition-colors">Pricing</a>
-                <a href="/docs" className="hover:text-white/80 transition-colors">API Docs</a>
-                <a href="/status" className="hover:text-white/80 transition-colors">Status</a>
-                <a href="/terms" className="hover:text-white/80 transition-colors">Terms</a>
-                <a href="/privacy" className="hover:text-white/80 transition-colors">Privacy</a>
-                <a href="/refund-policy" className="hover:text-white/80 transition-colors">Refund Policy</a>
-                <a
-                  href="https://www.genovotech.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-white/80 transition-colors"
-                >
-                  Genovo Technologies
-                </a>
-              </div>
-              <p className="text-sm text-white/50">
-                © 2025 Genovo Technologies. All rights reserved.
-              </p>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }

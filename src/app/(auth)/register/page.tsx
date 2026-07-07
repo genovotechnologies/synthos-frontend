@@ -153,10 +153,10 @@ function RegisterFormContent() {
           ? `&promo=${encodeURIComponent(data.promoCode.trim())}`
           : '';
         if (promoParam) {
-          // Store promo for after verification
+          // Store promo for after verification (fallback if the query param is lost)
           sessionStorage.setItem('pending_promo', data.promoCode!.trim());
         }
-        router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
+        router.push(`/verify-email?email=${encodeURIComponent(data.email)}${promoParam}`);
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '';
@@ -295,8 +295,8 @@ function RegisterFormContent() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
                 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400 transition-colors"
-                tabIndex={-1}
               >
                 {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
@@ -322,8 +322,8 @@ function RegisterFormContent() {
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400 transition-colors"
-                tabIndex={-1}
               >
                 {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>

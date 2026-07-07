@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { SynthosLogo } from '@/components/ui/synthos-logo';
+import { SiteFooter } from '@/components/marketing/site-footer';
 import { ArrowLeft, ArrowRight, Check, Sparkles, Zap } from 'lucide-react';
 
 const tiers = [
@@ -160,7 +161,7 @@ export default function PricingPage() {
             transition={{ duration: 0.6, delay: 0.15 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mt-16"
           >
-            {tiers.map((tier, i) => (
+            {tiers.map((tier) => (
               <div
                 key={tier.name}
                 className={`relative rounded-2xl p-px ${
@@ -363,33 +364,7 @@ export default function PricingPage() {
         </div>
 
         {/* Footer */}
-        <footer className="border-t border-white/[0.04] py-8">
-          <div className="container mx-auto px-4 max-w-6xl">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
-              <p>&copy; 2025 Genovo Technologies. All rights reserved.</p>
-              <div className="flex items-center gap-4">
-                <Link
-                  href="/terms"
-                  className="hover:text-zinc-300 transition-colors"
-                >
-                  Terms
-                </Link>
-                <Link
-                  href="/privacy"
-                  className="hover:text-zinc-300 transition-colors"
-                >
-                  Privacy
-                </Link>
-                <Link
-                  href="/refund-policy"
-                  className="hover:text-zinc-300 transition-colors"
-                >
-                  Refund Policy
-                </Link>
-              </div>
-            </div>
-          </div>
-        </footer>
+        <SiteFooter />
       </div>
     </div>
   );
