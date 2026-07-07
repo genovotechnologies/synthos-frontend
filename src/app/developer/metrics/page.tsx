@@ -2,10 +2,10 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { developerApi } from '@/lib/api/developer';
-import { Loader2 } from 'lucide-react';
+import { AlertTriangle, RotateCcw } from 'lucide-react';
 
 export default function DeveloperMetricsPage() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['developer', 'metrics'],
     queryFn: developerApi.getMetrics,
     retry: 1,
@@ -25,6 +25,31 @@ export default function DeveloperMetricsPage() {
               <div className="h-8 w-24 bg-zinc-800/50 rounded" />
             </div>
           ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-16">
+        <header>
+          <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Metrics</h1>
+          <p className="text-sm text-zinc-500 mt-1">API usage metrics and performance data</p>
+        </header>
+        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-10 text-center">
+          <div className="w-12 h-12 rounded-full bg-rose-500/10 flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-6 h-6 text-rose-400" />
+          </div>
+          <p className="text-sm text-zinc-300 mb-1">Failed to load metrics</p>
+          <p className="text-xs text-zinc-600 mb-5">The metrics endpoint did not respond. Try again in a moment.</p>
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors"
+          >
+            <RotateCcw size={14} />
+            Retry
+          </button>
         </div>
       </div>
     );

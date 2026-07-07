@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import {
   BookOpen, Terminal, ScrollText, BarChart3, Activity, Server,
-  FlaskConical, AlertTriangle, Clock, ExternalLink
+  AlertTriangle, Clock, ExternalLink
 } from 'lucide-react';
 
 const statusColor: Record<string, string> = {
@@ -29,35 +29,61 @@ function Skeleton() {
         <div className="h-7 w-48 bg-zinc-800/50 rounded" />
         <div className="h-4 w-72 bg-zinc-800/30 rounded" />
       </div>
-      <div className="grid grid-cols-3 gap-4">
+      {/* Service health grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="h-28 bg-zinc-800/30 rounded-xl" />
+          <div key={i} className="h-32 bg-zinc-800/30 rounded-xl" />
+        ))}
+      </div>
+      {/* Metrics strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-24 bg-zinc-800/30 rounded-xl" />
+        ))}
+      </div>
+      {/* Errors card */}
+      <div className="h-40 bg-zinc-800/30 rounded-xl" />
+      {/* Quick actions */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-24 bg-zinc-800/30 rounded-xl" />
         ))}
       </div>
     </div>
   );
 }
 
+function InlineLoadError({ label }: { label: string }) {
+  return (
+    <div className="bg-zinc-900/30 border border-rose-500/20 rounded-xl p-4 flex items-center gap-2.5">
+      <AlertTriangle size={14} className="text-rose-400 shrink-0" />
+      <p className="text-xs text-zinc-400">{label}</p>
+    </div>
+  );
+}
+
+const ERROR_LOG_WINDOW = 50;
+
 export default function DeveloperOverviewPage() {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError: overviewError } = useQuery({
     queryKey: ['developer', 'overview'],
     queryFn: developerApi.getOverview,
     retry: 1,
     refetchInterval: 15000,
   });
 
-  const { data: metricsData } = useQuery({
+  const { data: metricsData, isError: metricsError } = useQuery({
     queryKey: ['developer', 'metrics'],
     queryFn: developerApi.getMetrics,
     retry: 1,
     refetchInterval: 15000,
   });
 
-  const { data: logsData } = useQuery({
+  const { data: logsData, isError: logsError } = useQuery({
     queryKey: ['developer', 'logs', 'recent-errors'],
-    queryFn: () => developerApi.getLogs(1, 5),
+    queryFn: () => developerApi.getLogs(1, ERROR_LOG_WINDOW),
     retry: 1,
     refetchInterval: 15000,
   });
@@ -68,7 +94,7 @@ export default function DeveloperOverviewPage() {
   }, []);
 
   // Services come from a separate endpoint, not the overview
-  const { data: servicesData } = useQuery({
+  const { data: servicesData, isError: servicesError } = useQuery({
     queryKey: ['developer', 'services'],
     queryFn: developerApi.getServices,
     retry: 1,
@@ -85,31 +111,37 @@ export default function DeveloperOverviewPage() {
         ...(value as Record<string, unknown>),
       })) as { name: string; status: string; latency_ms?: number; last_checked: string }[];
 
-  const recentErrors = (logsData?.logs ?? []).filter(
+  const fetchedLogs = logsData?.logs ?? [];
+  const recentErrors = fetchedLogs.filter(
     (log) => log.status_code >= 400 || log.level === 'error'
-  ).slice(0, 5);
+  );
+  const displayedErrors = recentErrors.slice(0, 10);
 
   const metrics = [
     {
-      label: 'API Requests (24h)',
+      label: 'API Requests (today)',
       value: (metricsData?.total_requests_today ?? 0).toLocaleString(),
       icon: BarChart3,
+      failed: metricsError,
     },
     {
       label: 'Errors (24h)',
       value: (data?.recent_errors_24h ?? metricsData?.error_count_today ?? 0).toLocaleString(),
       icon: AlertTriangle,
       warn: (data?.recent_errors_24h ?? 0) > 10,
+      failed: overviewError && metricsError,
     },
     {
       label: 'Avg Latency',
       value: `${(metricsData?.avg_latency_ms ?? 0).toFixed(0)}ms`,
       icon: Clock,
+      failed: metricsError,
     },
     {
       label: 'Validations Today',
       value: (data?.validations_today ?? 0).toLocaleString(),
       icon: Activity,
+      failed: overviewError,
     },
   ];
 
@@ -119,7 +151,6 @@ export default function DeveloperOverviewPage() {
     { name: 'View Logs', href: '/developer/logs', icon: ScrollText, color: 'text-amber-400' },
     { name: 'Check Metrics', href: '/developer/metrics', icon: BarChart3, color: 'text-violet-400' },
     { name: 'Service Status', href: '/developer/services', icon: Server, color: 'text-cyan-400' },
-    { name: 'Run Tests', href: '/developer/playground', icon: FlaskConical, color: 'text-rose-400' },
   ];
 
   return (
@@ -141,44 +172,48 @@ export default function DeveloperOverviewPage() {
       {/* Service Health Grid */}
       <section>
         <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-4">Service Health</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-          {services.map((svc) => (
-            <div
-              key={svc.name}
-              className="bg-zinc-900/40 border border-zinc-800/50 rounded-xl p-5 hover:border-zinc-700/50 transition-colors"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-medium text-zinc-200">{svc.name}</span>
-                <span className={cn('w-3 h-3 rounded-full ring-2 ring-offset-1 ring-offset-[#0a0a0b]',
-                  statusColor[svc.status] || statusColor.down,
-                  svc.status === 'healthy' ? 'ring-emerald-500/30' : svc.status === 'degraded' ? 'ring-amber-500/30' : 'ring-rose-500/30'
-                )} />
-              </div>
-              <div className="space-y-2">
-                <span className={cn(
-                  'text-xs font-medium',
-                  svc.status === 'healthy' ? 'text-emerald-400' : svc.status === 'degraded' ? 'text-amber-400' : 'text-rose-400'
-                )}>
-                  {statusLabel[svc.status] || 'Unknown'}
-                </span>
-                <div className="flex items-center justify-between">
-                  {svc.latency_ms !== undefined && (
-                    <span className="text-xs text-zinc-600 tabular-nums">{svc.latency_ms}ms</span>
-                  )}
-                  <span className="text-[10px] text-zinc-700 tabular-nums">
-                    {new Date(svc.last_checked).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                  </span>
-                </div>
-              </div>
-              <Link
-                href="/developer/logs"
-                className="mt-3 flex items-center gap-1 text-[11px] text-blue-400/70 hover:text-blue-400 transition-colors"
+        {servicesError ? (
+          <InlineLoadError label="Failed to load service health. Retrying automatically every 15 seconds." />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+            {services.map((svc) => (
+              <div
+                key={svc.name}
+                className="bg-zinc-900/40 border border-zinc-800/50 rounded-xl p-5 hover:border-zinc-700/50 transition-colors"
               >
-                View Logs <ExternalLink size={10} />
-              </Link>
-            </div>
-          ))}
-        </div>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-sm font-medium text-zinc-200">{svc.name}</span>
+                  <span className={cn('w-3 h-3 rounded-full ring-2 ring-offset-1 ring-offset-[#0a0a0b]',
+                    statusColor[svc.status] || statusColor.down,
+                    svc.status === 'healthy' ? 'ring-emerald-500/30' : svc.status === 'degraded' ? 'ring-amber-500/30' : 'ring-rose-500/30'
+                  )} />
+                </div>
+                <div className="space-y-2">
+                  <span className={cn(
+                    'text-xs font-medium',
+                    svc.status === 'healthy' ? 'text-emerald-400' : svc.status === 'degraded' ? 'text-amber-400' : 'text-rose-400'
+                  )}>
+                    {statusLabel[svc.status] || 'Unknown'}
+                  </span>
+                  <div className="flex items-center justify-between">
+                    {svc.latency_ms !== undefined && (
+                      <span className="text-xs text-zinc-600 tabular-nums">{svc.latency_ms}ms</span>
+                    )}
+                    <span className="text-[10px] text-zinc-700 tabular-nums">
+                      {new Date(svc.last_checked).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                    </span>
+                  </div>
+                </div>
+                <Link
+                  href="/developer/logs"
+                  className="mt-3 flex items-center gap-1 text-[11px] text-blue-400/70 hover:text-blue-400 transition-colors"
+                >
+                  View Logs <ExternalLink size={10} />
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Real-time Metrics Strip */}
@@ -196,65 +231,87 @@ export default function DeveloperOverviewPage() {
                   <Icon size={14} className="text-blue-400" />
                   <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">{metric.label}</p>
                 </div>
-                <span className={cn(
-                  'text-2xl font-semibold tabular-nums tracking-tight',
-                  metric.warn ? 'text-amber-400' : 'text-zinc-100'
-                )}>
-                  {metric.value}
-                </span>
+                {metric.failed ? (
+                  <span className="text-xs text-rose-400/80">Failed to load</span>
+                ) : (
+                  <span className={cn(
+                    'text-2xl font-semibold tabular-nums tracking-tight',
+                    metric.warn ? 'text-amber-400' : 'text-zinc-100'
+                  )}>
+                    {metric.value}
+                  </span>
+                )}
               </div>
             );
           })}
         </div>
       </section>
 
-      {/* Recent Errors */}
+      {/* Errors in the most recent log window */}
       <section>
         <div className="flex items-center justify-between mb-4">
-          <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Recent Errors</p>
+          <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
+            Errors in last {Math.min(fetchedLogs.length, ERROR_LOG_WINDOW) || ERROR_LOG_WINDOW} requests
+            {!logsError && (
+              <span className="ml-2 text-zinc-600 normal-case tracking-normal tabular-nums">
+                {recentErrors.length} matched
+              </span>
+            )}
+          </p>
           <Link href="/developer/logs" className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
             View all logs
           </Link>
         </div>
-        {recentErrors.length === 0 ? (
+        {logsError ? (
+          <InlineLoadError label="Failed to load recent logs. Retrying automatically every 15 seconds." />
+        ) : recentErrors.length === 0 ? (
           <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6 text-center">
-            <p className="text-sm text-zinc-600">No recent errors. All systems nominal.</p>
+            <p className="text-sm text-zinc-600">
+              No errors in the last {Math.min(fetchedLogs.length, ERROR_LOG_WINDOW) || ERROR_LOG_WINDOW} requests.
+            </p>
           </div>
         ) : (
           <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-zinc-800/50">
-                  <th className="text-left text-[10px] font-medium text-zinc-600 uppercase tracking-wider px-4 py-2.5">Time</th>
-                  <th className="text-left text-[10px] font-medium text-zinc-600 uppercase tracking-wider px-4 py-2.5">Endpoint</th>
-                  <th className="text-left text-[10px] font-medium text-zinc-600 uppercase tracking-wider px-4 py-2.5">Method</th>
-                  <th className="text-right text-[10px] font-medium text-zinc-600 uppercase tracking-wider px-4 py-2.5">Code</th>
-                  <th className="text-left text-[10px] font-medium text-zinc-600 uppercase tracking-wider px-4 py-2.5">Message</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentErrors.map((err) => (
-                  <tr key={err.id} className="border-b border-zinc-800/30 last:border-0">
-                    <td className="px-4 py-2.5 text-xs text-zinc-500 tabular-nums whitespace-nowrap">
-                      {new Date(err.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' })}
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-zinc-300 font-mono">{err.path}</td>
-                    <td className="px-4 py-2.5">
-                      <span className="text-xs font-medium text-zinc-500">{err.method}</span>
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <span className={cn(
-                        'text-xs font-bold tabular-nums',
-                        err.status_code >= 500 ? 'text-rose-400' : 'text-amber-400'
-                      )}>
-                        {err.status_code}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-zinc-500 truncate max-w-[200px]">{err.message}</td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px]">
+                <thead>
+                  <tr className="border-b border-zinc-800/50">
+                    <th className="text-left text-[10px] font-medium text-zinc-600 uppercase tracking-wider px-4 py-2.5">Time</th>
+                    <th className="text-left text-[10px] font-medium text-zinc-600 uppercase tracking-wider px-4 py-2.5">Endpoint</th>
+                    <th className="text-left text-[10px] font-medium text-zinc-600 uppercase tracking-wider px-4 py-2.5">Method</th>
+                    <th className="text-right text-[10px] font-medium text-zinc-600 uppercase tracking-wider px-4 py-2.5">Code</th>
+                    <th className="text-left text-[10px] font-medium text-zinc-600 uppercase tracking-wider px-4 py-2.5">Message</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {displayedErrors.map((err) => (
+                    <tr key={err.id} className="border-b border-zinc-800/30 last:border-0">
+                      <td className="px-4 py-2.5 text-xs text-zinc-500 tabular-nums whitespace-nowrap">
+                        {new Date(err.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' })}
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-zinc-300 font-mono">{err.path}</td>
+                      <td className="px-4 py-2.5">
+                        <span className="text-xs font-medium text-zinc-500">{err.method}</span>
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <span className={cn(
+                          'text-xs font-bold tabular-nums',
+                          err.status_code >= 500 ? 'text-rose-400' : 'text-amber-400'
+                        )}>
+                          {err.status_code}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-zinc-500 truncate max-w-[200px]">{err.message}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {recentErrors.length > displayedErrors.length && (
+              <p className="px-4 py-2.5 text-[11px] text-zinc-600 border-t border-zinc-800/50">
+                Showing {displayedErrors.length} of {recentErrors.length} errors — see the logs page for the rest.
+              </p>
+            )}
           </div>
         )}
       </section>
@@ -262,7 +319,7 @@ export default function DeveloperOverviewPage() {
       {/* Quick Actions Grid */}
       <section>
         <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-4">Quick Actions</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {quickActions.map((action) => {
             const Icon = action.icon;
             return (

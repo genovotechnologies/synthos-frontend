@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Server, BookOpen, Terminal, ScrollText, BarChart3, Settings, LogOut, Menu, X } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { LayoutDashboard, Server, BookOpen, Terminal, ScrollText, BarChart3, LogOut, Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SynthosLogo } from '@/components/ui/synthos-logo';
 import { useAuth } from '@/providers/auth-provider';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const navigation = [
   { name: 'Overview', href: '/developer', icon: LayoutDashboard },
@@ -15,20 +15,12 @@ const navigation = [
   { name: 'Playground', href: '/developer/playground', icon: Terminal },
   { name: 'Logs', href: '/developer/logs', icon: ScrollText },
   { name: 'Metrics', href: '/developer/metrics', icon: BarChart3 },
-  { name: 'Settings', href: '/developer/settings', icon: Settings },
 ];
 
 export function DeveloperSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
-  const { user, logout, isLoading, isAuthenticated } = useAuth();
+  const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isLoading, isAuthenticated, router]);
 
   return (
     <>

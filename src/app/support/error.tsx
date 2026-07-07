@@ -13,7 +13,7 @@ export default function SupportError({ error, reset }: { error: Error & { digest
         </div>
         <h2 className="text-xl font-semibold text-zinc-100 mb-2">Something went wrong</h2>
         <p className="text-sm text-zinc-500 mb-6">An unexpected error occurred. Please try again.</p>
-        <button onClick={reset} className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-lg transition-colors">
+        <button onClick={reset} className="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium rounded-lg transition-colors">
           Try again
         </button>
       </div>

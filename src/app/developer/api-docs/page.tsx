@@ -66,7 +66,7 @@ const sections: Section[] = [
         responseExample: '{\n  "validations": [\n    {\n      "id": "val_abc",\n      "dataset_id": "ds_xyz",\n      "status": "completed",\n      "results": {\n        "risk_score": 12.5,\n        "dimensions": { ... }\n      }\n    }\n  ],\n  "pagination": { "page": 1, "total": 5, "total_pages": 1 }\n}',
       },
       {
-        method: 'POST', path: '/api/v1/validations', description: 'Create a new validation run',
+        method: 'POST', path: '/api/v1/validations/create', description: 'Create a new validation run',
         requestExample: '{\n  "dataset_id": "ds_xyz",\n  "validation_type": "comprehensive",\n  "options": {\n    "model_size": "large",\n    "priority": "high"\n  }\n}',
         responseExample: '{\n  "id": "val_abc",\n  "dataset_id": "ds_xyz",\n  "status": "pending"\n}',
       },
@@ -84,8 +84,8 @@ const sections: Section[] = [
         responseExample: '{\n  "warranties": [\n    {\n      "id": "war_def",\n      "validation_id": "val_abc",\n      "coverage_type": "standard",\n      "status": "active",\n      "risk_score": 12.5,\n      "coverage_amount": 50000,\n      "valid_until": "2027-01-01T00:00:00Z"\n    }\n  ]\n}',
       },
       {
-        method: 'POST', path: '/api/v1/warranties', description: 'Purchase a warranty for a completed validation',
-        requestExample: '{\n  "validation_id": "val_abc",\n  "coverage_type": "standard"\n}',
+        method: 'POST', path: '/api/v1/warranties/:validation_id/request', description: 'Request a warranty for a completed validation',
+        requestExample: '{\n  "coverage_tier": "standard"\n}',
         responseExample: '{\n  "id": "war_def",\n  "status": "active",\n  "coverage_amount": 50000,\n  "premium_paid": 500\n}',
       },
     ],
@@ -94,18 +94,18 @@ const sections: Section[] = [
     name: 'Credits',
     endpoints: [
       {
-        method: 'GET', path: '/api/v1/billing/credits', description: 'Get current credit balance',
-        responseExample: '{\n  "balance": 4500,\n  "total_purchased": 10000,\n  "total_used": 5500\n}',
+        method: 'GET', path: '/api/v1/credits/balance', description: 'Get current credit balance',
+        responseExample: '{\n  "balance": 4500,\n  "lifetime_purchased": 10000,\n  "lifetime_used": 5500,\n  "credit_costs": [\n    {\n      "id": "cost_1",\n      "operation": "validation",\n      "credits_required": 100,\n      "description": "Per validation run"\n    }\n  ]\n}',
       },
       {
-        method: 'POST', path: '/api/v1/billing/credits/purchase', description: 'Purchase additional credits',
-        requestExample: '{\n  "amount": 5000,\n  "payment_method_id": "pm_abc"\n}',
-        responseExample: '{\n  "transaction_id": "txn_xyz",\n  "credits_added": 5000,\n  "new_balance": 9500\n}',
+        method: 'POST', path: '/api/v1/credits/purchase', description: 'Purchase a credit package',
+        requestExample: '{\n  "package_id": "pkg_starter"\n}',
+        responseExample: '{\n  "transaction_id": "txn_xyz",\n  "package_name": "Starter",\n  "credits_added": 5000,\n  "bonus_credits": 500,\n  "total_added": 5500,\n  "new_balance": 9500\n}',
       },
       {
-        method: 'POST', path: '/api/v1/billing/promo', description: 'Redeem a promotional code',
+        method: 'POST', path: '/api/v1/credits/redeem', description: 'Redeem a promotional code',
         requestExample: '{\n  "code": "WELCOME50"\n}',
-        responseExample: '{\n  "credits_added": 500,\n  "new_balance": 5000\n}',
+        responseExample: '{\n  "success": true,\n  "code": "WELCOME50",\n  "credits_granted": 500,\n  "new_balance": 5000\n}',
       },
     ],
   },

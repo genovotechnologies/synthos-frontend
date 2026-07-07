@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supportApi } from '@/lib/api/support';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, Loader2, RotateCcw } from 'lucide-react';
 
 const STATUS_OPTIONS = ['all', 'open', 'in_progress', 'waiting', 'resolved', 'closed'] as const;
 const PRIORITY_OPTIONS = ['all', 'low', 'normal', 'high', 'urgent'] as const;
@@ -30,7 +30,7 @@ export default function SupportTicketsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['support', 'tickets', page, statusFilter, priorityFilter],
     queryFn: () => supportApi.listTickets(
       page, 20,
@@ -79,9 +79,24 @@ export default function SupportTicketsPage() {
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-5 h-5 animate-spin text-zinc-600" />
         </div>
+      ) : isError ? (
+        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-10 text-center">
+          <div className="w-12 h-12 rounded-full bg-rose-500/10 flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-6 h-6 text-rose-400" />
+          </div>
+          <p className="text-sm text-zinc-300 mb-1">Failed to load tickets</p>
+          <p className="text-xs text-zinc-600 mb-5">The ticket queue did not respond. Try again in a moment.</p>
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-amber-600 hover:bg-amber-500 rounded-lg transition-colors"
+          >
+            <RotateCcw size={14} />
+            Retry
+          </button>
+        </div>
       ) : (
-        <div className="border-t border-zinc-800/50">
-          <div className="grid grid-cols-12 gap-4 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-zinc-800/50">
+        <div className="border-t border-zinc-800/50 overflow-x-auto">
+          <div className="grid grid-cols-12 gap-4 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-zinc-800/50 min-w-[800px]">
             <div className="col-span-4">Subject</div>
             <div className="col-span-2">Customer</div>
             <div className="col-span-1">Priority</div>
@@ -96,7 +111,7 @@ export default function SupportTicketsPage() {
               <Link
                 key={ticket.id}
                 href={`/support/tickets/${ticket.id}`}
-                className="grid grid-cols-12 gap-4 py-3.5 border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors items-center group"
+                className="grid grid-cols-12 gap-4 py-3.5 border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors items-center group min-w-[800px]"
               >
                 <div className="col-span-4">
                   <span className="text-sm text-zinc-300 truncate group-hover:text-zinc-100 transition-colors">{ticket.subject}</span>

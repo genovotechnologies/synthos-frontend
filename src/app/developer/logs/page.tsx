@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { developerApi } from '@/lib/api/developer';
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, Loader2, RotateCcw } from 'lucide-react';
 
 const levelBadge: Record<string, string> = {
   info: 'bg-blue-500/15 text-blue-400',
@@ -15,7 +15,7 @@ const levelBadge: Record<string, string> = {
 export default function DeveloperLogsPage() {
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['developer', 'logs', page],
     queryFn: () => developerApi.getLogs(page, 50),
     refetchInterval: 15000,
@@ -35,6 +35,21 @@ export default function DeveloperLogsPage() {
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-5 h-5 animate-spin text-zinc-600" />
+        </div>
+      ) : isError ? (
+        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-10 text-center">
+          <div className="w-12 h-12 rounded-full bg-rose-500/10 flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-6 h-6 text-rose-400" />
+          </div>
+          <p className="text-sm text-zinc-300 mb-1">Failed to load logs</p>
+          <p className="text-xs text-zinc-600 mb-5">The logs endpoint did not respond. Try again in a moment.</p>
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors"
+          >
+            <RotateCcw size={14} />
+            Retry
+          </button>
         </div>
       ) : (
         <div className="border-t border-zinc-800/50 overflow-x-auto">
