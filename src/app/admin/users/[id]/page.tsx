@@ -5,6 +5,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { adminApi } from '@/lib/api/admin';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { toast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, Loader2, Trash2, ShieldAlert, UserCheck, UserX } from 'lucide-react';
 
@@ -17,16 +19,15 @@ const rolePillClass: Record<string, string> = {
 
 const ROLES = ['admin', 'developer', 'support', 'user'] as const;
 
-type TabType = 'datasets' | 'validations' | 'tickets';
-
 export default function AdminUserDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const id = resolvedParams.id;
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<TabType>('datasets');
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [pendingRole, setPendingRole] = useState<string | null>(null);
+  const [showStatusConfirm, setShowStatusConfirm] = useState(false);
 
   const { data: user, isLoading, error } = useQuery({
     queryKey: ['admin', 'user', id],
@@ -35,32 +36,32 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
 
   const roleMutation = useMutation({
     mutationFn: (role: string) => adminApi.updateUserRole(id, role),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'user', id] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'user', id] });
+      setPendingRole(null);
+      toast.success('Role updated');
+    },
+    onError: (err: Error) => toast.error('Failed to update role', err.message),
   });
 
   const statusMutation = useMutation({
     mutationFn: (isActive: boolean) => adminApi.updateUserStatus(id, isActive),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'user', id] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'user', id] });
+      setShowStatusConfirm(false);
+      toast.success('Status updated');
+    },
+    onError: (err: Error) => toast.error('Failed to update status', err.message),
   });
 
   const deleteMutation = useMutation({
     mutationFn: () => adminApi.deleteUser(id),
-    onSuccess: () => router.push('/admin/users'),
+    onSuccess: () => {
+      toast.success('User removed', 'The account was deactivated and access revoked.');
+      router.push('/admin/users');
+    },
+    onError: (err: Error) => toast.error('Failed to remove user', err.message),
   });
-
-  const handleRoleChange = (newRole: string) => {
-    if (confirm(`Change role to ${newRole}?`)) {
-      roleMutation.mutate(newRole);
-    }
-  };
-
-  const handleToggleStatus = () => {
-    if (!user) return;
-    const action = user.is_active ? 'suspend' : 'reactivate';
-    if (confirm(`Are you sure you want to ${action} this user?`)) {
-      statusMutation.mutate(!user.is_active);
-    }
-  };
 
   const handleDelete = () => {
     if (user && deleteConfirmEmail === user.email) {
@@ -129,9 +130,11 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <label className="text-sm text-zinc-500">Role:</label>
+          {/* Show the pending value while the confirm dialog is open so the select
+              doesn't snap back; closing the dialog restores the original value. */}
           <select
-            value={user.role}
-            onChange={(e) => handleRoleChange(e.target.value)}
+            value={pendingRole ?? user.role}
+            onChange={(e) => setPendingRole(e.target.value)}
             disabled={roleMutation.isPending}
             className="bg-zinc-900/30 border border-zinc-800/50 rounded-lg px-3 py-1.5 text-sm text-zinc-300 focus:outline-none focus:border-zinc-700 appearance-none cursor-pointer"
           >
@@ -142,7 +145,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
         </div>
 
         <button
-          onClick={handleToggleStatus}
+          onClick={() => setShowStatusConfirm(true)}
           disabled={statusMutation.isPending}
           className={cn(
             'flex items-center gap-2 px-4 py-1.5 text-sm rounded-lg border transition-colors',
@@ -160,7 +163,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
           className="flex items-center gap-2 px-4 py-1.5 text-sm rounded-lg border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 transition-colors ml-auto"
         >
           <Trash2 size={14} />
-          Delete User
+          Remove User
         </button>
       </div>
 
@@ -172,39 +175,40 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
         </div>
         <div className="p-4 rounded-xl bg-zinc-900/30 border border-zinc-800/50">
           <p className="text-xs text-zinc-600 uppercase tracking-wider mb-1">Total Validations</p>
-          <p className="text-xl font-semibold text-zinc-100 tabular-nums">{user.total_validations?.toLocaleString() ?? 0}</p>
+          <p className="text-xl font-semibold text-zinc-100 tabular-nums">{(user.validation_count ?? user.total_validations ?? 0).toLocaleString()}</p>
         </div>
         <div className="p-4 rounded-xl bg-zinc-900/30 border border-zinc-800/50">
           <p className="text-xs text-zinc-600 uppercase tracking-wider mb-1">Total Datasets</p>
-          <p className="text-xl font-semibold text-zinc-100 tabular-nums">{user.total_datasets?.toLocaleString() ?? 0}</p>
+          <p className="text-xl font-semibold text-zinc-100 tabular-nums">{(user.dataset_count ?? user.total_datasets ?? 0).toLocaleString()}</p>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div>
-        <div className="flex items-center gap-1 border-b border-zinc-800/50">
-          {(['datasets', 'validations', 'tickets'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={cn(
-                'px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px',
-                activeTab === tab
-                  ? 'text-zinc-100 border-rose-500'
-                  : 'text-zinc-500 border-transparent hover:text-zinc-300'
-              )}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
-        </div>
+      {/* Role change confirmation */}
+      <ConfirmDialog
+        open={pendingRole !== null && pendingRole !== user.role}
+        title="Change user role"
+        description={`Change ${user.full_name}'s role to "${pendingRole ?? ''}"?`}
+        confirmLabel="Change role"
+        loading={roleMutation.isPending}
+        onConfirm={() => { if (pendingRole) roleMutation.mutate(pendingRole); }}
+        onClose={() => setPendingRole(null)}
+      />
 
-        <div className="py-6">
-          {activeTab === 'datasets' && <UserDatasetsTab userId={id} />}
-          {activeTab === 'validations' && <UserValidationsTab userId={id} />}
-          {activeTab === 'tickets' && <UserTicketsTab userId={id} />}
-        </div>
-      </div>
+      {/* Status toggle confirmation */}
+      <ConfirmDialog
+        open={showStatusConfirm}
+        title={user.is_active ? 'Suspend user' : 'Reactivate user'}
+        description={
+          user.is_active
+            ? `Suspend ${user.full_name}? They will lose access to the platform.`
+            : `Reactivate ${user.full_name}? They will regain access to the platform.`
+        }
+        confirmLabel={user.is_active ? 'Suspend' : 'Reactivate'}
+        variant={user.is_active ? 'danger' : 'default'}
+        loading={statusMutation.isPending}
+        onConfirm={() => statusMutation.mutate(!user.is_active)}
+        onClose={() => setShowStatusConfirm(false)}
+      />
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
@@ -214,10 +218,11 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
               <div className="w-10 h-10 rounded-full bg-rose-500/15 flex items-center justify-center">
                 <ShieldAlert className="w-5 h-5 text-rose-400" />
               </div>
-              <h3 className="text-sm font-medium text-zinc-100">Delete User</h3>
+              <h3 className="text-sm font-medium text-zinc-100">Remove User</h3>
             </div>
             <p className="text-sm text-zinc-400">
-              This action cannot be undone. Type <span className="text-zinc-200 font-mono">{user.email}</span> to confirm.
+              Deactivate and remove this user&apos;s access. This can be reversed by an administrator.
+              Type <span className="text-zinc-200 font-mono">{user.email}</span> to confirm.
             </p>
             <input
               type="text"
@@ -238,85 +243,12 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                 disabled={deleteConfirmEmail !== user.email || deleteMutation.isPending}
                 className="flex-1 px-4 py-2 text-sm text-white bg-rose-600 hover:bg-rose-500 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                {deleteMutation.isPending ? 'Removing...' : 'Remove user'}
               </button>
             </div>
           </div>
         </div>
       )}
     </div>
-  );
-}
-
-function UserDatasetsTab({ userId }: { userId: string }) {
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin', 'user-datasets', userId],
-    queryFn: () => adminApi.listAllDatasets(1, 100),
-  });
-
-  if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="w-4 h-4 animate-spin text-zinc-600" /></div>;
-
-  const datasets = (data?.datasets ?? []).filter((d: any) => d.user_id === userId || !d.user_id);
-
-  if (datasets.length === 0) return <p className="text-sm text-zinc-600 text-center py-8">No datasets found</p>;
-
-  return (
-    <div className="space-y-2">
-      {datasets.slice(0, 20).map((d: any) => (
-        <div key={d.id} className="flex items-center justify-between p-3 rounded-lg bg-zinc-900/20 border border-zinc-800/30">
-          <div>
-            <p className="text-sm text-zinc-300">{d.name || d.file_name}</p>
-            <p className="text-xs text-zinc-600">{d.row_count?.toLocaleString()} rows &middot; {(d.file_size / 1024 / 1024).toFixed(1)} MB</p>
-          </div>
-          <span className={cn(
-            'text-[11px] px-2 py-0.5 rounded-full',
-            d.status === 'ready' ? 'bg-emerald-500/15 text-emerald-400' :
-            d.status === 'error' ? 'bg-rose-500/15 text-rose-400' :
-            'bg-amber-500/15 text-amber-400'
-          )}>{d.status}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function UserValidationsTab({ userId }: { userId: string }) {
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin', 'user-validations', userId],
-    queryFn: () => adminApi.listAllValidations(1, 100),
-  });
-
-  if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="w-4 h-4 animate-spin text-zinc-600" /></div>;
-
-  const validations = (data?.validations ?? []).filter((v: any) => v.user_id === userId || !v.user_id);
-
-  if (validations.length === 0) return <p className="text-sm text-zinc-600 text-center py-8">No validations found</p>;
-
-  return (
-    <div className="space-y-2">
-      {validations.slice(0, 20).map((v: any) => (
-        <div key={v.id} className="flex items-center justify-between p-3 rounded-lg bg-zinc-900/20 border border-zinc-800/30">
-          <div>
-            <p className="text-sm text-zinc-300">{v.dataset_name || v.validation_type}</p>
-            <p className="text-xs text-zinc-600">{v.validation_type} &middot; {new Date(v.created_at).toLocaleDateString()}</p>
-          </div>
-          <span className={cn(
-            'text-[11px] px-2 py-0.5 rounded-full',
-            v.status === 'completed' ? 'bg-emerald-500/15 text-emerald-400' :
-            v.status === 'failed' ? 'bg-rose-500/15 text-rose-400' :
-            v.status === 'processing' ? 'bg-blue-500/15 text-blue-400' :
-            'bg-amber-500/15 text-amber-400'
-          )}>{v.status}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function UserTicketsTab({ userId }: { userId: string }) {
-  return (
-    <p className="text-sm text-zinc-600 text-center py-8">
-      Support tickets for this user will appear here when the endpoint is available.
-    </p>
   );
 }

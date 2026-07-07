@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { adminApi } from '@/lib/api/admin';
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 
 const actionBadgeClass: Record<string, string> = {
   role_change: 'bg-blue-500/15 text-blue-400',
@@ -14,11 +14,24 @@ const actionBadgeClass: Record<string, string> = {
   settings_change: 'bg-violet-500/15 text-violet-400',
 };
 
+// Tolerant reads for audit events — backends vary in field naming. Keep in sync
+// with the identical helper in src/app/admin/page.tsx.
+function readAuditEvent(event: Record<string, unknown>) {
+  return {
+    action: String(event.action || event.event_type || event.description || ''),
+    actor: String(event.admin_name || event.admin_email || event.user_email || event.actor || ''),
+    time: (event.timestamp || event.created_at) as string | undefined,
+    target: String(event.target || event.target_email || ''),
+    ip: String(event.ip_address || event.ip || ''),
+    details: event.details,
+  };
+}
+
 export default function AuditLogPage() {
   const [page, setPage] = useState(1);
   const pageSize = 50;
 
-  const { data, isLoading, refetch, dataUpdatedAt } = useQuery({
+  const { data, isLoading, isError, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['admin', 'audit-log', page],
     queryFn: () => adminApi.getAuditLog(page, pageSize),
     retry: 1,
@@ -48,61 +61,80 @@ export default function AuditLogPage() {
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-5 h-5 animate-spin text-zinc-600" />
         </div>
+      ) : isError ? (
+        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-8 text-center">
+          <AlertCircle className="w-6 h-6 text-rose-400 mx-auto mb-3" />
+          <p className="text-sm text-zinc-300 mb-1">Failed to load audit log</p>
+          <p className="text-xs text-zinc-600 mb-4">{error instanceof Error ? error.message : 'An unexpected error occurred'}</p>
+          <button
+            onClick={() => refetch()}
+            className="px-4 py-2 text-sm text-white bg-rose-600 hover:bg-rose-500 rounded-lg transition-colors"
+          >
+            Retry
+          </button>
+        </div>
       ) : (
-        <div className="border-t border-zinc-800/50 overflow-x-auto">
-          <table className="w-full min-w-[700px]">
-            <thead>
-              <tr className="text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-zinc-800/50">
-                <th className="py-3 pr-4 text-left">Time</th>
-                <th className="py-3 pr-4 text-left">Admin</th>
-                <th className="py-3 pr-4 text-left">Action</th>
-                <th className="py-3 pr-4 text-left">Target</th>
-                <th className="py-3 pr-4 text-left">Details</th>
-                <th className="py-3 text-left">IP</th>
-              </tr>
-            </thead>
-            <tbody>
-              {events.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-sm text-zinc-600">No audit log entries found</td>
+        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[700px]">
+              <thead>
+                <tr className="text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-zinc-800/50">
+                  <th className="py-3 pl-5 pr-4 text-left">Time</th>
+                  <th className="py-3 pr-4 text-left">Admin</th>
+                  <th className="py-3 pr-4 text-left">Action</th>
+                  <th className="py-3 pr-4 text-left">Target</th>
+                  <th className="py-3 pr-4 text-left">Details</th>
+                  <th className="py-3 pr-5 text-left">IP</th>
                 </tr>
-              ) : (
-                events.map((event: any, idx: number) => (
-                  <tr key={event.id || idx} className="border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors">
-                    <td className="py-3 pr-4">
-                      <span className="text-sm text-zinc-400 tabular-nums whitespace-nowrap">
-                        {new Date(event.timestamp || event.created_at).toLocaleString('en-US', {
-                          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-                        })}
-                      </span>
-                    </td>
-                    <td className="py-3 pr-4">
-                      <span className="text-sm text-zinc-300">{event.admin_name || event.admin_email || '-'}</span>
-                    </td>
-                    <td className="py-3 pr-4">
-                      <span className={cn(
-                        'text-[11px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap',
-                        actionBadgeClass[event.action] || 'bg-zinc-800 text-zinc-400'
-                      )}>
-                        {(event.action || '').replace(/_/g, ' ')}
-                      </span>
-                    </td>
-                    <td className="py-3 pr-4">
-                      <span className="text-sm text-zinc-400">{event.target || event.target_email || '-'}</span>
-                    </td>
-                    <td className="py-3 pr-4">
-                      <span className="text-sm text-zinc-500 truncate max-w-[200px] block">
-                        {typeof event.details === 'object' ? JSON.stringify(event.details) : event.details || '-'}
-                      </span>
-                    </td>
-                    <td className="py-3">
-                      <span className="text-sm text-zinc-600 font-mono">{event.ip_address || event.ip || '-'}</span>
-                    </td>
+              </thead>
+              <tbody>
+                {events.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center text-sm text-zinc-600">No audit log entries found</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  events.map((event, idx: number) => {
+                    const { action, actor, time, target, ip, details } = readAuditEvent(event);
+                    return (
+                      <tr key={event.id || idx} className="border-b border-zinc-800/30 last:border-b-0 hover:bg-zinc-900/30 transition-colors">
+                        <td className="py-3 pl-5 pr-4">
+                          <span className="text-sm text-zinc-400 tabular-nums whitespace-nowrap">
+                            {time
+                              ? new Date(time).toLocaleString('en-US', {
+                                  month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                                })
+                              : '-'}
+                          </span>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <span className="text-sm text-zinc-300">{actor || '-'}</span>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <span className={cn(
+                            'text-[11px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap',
+                            actionBadgeClass[action] || 'bg-zinc-800 text-zinc-400'
+                          )}>
+                            {action.replace(/_/g, ' ') || '-'}
+                          </span>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <span className="text-sm text-zinc-400">{target || '-'}</span>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <span className="text-sm text-zinc-500 truncate max-w-[200px] block">
+                            {typeof details === 'object' && details !== null ? JSON.stringify(details) : String(details ?? '') || '-'}
+                          </span>
+                        </td>
+                        <td className="py-3 pr-5">
+                          <span className="text-sm text-zinc-600 font-mono">{ip || '-'}</span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -131,7 +163,8 @@ export default function AuditLogPage() {
       )}
 
       <p className="text-xs text-zinc-700 text-right">
-        Auto-refreshes every 30 seconds &middot; Last updated {new Date(dataUpdatedAt).toLocaleTimeString()}
+        Auto-refreshes every 30 seconds
+        {dataUpdatedAt > 0 && <> &middot; Last updated {new Date(dataUpdatedAt).toLocaleTimeString()}</>}
       </p>
     </div>
   );
