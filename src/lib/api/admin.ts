@@ -66,7 +66,11 @@ export const adminApi = {
   listAllValidations: async (page = 1, perPage = 20): Promise<{ validations: Validation[]; pagination: Pagination }> => {
     const { data } = await apiClient.get(`/admin/validations?page=${page}&page_size=${perPage}`);
     return {
-      validations: data.validations || [],
+      // Backend may return validation_id instead of id; normalize like validationsApi does.
+      validations: (data.validations || []).map((v: any) => ({
+        ...v,
+        id: v.id || v.validation_id,
+      })),
       pagination: mapPagination(data.pagination || {}),
     };
   },
@@ -77,6 +81,9 @@ export const adminApi = {
         ...d,
         id: d.id || d.dataset_id,
         name: d.name || d.filename || '',
+        file_name: d.file_name || d.filename || '',
+        row_count: d.row_count ?? d.rows ?? 0,
+        column_count: d.column_count ?? d.columns ?? 0,
       })),
       pagination: mapPagination(data.pagination || {}),
     };

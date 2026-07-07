@@ -22,6 +22,8 @@ export interface CreditPackage {
   price_cents: number;
   currency: string;
   bonus_credits: number;
+  /** Paddle catalog price id; required for hosted checkout */
+  paddle_price_id?: string;
 }
 
 export interface CreditTransaction {
