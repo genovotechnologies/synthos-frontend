@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Database, CheckCircle, Shield, Settings, LogOut, Menu, Search, X, CreditCard, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SynthosLogo } from '@/components/ui/synthos-logo';
 import { useAuth } from '@/providers/auth-provider';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import NotificationsDropdown from './notifications-dropdown';
+import { openCommandPalette } from './command-palette';
 
 const navigation = [
   { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
@@ -21,15 +22,10 @@ const navigation = [
 
 export function DashboardSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
-  const { user, logout, isLoading, isAuthenticated } = useAuth();
+  const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isLoading, isAuthenticated, router]);
+  // Auth redirects are handled by the SectionGate in the dashboard layout.
 
   return (
     <>
@@ -107,35 +103,20 @@ export function DashboardSidebar() {
 }
 
 export function DashboardTopbar() {
-  const { user } = useAuth();
-  const [searchFocused, setSearchFocused] = useState(false);
-
   return (
-    <header className="flex items-center justify-between">
-      <div />
+    <header className="flex items-center justify-end">
       <div className="flex items-center gap-4">
-        <div className={cn(
-          "hidden md:flex items-center gap-2 px-3 py-1.5 rounded-md border transition-colors",
-          searchFocused ? "border-zinc-700 bg-zinc-900/50" : "border-zinc-800/50 bg-transparent"
-        )}>
+        <button
+          type="button"
+          onClick={openCommandPalette}
+          className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-md border border-zinc-800/50 hover:border-zinc-700 hover:bg-zinc-900/50 transition-colors"
+        >
           <Search size={14} className="text-zinc-600" />
-          <input
-            type="text"
-            placeholder="Search..."
-            className="bg-transparent text-sm text-zinc-300 placeholder:text-zinc-600 focus:outline-none w-40"
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => setSearchFocused(false)}
-          />
+          <span className="w-40 text-left text-sm text-zinc-600">Search...</span>
           <kbd className="text-[10px] text-zinc-700 bg-zinc-900 px-1.5 py-0.5 rounded">⌘K</kbd>
-        </div>
+        </button>
 
         <NotificationsDropdown />
-
-        <div className="w-px h-5 bg-zinc-800/50" />
-
-        <div className="w-7 h-7 rounded-md bg-zinc-800 flex items-center justify-center text-xs font-medium text-zinc-400">
-          {user?.name?.charAt(0).toUpperCase() || 'U'}
-        </div>
       </div>
     </header>
   );

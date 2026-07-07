@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ticketsApi } from '@/lib/api/tickets';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const CATEGORIES = ['general', 'billing', 'technical', 'account', 'data'] as const;
 
@@ -29,10 +29,11 @@ export default function DashboardHelpPage() {
   const [subject, setSubject] = useState('');
   const [category, setCategory] = useState('general');
   const [message, setMessage] = useState('');
+  const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['tickets', 'my'],
-    queryFn: () => ticketsApi.list(1),
+    queryKey: ['tickets', 'my', page],
+    queryFn: () => ticketsApi.list(page),
     retry: 1,
   });
 
@@ -47,6 +48,7 @@ export default function DashboardHelpPage() {
   });
 
   const tickets = data?.tickets ?? [];
+  const totalPages = data?.pagination?.total_pages || 1;
 
   return (
     <div className="space-y-16">
@@ -151,6 +153,31 @@ export default function DashboardHelpPage() {
                 </div>
               </Link>
             ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between mt-6">
+            <p className="text-sm text-zinc-500 tabular-nums">Page {page} of {totalPages}</p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                aria-label="Previous page"
+                className="p-2 text-zinc-400 hover:text-white disabled:text-zinc-600 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                aria-label="Next page"
+                className="p-2 text-zinc-400 hover:text-white disabled:text-zinc-600 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         )}
       </section>

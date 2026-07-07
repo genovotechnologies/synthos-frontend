@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bell, Check, CheckCheck, Loader2, Info, AlertTriangle, AlertCircle, CheckCircle, X } from 'lucide-react';
-import { notificationsApi, type Notification } from '@/lib/api';
+import { notificationsApi, type Notification, type NotificationsResponse } from '@/lib/api';
 import Link from 'next/link';
 
 function NotificationIcon({ type }: { type: Notification['type'] }) {
@@ -13,7 +13,7 @@ function NotificationIcon({ type }: { type: Notification['type'] }) {
     case 'warning':
       return <AlertTriangle className="w-4 h-4 text-amber-400" />;
     case 'error':
-      return <AlertCircle className="w-4 h-4 text-red-400" />;
+      return <AlertCircle className="w-4 h-4 text-rose-400" />;
     default:
       return <Info className="w-4 h-4 text-blue-400" />;
   }
@@ -32,14 +32,14 @@ function formatTimeAgo(dateString: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function NotificationItem({ 
-  notification, 
+function NotificationItem({
+  notification,
   onMarkRead,
-  onDelete
-}: { 
-  notification: Notification; 
+  onDismiss
+}: {
+  notification: Notification;
   onMarkRead: (id: string) => void;
-  onDelete: (id: string) => void;
+  onDismiss: (id: string) => void;
 }) {
   const content = (
     <div 
@@ -88,10 +88,11 @@ function NotificationItem({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            onDelete(notification.id);
+            onDismiss(notification.id);
           }}
-          className="p-1.5 rounded bg-zinc-700 hover:bg-red-600 text-zinc-300 transition-colors"
-          title="Delete"
+          className="p-1.5 rounded bg-zinc-700 hover:bg-zinc-600 text-zinc-300 transition-colors"
+          title="Dismiss"
+          aria-label="Dismiss notification"
         >
           <X className="w-3 h-3" />
         </button>
@@ -135,10 +136,27 @@ export default function NotificationsDropdown() {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: notificationsApi.delete,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+  // Backend has no delete endpoint: dismissing marks the notification as read
+  // and optimistically removes it from the local list.
+  const dismissMutation = useMutation({
+    mutationFn: notificationsApi.dismiss,
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ['notifications'] });
+      const previous = queryClient.getQueryData<NotificationsResponse>(['notifications']);
+      queryClient.setQueryData<NotificationsResponse>(['notifications'], (old) => {
+        if (!old) return old;
+        const target = old.notifications.find((n) => n.id === id);
+        return {
+          notifications: old.notifications.filter((n) => n.id !== id),
+          unread_count: target && !target.is_read ? Math.max(0, old.unread_count - 1) : old.unread_count,
+        };
+      });
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['notifications'], context.previous);
+      }
     },
   });
 
@@ -215,7 +233,7 @@ export default function NotificationsDropdown() {
                     key={notification.id}
                     notification={notification}
                     onMarkRead={(id) => markAsReadMutation.mutate(id)}
-                    onDelete={(id) => deleteMutation.mutate(id)}
+                    onDismiss={(id) => dismissMutation.mutate(id)}
                   />
                 ))}
               </div>

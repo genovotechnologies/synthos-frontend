@@ -112,7 +112,12 @@ function WarrantyCard({ warranty }: { warranty: Warranty }) {
         {warranty.status === 'expired' && (
           <p className="text-xs text-zinc-500">Coverage ended</p>
         )}
-        {warranty.status === 'claimed' && <div />}
+        {warranty.status === 'claimed' && (
+          <p className="flex items-center gap-1.5 text-xs text-amber-400">
+            <AlertTriangle size={11} />
+            Claim filed — under review
+          </p>
+        )}
         <Link
           href={`/dashboard/validations/${warranty.validation_id}`}
           className="text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1 transition-colors"
@@ -144,18 +149,22 @@ export default function WarrantiesPage() {
         <p className="text-sm text-zinc-500 mt-1">Manage your data quality warranties and coverage</p>
       </div>
 
-      {/* Summary Stats */}
+      {/* Summary Stats — aggregated from the warranties on the current page only */}
       <section>
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-16 gap-y-10">
           <div>
-            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">Active Warranties</p>
+            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">
+              Active Warranties{totalPages > 1 ? ' (this page)' : ''}
+            </p>
             <div className="flex items-baseline gap-3">
               <span className="text-3xl font-semibold text-zinc-100 tabular-nums tracking-tight">{activeWarranties.length}</span>
             </div>
             <div className="h-px bg-zinc-800 mt-4" />
           </div>
           <div>
-            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">Total Coverage</p>
+            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">
+              Coverage{totalPages > 1 ? ' (this page)' : ''}
+            </p>
             <div className="flex items-baseline gap-3">
               <span className="text-3xl font-semibold text-zinc-100 tabular-nums tracking-tight">
                 ${activeWarranties.reduce((sum, w) => sum + w.coverage_amount, 0).toLocaleString()}
@@ -164,7 +173,9 @@ export default function WarrantiesPage() {
             <div className="h-px bg-zinc-800 mt-4" />
           </div>
           <div>
-            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">Avg Risk Score</p>
+            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">
+              Avg Risk Score{totalPages > 1 ? ' (this page)' : ''}
+            </p>
             <div className="flex items-baseline gap-3">
               <span className="text-3xl font-semibold text-zinc-100 tabular-nums tracking-tight">
                 {activeWarranties.length
@@ -199,9 +210,8 @@ export default function WarrantiesPage() {
             href="/dashboard/validations"
             className={cn(
               "flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm",
-              "bg-gradient-to-r from-violet-600 to-violet-500 text-white",
-              "hover:from-violet-500 hover:to-violet-400",
-              "transition-all duration-200"
+              "bg-violet-600 hover:bg-violet-500 text-white",
+              "transition-colors duration-200"
             )}
           >
             Create Validation
