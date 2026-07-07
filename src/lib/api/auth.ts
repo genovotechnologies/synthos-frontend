@@ -28,7 +28,7 @@ export const authApi = {
     const raw = result as unknown as Record<string, unknown>;
     if (raw.requires_verification) {
       const error = new Error('EMAIL_VERIFICATION_REQUIRED');
-      (error as any).email = raw.email;
+      (error as Error & { email?: unknown }).email = raw.email;
       throw error;
     }
     // Map backend field names to frontend types
@@ -81,8 +81,9 @@ export const authApi = {
     });
     // Handle both flat response and wrapped {user: {...}} response
     let user = response.data;
-    if ((user as any).user) {
-      user = (user as any).user;
+    const wrapped = user as unknown as { user?: User };
+    if (wrapped.user) {
+      user = wrapped.user;
     }
     const u = user as unknown as Record<string, unknown>;
     if (u.full_name && !u.name) user.name = u.full_name as string;

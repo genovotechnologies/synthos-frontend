@@ -2,13 +2,29 @@ import apiClient from './client';
 import type { AdminUser, SystemOverview, PromoCode, Invite, Validation, Dataset, Pagination } from './types';
 
 // Helper to map backend pagination (page_size/total_count) to frontend Pagination type (per_page/total)
-function mapPagination(p: any): Pagination {
+function mapPagination(p: Partial<Pagination> & { page_size?: number; total_count?: number }): Pagination {
   return {
-    page: p.page,
+    page: p.page ?? 1,
     per_page: p.per_page || p.page_size || 20,
     total: p.total ?? p.total_count ?? 0,
-    total_pages: p.total_pages,
+    total_pages: p.total_pages ?? 1,
   };
+}
+
+// Audit events and platform settings come back with backend-defined keys; type
+// the fields the UI reads and keep the rest open.
+export interface AuditEvent {
+  id?: string;
+  [key: string]: unknown;
+}
+
+export interface AdminSettings {
+  registration_enabled?: boolean;
+  maintenance_mode?: boolean;
+  max_upload_size_gb?: number;
+  default_signup_credits?: number;
+  allowed_email_domains?: string;
+  [key: string]: unknown;
 }
 
 export const adminApi = {
@@ -67,7 +83,7 @@ export const adminApi = {
     const { data } = await apiClient.get(`/admin/validations?page=${page}&page_size=${perPage}`);
     return {
       // Backend may return validation_id instead of id; normalize like validationsApi does.
-      validations: (data.validations || []).map((v: any) => ({
+      validations: (data.validations || []).map((v: Validation & { validation_id?: string }) => ({
         ...v,
         id: v.id || v.validation_id,
       })),
@@ -77,7 +93,7 @@ export const adminApi = {
   listAllDatasets: async (page = 1, perPage = 20): Promise<{ datasets: Dataset[]; pagination: Pagination }> => {
     const { data } = await apiClient.get(`/admin/datasets?page=${page}&page_size=${perPage}`);
     return {
-      datasets: (data.datasets || []).map((d: any) => ({
+      datasets: (data.datasets || []).map((d: Dataset & { dataset_id?: string; filename?: string; rows?: number; columns?: number }) => ({
         ...d,
         id: d.id || d.dataset_id,
         name: d.name || d.filename || '',
@@ -91,7 +107,7 @@ export const adminApi = {
   deleteUser: async (id: string, hard = false): Promise<void> => {
     await apiClient.delete(`/admin/users/${id}${hard ? '?hard=true' : ''}`);
   },
-  getAuditLog: async (page = 1, pageSize = 50): Promise<{ events: any[]; pagination: Pagination }> => {
+  getAuditLog: async (page = 1, pageSize = 50): Promise<{ events: AuditEvent[]; pagination: Pagination }> => {
     const { data } = await apiClient.get(`/admin/audit-log?page=${page}&page_size=${pageSize}`);
     return data;
   },
@@ -114,11 +130,11 @@ export const adminApi = {
   rejectWarranty: async (id: string, reason: string) => {
     await apiClient.patch(`/admin/warranties/${id}/reject`, { reason });
   },
-  getSettings: async (): Promise<Record<string, any>> => {
+  getSettings: async (): Promise<AdminSettings> => {
     const { data } = await apiClient.get('/admin/settings');
     return data;
   },
-  updateSettings: async (settings: Record<string, any>): Promise<Record<string, any>> => {
+  updateSettings: async (settings: Partial<AdminSettings>): Promise<AdminSettings> => {
     const { data } = await apiClient.patch('/admin/settings', settings);
     return data;
   },
