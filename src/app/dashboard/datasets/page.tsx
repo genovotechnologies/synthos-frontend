@@ -6,7 +6,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Upload, Database, Trash2, FileText, AlertCircle, Check, X,
   Loader2, ChevronLeft, ChevronRight, Search, MoreHorizontal,
-  FolderOpen, ShieldCheck
+  FolderOpen, ShieldCheck, Table2, Image as ImageIcon, AudioLines,
+  Film, Binary, Archive, type LucideIcon
 } from 'lucide-react';
 import { datasetsApi, type Dataset, type UploadProgress } from '@/lib/api';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -14,7 +15,47 @@ import { toast } from '@/components/ui/toast';
 
 // Max file size: 500GB
 const MAX_FILE_SIZE = 500 * 1024 * 1024 * 1024;
-const ALLOWED_EXTENSIONS = ['.csv', '.json', '.jsonl', '.parquet', '.hdf5', '.h5', '.xlsx', '.xls', '.tsv', '.arrow', '.feather', '.orc', '.avro', '.pkl', '.pickle'];
+
+// The validation pipeline is multimodal: alongside tabular/structured data it
+// ingests raw text corpora, images, audio, video, embedding arrays, and packed
+// archives (e.g. WebDataset tars). Grouped so the UI can explain itself and
+// show a per-modality icon.
+const FORMAT_GROUPS = [
+  { kind: 'tabular', label: 'Tabular & structured', extensions: ['.csv', '.tsv', '.json', '.jsonl', '.parquet', '.hdf5', '.h5', '.xlsx', '.xls', '.arrow', '.feather', '.orc', '.avro', '.pkl', '.pickle'] },
+  { kind: 'text', label: 'Text corpora', extensions: ['.txt', '.md'] },
+  { kind: 'image', label: 'Images', extensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.tiff', '.tif'] },
+  { kind: 'audio', label: 'Audio', extensions: ['.wav', '.mp3', '.flac', '.ogg', '.m4a', '.aac'] },
+  { kind: 'video', label: 'Video', extensions: ['.mp4', '.mov', '.avi', '.mkv', '.webm'] },
+  { kind: 'array', label: 'Arrays & embeddings', extensions: ['.npy', '.npz'] },
+  { kind: 'archive', label: 'Packed archives', extensions: ['.zip', '.tar', '.gz', '.tgz'] },
+] as const;
+
+type FileKind = (typeof FORMAT_GROUPS)[number]['kind'];
+
+const ALLOWED_EXTENSIONS: string[] = FORMAT_GROUPS.flatMap((g) => [...g.extensions]);
+
+const EXTENSION_KIND = new Map<string, FileKind>(
+  FORMAT_GROUPS.flatMap((g) => g.extensions.map((ext) => [ext, g.kind] as const))
+);
+
+const KIND_ICONS: Record<FileKind, { icon: LucideIcon; tint: string }> = {
+  tabular: { icon: Table2, tint: 'text-violet-400' },
+  text: { icon: FileText, tint: 'text-zinc-400' },
+  image: { icon: ImageIcon, tint: 'text-emerald-400' },
+  audio: { icon: AudioLines, tint: 'text-amber-400' },
+  video: { icon: Film, tint: 'text-blue-400' },
+  array: { icon: Binary, tint: 'text-cyan-400' },
+  archive: { icon: Archive, tint: 'text-rose-400' },
+};
+
+function fileKind(filename: string): FileKind {
+  return EXTENSION_KIND.get(getFileExtension(filename)) ?? 'tabular';
+}
+
+function FileKindIcon({ name, sizeClass = 'w-4 h-4' }: { name: string; sizeClass?: string }) {
+  const { icon: Icon, tint } = KIND_ICONS[fileKind(name)];
+  return <Icon className={`${sizeClass} ${tint} flex-shrink-0`} />;
+}
 
 // Datasets frequently ship as folders of many files (per-split CSVs, sharded
 // parquet, etc.), so the uploader accepts multiple files and whole directories.
@@ -178,7 +219,7 @@ function DatasetRow({ dataset, onDelete }: { dataset: Dataset; onDelete: (datase
     <div className="flex items-center justify-between py-4 border-b border-zinc-800/50 last:border-0 group">
       <div className="flex items-center gap-4 flex-1 min-w-0">
         <div className="w-10 h-10 rounded-lg bg-zinc-800/50 flex items-center justify-center flex-shrink-0">
-          <FileText className="w-5 h-5 text-zinc-500" />
+          <FileKindIcon name={dataset.file_name || dataset.name} sizeClass="w-5 h-5" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-white truncate">{dataset.name}</p>
@@ -403,7 +444,7 @@ function MultiUploadModal({ onClose, onSuccess }: { onClose: () => void; onSucce
           <div>
             <h2 className="text-lg font-semibold text-white">Upload Datasets</h2>
             <p className="text-sm text-zinc-500 mt-0.5">
-              Add files or a whole folder — CSV, JSON, JSONL, Parquet, HDF5, Excel, TSV, Arrow, ORC, Avro, Pickle (max 500 GB each)
+              Add files or a whole folder — tabular, text, image, audio, video, arrays, and archives (max 500 GB per file)
             </p>
           </div>
           <button
@@ -460,6 +501,14 @@ function MultiUploadModal({ onClose, onSuccess }: { onClose: () => void; onSucce
                   <FolderOpen className="w-4 h-4" />
                   Choose folder
                 </button>
+              </div>
+              <div className="mt-7 pt-5 border-t border-zinc-800/60 text-left max-w-md mx-auto space-y-1.5">
+                {FORMAT_GROUPS.map((group) => (
+                  <p key={group.kind} className="text-[11px] leading-relaxed text-zinc-600">
+                    <span className="text-zinc-500 font-medium">{group.label}:</span>{' '}
+                    {group.extensions.join('  ')}
+                  </p>
+                ))}
               </div>
             </div>
           ) : (
@@ -523,7 +572,7 @@ function MultiUploadModal({ onClose, onSuccess }: { onClose: () => void; onSucce
               <ul className="divide-y divide-zinc-800/50 border border-zinc-800/60 rounded-lg overflow-hidden">
                 {queue.map((item) => (
                   <li key={item.id} className="flex items-center gap-3 px-3 py-2.5 bg-zinc-900/40">
-                    <FileText className="w-4 h-4 text-zinc-500 flex-shrink-0" />
+                    <FileKindIcon name={item.file.name} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-zinc-200 truncate" title={item.relativePath}>
                         {item.relativePath}
