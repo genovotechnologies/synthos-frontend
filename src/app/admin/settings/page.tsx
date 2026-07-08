@@ -1,32 +1,40 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/lib/api/admin';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { Loader2, Check, AlertCircle, AlertTriangle } from 'lucide-react';
 
-interface PlatformSettings {
+// Numeric fields are kept as strings in form state so clearing an input never
+// produces NaN; they are validated and converted on save.
+interface SettingsFormState {
   registration_enabled: boolean;
   maintenance_mode: boolean;
-  max_upload_size_gb: number;
-  default_signup_credits: number;
+  max_upload_size_gb: string;
+  default_signup_credits: string;
   allowed_email_domains: string;
 }
 
-const defaultSettings: PlatformSettings = {
+const defaultSettings: SettingsFormState = {
   registration_enabled: true,
   maintenance_mode: false,
-  max_upload_size_gb: 10,
-  default_signup_credits: 100,
+  max_upload_size_gb: '10',
+  default_signup_credits: '100',
   allowed_email_domains: '',
 };
 
+// Loose hostname check: labels of letters/digits/hyphens plus at least one dot.
+const DOMAIN_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i;
+
 export default function AdminSettings() {
   const queryClient = useQueryClient();
-  const [settings, setSettings] = useState<PlatformSettings>(defaultSettings);
-  const [originalSettings, setOriginalSettings] = useState<PlatformSettings>(defaultSettings);
+  const [settings, setSettings] = useState<SettingsFormState>(defaultSettings);
+  const [originalSettings, setOriginalSettings] = useState<SettingsFormState>(defaultSettings);
   const [successMessage, setSuccessMessage] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof SettingsFormState, string>>>({});
+  const [syncedData, setSyncedData] = useState<unknown>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin', 'settings'],
@@ -34,43 +42,88 @@ export default function AdminSettings() {
     retry: 1,
   });
 
-  useEffect(() => {
-    if (data) {
-      const loaded: PlatformSettings = {
-        registration_enabled: data.registration_enabled ?? defaultSettings.registration_enabled,
-        maintenance_mode: data.maintenance_mode ?? defaultSettings.maintenance_mode,
-        max_upload_size_gb: data.max_upload_size_gb ?? defaultSettings.max_upload_size_gb,
-        default_signup_credits: data.default_signup_credits ?? defaultSettings.default_signup_credits,
-        allowed_email_domains: data.allowed_email_domains ?? defaultSettings.allowed_email_domains,
-      };
-      setSettings(loaded);
-      setOriginalSettings(loaded);
-    }
-  }, [data]);
+  // Sync fetched settings into form state when the server data changes
+  // (render-time state adjustment; avoids an extra effect pass).
+  if (data && data !== syncedData) {
+    setSyncedData(data);
+    const loaded: SettingsFormState = {
+      registration_enabled: data.registration_enabled ?? defaultSettings.registration_enabled,
+      maintenance_mode: data.maintenance_mode ?? defaultSettings.maintenance_mode,
+      max_upload_size_gb: String(data.max_upload_size_gb ?? defaultSettings.max_upload_size_gb),
+      default_signup_credits: String(data.default_signup_credits ?? defaultSettings.default_signup_credits),
+      allowed_email_domains: data.allowed_email_domains ?? defaultSettings.allowed_email_domains,
+    };
+    setSettings(loaded);
+    setOriginalSettings(loaded);
+  }
 
   const saveMutation = useMutation({
-    mutationFn: (changed: Record<string, any>) => adminApi.updateSettings(changed),
-    onSuccess: () => {
+    mutationFn: ({ changed }: { changed: Record<string, unknown>; normalized: SettingsFormState }) =>
+      adminApi.updateSettings(changed),
+    onSuccess: (_data, variables) => {
       setSuccessMessage('Settings saved successfully');
-      setOriginalSettings({ ...settings });
+      setSettings(variables.normalized);
+      setOriginalSettings(variables.normalized);
       queryClient.invalidateQueries({ queryKey: ['admin', 'settings'] });
       setTimeout(() => setSuccessMessage(''), 3000);
     },
   });
 
-  const handleSave = () => {
-    const changed: Record<string, any> = {};
-    for (const key of Object.keys(settings) as (keyof PlatformSettings)[]) {
-      if (settings[key] !== originalSettings[key]) {
-        changed[key] = settings[key];
-      }
-    }
-    if (Object.keys(changed).length === 0) return;
-    saveMutation.mutate(changed);
+  const setField = <K extends keyof SettingsFormState>(key: K, value: SettingsFormState[K]) => {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+    setFieldErrors((prev) => (prev[key] ? { ...prev, [key]: undefined } : prev));
   };
 
-  const hasChanges = Object.keys(settings).some(
-    (key) => settings[key as keyof PlatformSettings] !== originalSettings[key as keyof PlatformSettings]
+  const handleSave = () => {
+    const errors: Partial<Record<keyof SettingsFormState, string>> = {};
+
+    const uploadSize = Number(settings.max_upload_size_gb);
+    if (settings.max_upload_size_gb.trim() === '' || !Number.isFinite(uploadSize) || uploadSize <= 0) {
+      errors.max_upload_size_gb = 'Enter a positive number.';
+    }
+
+    const signupCredits = Number(settings.default_signup_credits);
+    if (settings.default_signup_credits.trim() === '' || !Number.isInteger(signupCredits) || signupCredits < 0) {
+      errors.default_signup_credits = 'Enter a whole number of 0 or more.';
+    }
+
+    // Normalize the comma-separated domain list: split, trim, drop empties, re-join.
+    const domains = settings.allowed_email_domains.split(',').map((d) => d.trim()).filter(Boolean);
+    const badDomains = domains.filter((d) => !DOMAIN_RE.test(d));
+    if (badDomains.length > 0) {
+      errors.allowed_email_domains = `Invalid domain${badDomains.length > 1 ? 's' : ''}: ${badDomains.join(', ')}`;
+    }
+
+    setFieldErrors(errors);
+    if (Object.values(errors).some(Boolean)) return;
+
+    const normalizedDomains = domains.join(', ');
+    const normalized: SettingsFormState = { ...settings, allowed_email_domains: normalizedDomains };
+
+    const changed: Record<string, unknown> = {};
+    if (normalized.registration_enabled !== originalSettings.registration_enabled) {
+      changed.registration_enabled = normalized.registration_enabled;
+    }
+    if (normalized.maintenance_mode !== originalSettings.maintenance_mode) {
+      changed.maintenance_mode = normalized.maintenance_mode;
+    }
+    if (uploadSize !== Number(originalSettings.max_upload_size_gb)) {
+      changed.max_upload_size_gb = uploadSize;
+    }
+    if (signupCredits !== Number(originalSettings.default_signup_credits)) {
+      changed.default_signup_credits = signupCredits;
+    }
+    if (normalizedDomains !== originalSettings.allowed_email_domains) {
+      // Backend shape unknown; keep sending the (normalized) string.
+      changed.allowed_email_domains = normalizedDomains;
+    }
+
+    if (Object.keys(changed).length === 0) return;
+    saveMutation.mutate({ changed, normalized });
+  };
+
+  const hasChanges = (Object.keys(settings) as (keyof SettingsFormState)[]).some(
+    (key) => settings[key] !== originalSettings[key]
   );
 
   if (isLoading) {
@@ -102,7 +155,7 @@ export default function AdminSettings() {
       )}
 
       {saveMutation.isError && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400">
           <AlertCircle className="w-4 h-4" />
           <span className="text-sm">Failed to save settings. Please try again.</span>
         </div>
@@ -115,18 +168,12 @@ export default function AdminSettings() {
             <p className="text-sm font-medium text-zinc-200">Registration Enabled</p>
             <p className="text-xs text-zinc-500 mt-0.5">Allow new users to register on the platform</p>
           </div>
-          <button
-            onClick={() => setSettings({ ...settings, registration_enabled: !settings.registration_enabled })}
-            className={cn(
-              'relative w-11 h-6 rounded-full transition-colors',
-              settings.registration_enabled ? 'bg-rose-600' : 'bg-zinc-700'
-            )}
-          >
-            <span className={cn(
-              'absolute top-1 w-4 h-4 rounded-full bg-white transition-transform',
-              settings.registration_enabled ? 'left-6' : 'left-1'
-            )} />
-          </button>
+          <Switch
+            checked={settings.registration_enabled}
+            onChange={(checked) => setField('registration_enabled', checked)}
+            activeClass="bg-emerald-600"
+            label="Registration enabled"
+          />
         </div>
 
         {/* Maintenance Mode */}
@@ -147,18 +194,13 @@ export default function AdminSettings() {
               </p>
             </div>
           </div>
-          <button
-            onClick={() => setSettings({ ...settings, maintenance_mode: !settings.maintenance_mode })}
-            className={cn(
-              'relative w-11 h-6 rounded-full transition-colors shrink-0',
-              settings.maintenance_mode ? 'bg-amber-600' : 'bg-zinc-700'
-            )}
-          >
-            <span className={cn(
-              'absolute top-1 w-4 h-4 rounded-full bg-white transition-transform',
-              settings.maintenance_mode ? 'left-6' : 'left-1'
-            )} />
-          </button>
+          <Switch
+            checked={settings.maintenance_mode}
+            onChange={(checked) => setField('maintenance_mode', checked)}
+            activeClass="bg-emerald-600"
+            label="Maintenance mode"
+            className="shrink-0"
+          />
         </div>
 
         {/* Max Upload Size */}
@@ -170,9 +212,15 @@ export default function AdminSettings() {
             min={1}
             max={500}
             value={settings.max_upload_size_gb}
-            onChange={(e) => setSettings({ ...settings, max_upload_size_gb: Number(e.target.value) })}
-            className="w-full px-3 py-2 bg-zinc-800/50 border border-zinc-700 rounded-lg text-sm text-zinc-300 focus:outline-none focus:border-rose-500/50"
+            onChange={(e) => setField('max_upload_size_gb', e.target.value)}
+            className={cn(
+              'w-full px-3 py-2 bg-zinc-800/50 border rounded-lg text-sm text-zinc-300 focus:outline-none',
+              fieldErrors.max_upload_size_gb ? 'border-rose-500/50' : 'border-zinc-700 focus:border-rose-500/50'
+            )}
           />
+          {fieldErrors.max_upload_size_gb && (
+            <p className="text-xs text-rose-400 mt-2">{fieldErrors.max_upload_size_gb}</p>
+          )}
         </div>
 
         {/* Default Signup Credits */}
@@ -183,9 +231,15 @@ export default function AdminSettings() {
             type="number"
             min={0}
             value={settings.default_signup_credits}
-            onChange={(e) => setSettings({ ...settings, default_signup_credits: Number(e.target.value) })}
-            className="w-full px-3 py-2 bg-zinc-800/50 border border-zinc-700 rounded-lg text-sm text-zinc-300 focus:outline-none focus:border-rose-500/50"
+            onChange={(e) => setField('default_signup_credits', e.target.value)}
+            className={cn(
+              'w-full px-3 py-2 bg-zinc-800/50 border rounded-lg text-sm text-zinc-300 focus:outline-none',
+              fieldErrors.default_signup_credits ? 'border-rose-500/50' : 'border-zinc-700 focus:border-rose-500/50'
+            )}
           />
+          {fieldErrors.default_signup_credits && (
+            <p className="text-xs text-rose-400 mt-2">{fieldErrors.default_signup_credits}</p>
+          )}
         </div>
 
         {/* Allowed Email Domains */}
@@ -195,10 +249,16 @@ export default function AdminSettings() {
           <input
             type="text"
             value={settings.allowed_email_domains}
-            onChange={(e) => setSettings({ ...settings, allowed_email_domains: e.target.value })}
+            onChange={(e) => setField('allowed_email_domains', e.target.value)}
             placeholder="example.com, company.org"
-            className="w-full px-3 py-2 bg-zinc-800/50 border border-zinc-700 rounded-lg text-sm text-zinc-300 placeholder:text-zinc-600 focus:outline-none focus:border-rose-500/50"
+            className={cn(
+              'w-full px-3 py-2 bg-zinc-800/50 border rounded-lg text-sm text-zinc-300 placeholder:text-zinc-600 focus:outline-none',
+              fieldErrors.allowed_email_domains ? 'border-rose-500/50' : 'border-zinc-700 focus:border-rose-500/50'
+            )}
           />
+          {fieldErrors.allowed_email_domains && (
+            <p className="text-xs text-rose-400 mt-2">{fieldErrors.allowed_email_domains}</p>
+          )}
         </div>
 
         {/* Save Button */}

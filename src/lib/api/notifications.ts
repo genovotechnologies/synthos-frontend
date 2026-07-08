@@ -45,10 +45,9 @@ export const notificationsApi = {
     }
   },
 
-  delete: async (id: string): Promise<void> => {
-    // Backend does not support deleting notifications.
-    // Mark as read instead so the UI can hide it.
-    console.warn('notificationsApi.delete: not supported by backend, marking as read instead');
+  dismiss: async (id: string): Promise<void> => {
+    // The backend has no delete endpoint for notifications. Dismissing marks the
+    // notification as read; the UI removes it from the local list client-side.
     await apiClient.post('/notifications/read', { notification_ids: [id] });
   },
 };

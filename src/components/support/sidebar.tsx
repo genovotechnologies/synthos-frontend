@@ -1,30 +1,22 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, MessageSquare, Settings, LogOut, Menu, X } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { LayoutDashboard, MessageSquare, LogOut, Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SynthosLogo } from '@/components/ui/synthos-logo';
 import { useAuth } from '@/providers/auth-provider';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const navigation = [
   { name: 'Overview', href: '/support', icon: LayoutDashboard },
   { name: 'Tickets', href: '/support/tickets', icon: MessageSquare },
-  { name: 'Settings', href: '/support/settings', icon: Settings },
 ];
 
 export function SupportSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
-  const { user, logout, isLoading, isAuthenticated } = useAuth();
+  const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isLoading, isAuthenticated, router]);
 
   return (
     <>

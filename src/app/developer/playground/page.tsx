@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import axios from 'axios';
+import apiClient from '@/lib/api/client';
 import { cn } from '@/lib/utils';
 import { Play, Loader2, Clock, RotateCcw } from 'lucide-react';
 
-const METHODS = ['GET', 'POST', 'PATCH', 'DELETE'] as const;
+const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const;
 type Method = (typeof METHODS)[number];
 
 const methodButtonStyles: Record<Method, { filled: string; outlined: string; badge: string }> = {
@@ -17,6 +19,11 @@ const methodButtonStyles: Record<Method, { filled: string; outlined: string; bad
     filled: 'bg-blue-600 text-white border-blue-600',
     outlined: 'text-blue-400 border-blue-500/40 hover:bg-blue-500/10',
     badge: 'bg-blue-500/15 text-blue-400',
+  },
+  PUT: {
+    filled: 'bg-violet-600 text-white border-violet-600',
+    outlined: 'text-violet-400 border-violet-500/40 hover:bg-violet-500/10',
+    badge: 'bg-violet-500/15 text-violet-400',
   },
   PATCH: {
     filled: 'bg-amber-600 text-white border-amber-600',
@@ -47,29 +54,32 @@ interface Scenario {
   body?: string;
 }
 
+// Paths are relative to the apiClient baseURL ('/api/v1').
 const scenarios: Scenario[] = [
-  { label: 'Custom Request', method: 'GET', url: '/api/v1/' },
-  { label: 'GET /health - Health Check', method: 'GET', url: '/health' },
-  { label: 'GET /api/v1/datasets - List Datasets', method: 'GET', url: '/api/v1/datasets' },
+  { label: 'Custom Request', method: 'GET', url: '/' },
+  { label: 'GET /developer/services - Service Status', method: 'GET', url: '/developer/services' },
+  { label: 'GET /datasets - List Datasets', method: 'GET', url: '/datasets' },
+  { label: 'GET /validations - List Validations', method: 'GET', url: '/validations' },
   {
-    label: 'POST /api/v1/validations/create - Create Validation',
+    label: 'POST /validations/create - Create Validation',
     method: 'POST',
-    url: '/api/v1/validations/create',
+    url: '/validations/create',
     body: JSON.stringify(
       {
         dataset_id: 'ds_example',
-        validation_type: 'full',
-        config: { threshold: 0.95, checks: ['schema', 'distribution', 'outliers'] },
+        validation_type: 'comprehensive',
+        options: { model_size: 'large', priority: 'high' },
       },
       null,
       2
     ),
   },
-  { label: 'GET /api/v1/credits/balance - Check Credits', method: 'GET', url: '/api/v1/credits/balance' },
-  { label: 'GET /api/v1/admin/overview - Admin Overview', method: 'GET', url: '/api/v1/admin/overview' },
-  { label: 'GET /api/v1/admin/users - List Users', method: 'GET', url: '/api/v1/admin/users' },
-  { label: 'GET /api/v1/support/overview - Support Overview', method: 'GET', url: '/api/v1/support/overview' },
-  { label: 'GET /api/v1/developer/overview - Dev Overview', method: 'GET', url: '/api/v1/developer/overview' },
+  { label: 'GET /credits/balance - Check Credits', method: 'GET', url: '/credits/balance' },
+  { label: 'GET /analytics/usage - Usage Analytics', method: 'GET', url: '/analytics/usage' },
+  { label: 'GET /admin/overview - Admin Overview', method: 'GET', url: '/admin/overview' },
+  { label: 'GET /admin/users - List Users', method: 'GET', url: '/admin/users' },
+  { label: 'GET /support/overview - Support Overview', method: 'GET', url: '/support/overview' },
+  { label: 'GET /developer/overview - Dev Overview', method: 'GET', url: '/developer/overview' },
 ];
 
 function getStatusColor(status: number): string {
@@ -80,11 +90,27 @@ function getStatusColor(status: number): string {
   return 'bg-zinc-500/15 text-zinc-400 border-zinc-500/30';
 }
 
+function formatBody(data: unknown): string {
+  if (data === undefined || data === null || data === '') return '';
+  if (typeof data === 'string') {
+    try {
+      return JSON.stringify(JSON.parse(data), null, 2);
+    } catch {
+      return data;
+    }
+  }
+  try {
+    return JSON.stringify(data, null, 2);
+  } catch {
+    return String(data);
+  }
+}
+
 let nextHistoryId = 0;
 
 export default function DeveloperPlaygroundPage() {
   const [method, setMethod] = useState<Method>('GET');
-  const [url, setUrl] = useState('/api/v1/');
+  const [url, setUrl] = useState('/');
   const [requestBody, setRequestBody] = useState('');
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<{
@@ -115,48 +141,56 @@ export default function DeveloperPlaygroundPage() {
       setResponse(null);
       const start = performance.now();
 
+      let status = 0;
+      let body = '';
+
       try {
-        const res = await fetch(u, {
-          method: m,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: ['POST', 'PATCH', 'PUT', 'DELETE'].includes(m) && b ? b : undefined,
-        });
-
-        const elapsed = Math.round(performance.now() - start);
-        const responseText = await res.text();
-
-        let formatted: string;
-        try {
-          formatted = JSON.stringify(JSON.parse(responseText), null, 2);
-        } catch {
-          formatted = responseText;
+        let data: unknown;
+        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(m) && b) {
+          try {
+            data = JSON.parse(b);
+          } catch {
+            data = b;
+          }
         }
-
-        setResponse({ status: res.status, time: elapsed, body: formatted });
-
-        const newId = ++nextHistoryId;
-        setHistory((prev) =>
-          [
-            {
-              id: newId,
-              method: m,
-              url: u,
-              status: res.status,
-              time: elapsed,
-              requestBody: b || undefined,
-              responseBody: formatted,
-            },
-            ...prev,
-          ].slice(0, 10)
-        );
+        // apiClient's baseURL is '/api/v1' and it attaches the Authorization header.
+        const res = await apiClient.request({ method: m, url: u, data });
+        status = res.status;
+        body = formatBody(res.data);
       } catch (err) {
-        const elapsed = Math.round(performance.now() - start);
-        setResponse({ status: 0, time: elapsed, body: String(err) });
-      } finally {
-        setLoading(false);
+        if (axios.isAxiosError(err) && err.response) {
+          status = err.response.status;
+          body = formatBody(err.response.data);
+        } else {
+          // The apiClient response interceptor rejects with a wrapped Error
+          // carrying the HTTP status and backend error code/message.
+          const wrapped = err as Error & { code?: string; status?: number };
+          status = wrapped.status ?? 0;
+          body = formatBody({
+            error: { code: wrapped.code ?? 'REQUEST_FAILED', message: wrapped.message },
+          });
+        }
       }
+
+      const elapsed = Math.round(performance.now() - start);
+      setResponse({ status, time: elapsed, body });
+
+      const newId = ++nextHistoryId;
+      setHistory((prev) =>
+        [
+          {
+            id: newId,
+            method: m,
+            url: u,
+            status,
+            time: elapsed,
+            requestBody: b || undefined,
+            responseBody: body,
+          },
+          ...prev,
+        ].slice(0, 10)
+      );
+      setLoading(false);
     },
     [method, url, requestBody]
   );
@@ -172,18 +206,20 @@ export default function DeveloperPlaygroundPage() {
     [sendRequest]
   );
 
-  const showBody = ['POST', 'PATCH', 'DELETE'].includes(method);
+  const showBody = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
 
   return (
     <div className="space-y-8">
       <header>
         <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">API Playground</h1>
-        <p className="text-sm text-zinc-500 mt-1">Test and debug API endpoints interactively</p>
+        <p className="text-sm text-zinc-500 mt-1">
+          Test and debug API endpoints interactively. Requests are sent through the authenticated API client.
+        </p>
       </header>
 
       <div className="space-y-5">
-        {/* Method Selector - 4 colored buttons */}
-        <div className="flex items-center gap-2">
+        {/* Method Selector */}
+        <div className="flex items-center gap-2 flex-wrap">
           {METHODS.map((m) => (
             <button
               key={m}
@@ -200,17 +236,22 @@ export default function DeveloperPlaygroundPage() {
           ))}
         </div>
 
-        {/* URL Input */}
-        <input
-          type="text"
-          value={url}
-          onChange={(e) => {
-            setUrl(e.target.value);
-            setSelectedScenario('Custom Request');
-          }}
-          placeholder="/api/v1/..."
-          className="w-full bg-zinc-900/30 border border-zinc-800/50 rounded-lg px-4 py-3 text-sm font-mono text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-colors"
-        />
+        {/* URL Input (path relative to /api/v1) */}
+        <div className="flex items-stretch">
+          <span className="flex items-center px-3 text-sm font-mono text-zinc-500 bg-zinc-900/60 border border-r-0 border-zinc-800/50 rounded-l-lg select-none">
+            /api/v1
+          </span>
+          <input
+            type="text"
+            value={url}
+            onChange={(e) => {
+              setUrl(e.target.value);
+              setSelectedScenario('Custom Request');
+            }}
+            placeholder="/datasets"
+            className="flex-1 bg-zinc-900/30 border border-zinc-800/50 rounded-r-lg px-4 py-3 text-sm font-mono text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-colors"
+          />
+        </div>
 
         {/* Pre-built Scenarios */}
         <div>
@@ -316,7 +357,7 @@ export default function DeveloperPlaygroundPage() {
                   {entry.method}
                 </span>
                 <span className="flex-1 text-sm text-zinc-400 font-mono truncate">
-                  {entry.url}
+                  /api/v1{entry.url}
                 </span>
                 <span
                   className={cn(

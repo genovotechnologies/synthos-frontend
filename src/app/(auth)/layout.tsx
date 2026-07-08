@@ -2,7 +2,6 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { AuthProvider } from '@/providers/auth-provider';
 import { SynthosLogo } from '@/components/ui/synthos-logo';
@@ -26,9 +25,32 @@ const features = [
   },
 ];
 
+const brandCopy: Record<string, { heading: string; body: string }> = {
+  '/login': {
+    heading: 'Build collapse-proof models faster.',
+    body: 'Synthos validates your AI training data before it costs you. Detect issues early, ship with confidence.',
+  },
+  '/register': {
+    heading: 'Start validating in minutes.',
+    body: 'Join teams using Synthos to validate synthetic data quality and prevent training failures before they happen.',
+  },
+  '/forgot-password': {
+    heading: 'Regain access to your account.',
+    body: "Enter your email and we'll help you get back to validating your training data in no time.",
+  },
+  '/reset-password': {
+    heading: 'Regain access to your account.',
+    body: 'Choose a new password and pick up right where you left off.',
+  },
+  '/verify-email': {
+    heading: "You're almost there.",
+    body: 'Confirm your email to activate your account and start your first validation.',
+  },
+};
+
 function BrandPanel() {
   const pathname = usePathname();
-  const isLogin = pathname === '/login';
+  const copy = brandCopy[pathname] ?? brandCopy['/register'];
 
   return (
     <div className="hidden lg:flex lg:w-[45%] relative overflow-hidden">
@@ -60,7 +82,7 @@ function BrandPanel() {
       <div className="relative z-10 flex flex-col justify-between p-12 w-full">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-3">
-          <Image src="/synthos-logo-icon.jpeg" alt="Synthos" width={32} height={32} className="rounded-md" priority />
+          <SynthosLogo size={32} />
           <span className="text-lg font-semibold text-white tracking-widest uppercase">Synthos</span>
         </Link>
 
@@ -68,14 +90,10 @@ function BrandPanel() {
         <div className="space-y-10">
           <div className="space-y-4">
             <h2 className="text-[28px] leading-[1.2] font-medium text-white tracking-tight">
-              {isLogin
-                ? 'Build collapse-proof models faster.'
-                : 'Start validating in minutes.'}
+              {copy.heading}
             </h2>
             <p className="text-[15px] text-zinc-400 leading-relaxed max-w-sm">
-              {isLogin
-                ? 'Synthos validates your AI training data before it costs you. Detect issues early, ship with confidence.'
-                : 'Join teams using Synthos to validate synthetic data quality and prevent training failures before they happen.'}
+              {copy.body}
             </p>
           </div>
 

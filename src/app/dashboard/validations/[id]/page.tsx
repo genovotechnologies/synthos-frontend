@@ -1,9 +1,10 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { validationsApi, type ValidationDimensions } from '@/lib/api';
-import apiClient from '@/lib/api/client';
+import { validationsApi, warrantiesApi, type ValidationDimensions } from '@/lib/api';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { toast } from '@/components/ui/toast';
 import {
   ArrowLeft,
   CheckCircle,
@@ -33,9 +34,9 @@ import {
 
 function RiskScoreGauge({ score }: { score: number }) {
   const getColor = (value: number) => {
-    if (value < 30) return '#22c55e';
-    if (value < 60) return '#eab308';
-    return '#ef4444';
+    if (value < 30) return '#10b981';
+    if (value < 60) return '#f59e0b';
+    return '#f43f5e';
   };
 
   const getRiskLevel = (value: number) => {
@@ -134,9 +135,9 @@ function DimensionsBarChart({ dimensions }: { dimensions: ValidationDimensions }
   ];
 
   const getBarColor = (value: number) => {
-    if (value >= 80) return '#22c55e';
-    if (value >= 60) return '#eab308';
-    return '#ef4444';
+    if (value >= 80) return '#10b981';
+    if (value >= 60) return '#f59e0b';
+    return '#f43f5e';
   };
 
   return (
@@ -193,9 +194,20 @@ function ProcessingView({ progress }: { progress?: number }) {
   );
 }
 
+function getErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
+}
+
 export default function ValidationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const queryClient = useQueryClient();
+
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [warrantyDialogOpen, setWarrantyDialogOpen] = useState(false);
+  const [requestingWarranty, setRequestingWarranty] = useState(false);
+  const [warrantyRequested, setWarrantyRequested] = useState(false);
 
   const { data: validation, isLoading, error } = useQuery({
     queryKey: ['validation', resolvedParams.id],
@@ -262,14 +274,7 @@ export default function ValidationDetailPage({ params }: { params: Promise<{ id:
         <div className="flex items-center gap-3">
           {(validation.status === 'pending' || validation.status === 'processing') && (
             <button
-              onClick={async () => {
-                if (confirm('Cancel this validation? Credits will be refunded.')) {
-                  try {
-                    await validationsApi.cancel(validation.id);
-                    queryClient.invalidateQueries({ queryKey: ['validation', resolvedParams.id] });
-                  } catch {}
-                }
-              }}
+              onClick={() => setCancelDialogOpen(true)}
               className="px-3 py-1.5 text-sm text-zinc-500 hover:text-rose-400 border border-zinc-800 hover:border-rose-500/30 rounded-md transition-colors"
             >
               Cancel
@@ -390,21 +395,19 @@ export default function ValidationDetailPage({ params }: { params: Promise<{ id:
                     <p className="text-xs text-zinc-500">Your data qualifies for a performance warranty (risk score under 50%)</p>
                   </div>
                 </div>
-                <button
-                  onClick={async () => {
-                    if (confirm('Request a quality warranty for this validation? This costs 15 credits.')) {
-                      try {
-                        await apiClient.post(`/warranties/${validation.id}/request`, { coverage_type: 'performance' });
-                        alert('Warranty requested successfully!');
-                      } catch (err: any) {
-                        alert(err?.message || 'Failed to request warranty');
-                      }
-                    }
-                  }}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors"
-                >
-                  Request Warranty
-                </button>
+                {warrantyRequested ? (
+                  <span className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-medium">
+                    <CheckCircle size={14} />
+                    Warranty requested
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => setWarrantyDialogOpen(true)}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Request Warranty
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -459,6 +462,58 @@ export default function ValidationDetailPage({ params }: { params: Promise<{ id:
           </div>
         </dl>
       </div>
+
+      {/* Cancel Validation Confirmation */}
+      <ConfirmDialog
+        open={cancelDialogOpen}
+        title="Cancel this validation?"
+        description="The validation job will be stopped and cannot be resumed."
+        confirmLabel="Cancel validation"
+        cancelLabel="Keep running"
+        variant="danger"
+        loading={cancelling}
+        onConfirm={async () => {
+          setCancelling(true);
+          try {
+            await validationsApi.cancel(validation.id);
+            queryClient.invalidateQueries({ queryKey: ['validation', resolvedParams.id] });
+            queryClient.invalidateQueries({ queryKey: ['validations'] });
+            toast.success('Validation cancelled');
+            setCancelDialogOpen(false);
+          } catch (err: unknown) {
+            toast.error('Failed to cancel validation', getErrorMessage(err, 'Please try again.'));
+          } finally {
+            setCancelling(false);
+          }
+        }}
+        onClose={() => !cancelling && setCancelDialogOpen(false)}
+      />
+
+      {/* Warranty Request Confirmation */}
+      <ConfirmDialog
+        open={warrantyDialogOpen}
+        title="Request quality warranty?"
+        description="A performance warranty will be requested for this validation. Warranty requests are billed in credits per your plan."
+        confirmLabel="Request warranty"
+        loading={requestingWarranty}
+        onConfirm={async () => {
+          setRequestingWarranty(true);
+          try {
+            await warrantiesApi.request(validation.id, 'performance');
+            setWarrantyRequested(true);
+            queryClient.invalidateQueries({ queryKey: ['warranties'] });
+            queryClient.invalidateQueries({ queryKey: ['validation', resolvedParams.id] });
+            queryClient.invalidateQueries({ queryKey: ['credits'] });
+            toast.success('Warranty requested', 'You can track it on the Warranties page.');
+            setWarrantyDialogOpen(false);
+          } catch (err: unknown) {
+            toast.error('Failed to request warranty', getErrorMessage(err, 'Please try again.'));
+          } finally {
+            setRequestingWarranty(false);
+          }
+        }}
+        onClose={() => !requestingWarranty && setWarrantyDialogOpen(false)}
+      />
     </div>
   );
 }

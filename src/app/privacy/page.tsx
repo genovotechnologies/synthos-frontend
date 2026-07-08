@@ -33,7 +33,7 @@ export default function PrivacyPage() {
           </Link>
 
           <h1 className="text-4xl font-bold text-white mb-4">Privacy Policy</h1>
-          <p className="text-zinc-400">Last updated: January 15, 2026</p>
+          <p className="text-zinc-400">Last updated: July 7, 2026</p>
         </motion.div>
 
         {/* Content */}
@@ -115,7 +115,7 @@ export default function PrivacyPage() {
               </p>
               <ul className="list-disc list-inside space-y-2 ml-4 mb-4">
                 <li><strong className="text-white">Encryption:</strong> AES-256 encryption for data at rest; TLS 1.3 for data in transit</li>
-                <li><strong className="text-white">Infrastructure:</strong> Hosted on Google Cloud Platform (GCP) with SOC 2 Type II compliance</li>
+                <li><strong className="text-white">Infrastructure:</strong> Hosted on Amazon Web Services (AWS) with SOC 2 Type II compliance</li>
                 <li><strong className="text-white">Access Control:</strong> Role-based access controls with least-privilege principles for all internal systems</li>
                 <li><strong className="text-white">Monitoring:</strong> 24/7 security monitoring, intrusion detection, and automated alerting</li>
                 <li><strong className="text-white">Auditing:</strong> Regular security audits and penetration testing by independent third parties</li>
@@ -146,7 +146,7 @@ export default function PrivacyPage() {
               </p>
               <ul className="list-disc list-inside space-y-3 ml-4">
                 <li>
-                  <strong className="text-white">Google Cloud Platform (GCP):</strong> Infrastructure hosting, data storage, and compute services. Data may be processed in GCP regions as configured for your account.
+                  <strong className="text-white">Amazon Web Services (AWS):</strong> Infrastructure hosting, data storage, and compute services. Data may be processed in AWS regions as configured for your account.
                 </li>
                 <li>
                   <strong className="text-white">Paddle.com (Merchant of Record):</strong> Processes payments, manages subscriptions, handles tax compliance and invoicing. Paddle acts as the Merchant of Record for all transactions.{' '}

@@ -1,10 +1,10 @@
 'use client';
 
 import { Suspense, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { validationsApi } from '@/lib/api';
-import type { Validation, ValidationDimensions } from '@/lib/api';
+import type { ValidationDimensions } from '@/lib/api';
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -23,7 +23,6 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  Cell,
   Legend,
 } from 'recharts';
 
@@ -164,12 +163,22 @@ function ValidationSelector({
 }
 
 function CompareContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const urlId1 = searchParams.get('id1') || '';
   const urlId2 = searchParams.get('id2') || '';
 
   const [selectedId2, setSelectedId2] = useState(urlId2);
   const effectiveId2 = selectedId2 || urlId2;
+
+  // Keep the URL in sync with the selection so the comparison is shareable.
+  const handleSelectSecond = (id: string) => {
+    setSelectedId2(id);
+    const params = new URLSearchParams();
+    if (urlId1) params.set('id1', urlId1);
+    if (id) params.set('id2', id);
+    router.replace(`/dashboard/validations/compare?${params.toString()}`, { scroll: false });
+  };
 
   const { data: validation1, isLoading: loading1 } = useQuery({
     queryKey: ['validation', urlId1],
@@ -181,12 +190,6 @@ function CompareContent() {
     queryKey: ['validation', effectiveId2],
     queryFn: () => validationsApi.get(effectiveId2),
     enabled: !!effectiveId2,
-  });
-
-  const { data: comparisonData, isLoading: comparisonLoading } = useQuery({
-    queryKey: ['validations', 'compare', urlId1, effectiveId2],
-    queryFn: () => validationsApi.compare(urlId1, effectiveId2),
-    enabled: !!urlId1 && !!effectiveId2,
   });
 
   const isLoading = loading1 || loading2;
@@ -242,7 +245,7 @@ function CompareContent() {
             <ValidationSelector
               excludeId={urlId1}
               selectedId={selectedId2}
-              onSelect={setSelectedId2}
+              onSelect={handleSelectSecond}
             />
           </div>
         </div>

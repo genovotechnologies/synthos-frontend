@@ -1,13 +1,16 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { 
-  Upload, Database, Trash2, FileText, AlertCircle, Check, X, 
+import {
+  Upload, Database, Trash2, FileText, AlertCircle, Check, X,
   Loader2, ChevronLeft, ChevronRight, Search, MoreHorizontal,
-  Pause, Play, RefreshCw
+  Pause, Play, RefreshCw, ShieldCheck
 } from 'lucide-react';
 import { datasetsApi, type Dataset, type UploadProgress } from '@/lib/api';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { toast } from '@/components/ui/toast';
 
 // Max file size: 500GB
 const MAX_FILE_SIZE = 500 * 1024 * 1024 * 1024;
@@ -89,16 +92,16 @@ function validateFile(file: File): { valid: boolean; error?: string } {
   return { valid: true };
 }
 
-function DatasetRow({ dataset, onDelete }: { dataset: Dataset; onDelete: (id: string) => void }) {
+function DatasetRow({ dataset, onDelete }: { dataset: Dataset; onDelete: (dataset: Dataset) => void }) {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const statusColors: Record<Dataset['status'], string> = {
     uploading: 'text-amber-400 bg-amber-400/10',
-    processing: 'text-violet-400 bg-blue-400/10',
+    processing: 'text-blue-400 bg-blue-400/10',
     processed: 'text-emerald-400 bg-emerald-400/10',
     ready: 'text-emerald-400 bg-emerald-400/10',
-    error: 'text-red-400 bg-red-400/10',
+    error: 'text-rose-400 bg-rose-400/10',
   };
 
   const statusLabels: Record<Dataset['status'], string> = {
@@ -127,7 +130,17 @@ function DatasetRow({ dataset, onDelete }: { dataset: Dataset; onDelete: (id: st
         <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[dataset.status]}`}>
           {statusLabels[dataset.status]}
         </span>
-        
+
+        {(dataset.status === 'ready' || dataset.status === 'processed') && (
+          <Link
+            href={`/dashboard/validations?dataset=${dataset.id}`}
+            title="Validate this dataset"
+            className="p-2 text-zinc-500 hover:text-violet-400 transition-colors opacity-0 group-hover:opacity-100"
+          >
+            <ShieldCheck className="w-4 h-4" />
+          </Link>
+        )}
+
         <div className="relative" ref={menuRef}>
           <button 
             onClick={() => setShowMenu(!showMenu)}
@@ -142,10 +155,10 @@ function DatasetRow({ dataset, onDelete }: { dataset: Dataset; onDelete: (id: st
               <div className="absolute right-0 top-full mt-1 w-36 py-1 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl z-20">
                 <button
                   onClick={() => {
-                    onDelete(dataset.id);
+                    onDelete(dataset);
                     setShowMenu(false);
                   }}
-                  className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-zinc-800 transition-colors flex items-center gap-2"
+                  className="w-full px-3 py-2 text-left text-sm text-rose-400 hover:bg-zinc-800 transition-colors flex items-center gap-2"
                 >
                   <Trash2 className="w-4 h-4" />
                   Delete
@@ -251,7 +264,7 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
         progress: { phase: 'preparing', totalBytes: file.size, uploadedBytes: 0, percentage: 0 },
       }));
 
-      const dataset = await datasetsApi.upload(
+      await datasetsApi.upload(
         file,
         (progress) => {
           setUploadState(prev => ({
@@ -344,7 +357,7 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
             onClick={() => !isUploading && fileInputRef.current?.click()}
             className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${
               uploadState.status === 'error'
-                ? 'border-red-500/50 bg-red-500/5'
+                ? 'border-rose-500/50 bg-rose-500/5'
                 : uploadState.status === 'success'
                 ? 'border-emerald-500/50 bg-emerald-500/5'
                 : file
@@ -367,10 +380,10 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
                 <p className="font-medium">Upload Complete!</p>
               </div>
             ) : uploadState.status === 'error' && !file ? (
-              <div className="text-red-400">
+              <div className="text-rose-400">
                 <AlertCircle className="w-12 h-12 mx-auto mb-3" />
                 <p className="font-medium mb-1">Upload Failed</p>
-                <p className="text-sm text-red-400/80">{uploadState.error}</p>
+                <p className="text-sm text-rose-400/80">{uploadState.error}</p>
               </div>
             ) : uploadState.status === 'checking-resume' ? (
               <div className="text-zinc-400">
@@ -444,8 +457,8 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
 
           {/* Error message */}
           {uploadState.status === 'error' && file && (
-            <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-              <p className="text-sm text-red-400 flex items-center gap-2">
+            <div className="mt-4 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20">
+              <p className="text-sm text-rose-400 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 {uploadState.error}
               </p>
@@ -485,7 +498,7 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
                 </button>
                 <button
                   onClick={handleUpload}
-                  className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                  className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
                 >
                   <Play className="w-4 h-4" />
                   Resume
@@ -512,7 +525,7 @@ function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (
                 <button
                   onClick={handleUpload}
                   disabled={!file || isUploading || uploadState.status === 'success'}
-                  className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:bg-violet-600/50 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                  className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:bg-violet-600/50 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
                 >
                   {isUploading ? (
                     <>
@@ -546,21 +559,27 @@ export default function DatasetsPage() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
+  const [deleteTarget, setDeleteTarget] = useState<Dataset | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['datasets', page, searchQuery],
+    queryKey: ['datasets', page],
     queryFn: () => datasetsApi.list(page, 10),
   });
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this dataset? This action cannot be undone.')) {
-      try {
-        await datasetsApi.delete(id);
-        queryClient.invalidateQueries({ queryKey: ['datasets'] });
-      } catch {
-        alert('Failed to delete dataset. Please try again.');
-      }
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await datasetsApi.delete(deleteTarget.id);
+      queryClient.invalidateQueries({ queryKey: ['datasets'] });
+      toast.success('Dataset deleted', `"${deleteTarget.name}" has been removed.`);
+      setDeleteTarget(null);
+    } catch {
+      toast.error('Failed to delete dataset', 'Please try again.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -569,6 +588,16 @@ export default function DatasetsPage() {
   };
 
   const datasets = data?.datasets || [];
+  // The list endpoint does not support server-side search, so filter the
+  // loaded page client-side by name / file name.
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredDatasets = normalizedQuery
+    ? datasets.filter(
+        (d) =>
+          d.name?.toLowerCase().includes(normalizedQuery) ||
+          d.file_name?.toLowerCase().includes(normalizedQuery)
+      )
+    : datasets;
   const pagination = data?.pagination;
   const totalPages = pagination?.total_pages || 1;
 
@@ -582,7 +611,7 @@ export default function DatasetsPage() {
         </div>
         <button
           onClick={() => setShowUploadModal(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition-colors"
+          className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-lg transition-colors"
         >
           <Upload className="w-4 h-4" />
           Upload Dataset
@@ -596,10 +625,7 @@ export default function DatasetsPage() {
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search datasets..."
             className="w-full pl-10 pr-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 transition-all"
           />
@@ -608,11 +634,11 @@ export default function DatasetsPage() {
 
       {/* Error State */}
       {error && (
-        <div className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 mb-6">
+        <div className="flex items-center gap-3 p-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 mb-6">
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
           <div>
             <p className="font-medium">Failed to load datasets</p>
-            <p className="text-sm text-red-400/80 mt-0.5">Please try refreshing the page.</p>
+            <p className="text-sm text-rose-400/80 mt-0.5">Please try refreshing the page.</p>
           </div>
         </div>
       )}
@@ -634,11 +660,21 @@ export default function DatasetsPage() {
             </p>
             <button
               onClick={() => setShowUploadModal(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-lg transition-colors"
             >
               <Upload className="w-4 h-4" />
               Upload Dataset
             </button>
+          </div>
+        ) : filteredDatasets.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-16 h-16 rounded-full bg-zinc-800/50 flex items-center justify-center mb-4">
+              <Search className="w-8 h-8 text-zinc-600" />
+            </div>
+            <h3 className="text-lg font-medium text-white mb-1">No datasets match your search</h3>
+            <p className="text-sm text-zinc-500 max-w-sm">
+              Try a different search term or clear the search to see all datasets on this page.
+            </p>
           </div>
         ) : (
           <>
@@ -649,11 +685,11 @@ export default function DatasetsPage() {
               </div>
             </div>
             <div className="px-5">
-              {datasets.map((dataset) => (
-                <DatasetRow 
-                  key={dataset.id} 
-                  dataset={dataset} 
-                  onDelete={handleDelete} 
+              {filteredDatasets.map((dataset) => (
+                <DatasetRow
+                  key={dataset.id}
+                  dataset={dataset}
+                  onDelete={setDeleteTarget}
                 />
               ))}
             </div>
@@ -696,6 +732,22 @@ export default function DatasetsPage() {
           onSuccess={handleUploadSuccess}
         />
       )}
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete dataset?"
+        description={
+          deleteTarget
+            ? `"${deleteTarget.name}" and its validation history will be permanently removed. This action cannot be undone.`
+            : undefined
+        }
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleting}
+        onConfirm={handleConfirmDelete}
+        onClose={() => !deleting && setDeleteTarget(null)}
+      />
     </div>
   );
 }

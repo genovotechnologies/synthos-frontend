@@ -1,6 +1,6 @@
 import axios, { AxiosProgressEvent } from 'axios';
 import apiClient from './client';
-import type { Dataset, DatasetListResponse } from './types';
+import type { Dataset, DatasetListResponse, Pagination } from './types';
 
 // Chunk size: 100MB (matches Data Service streaming chunks)
 const CHUNK_SIZE = 100 * 1024 * 1024;
@@ -180,9 +180,9 @@ export const datasetsApi = {
     // Backend sends dataset_id (json tag) but frontend Dataset type expects id
     // Backend sends filename but frontend expects name
     if (data.datasets) {
-      data.datasets = data.datasets.map((d: any) => ({
+      data.datasets = data.datasets.map((d: Dataset & { dataset_id?: string; filename?: string }) => ({
         ...d,
-        id: d.id || d.dataset_id,
+        id: d.id || d.dataset_id || '',
         name: d.name || d.filename || '',
         file_name: d.file_name || d.filename || '',
         row_count: d.row_count ?? 0,
@@ -191,7 +191,7 @@ export const datasetsApi = {
     }
     // Map backend pagination (page_size/total_count) to frontend (per_page/total)
     if (data.pagination) {
-      const p = data.pagination as any;
+      const p = data.pagination as Pagination & { page_size?: number; total_count?: number };
       data.pagination = {
         page: p.page,
         per_page: p.per_page || p.page_size || perPage,
@@ -204,10 +204,10 @@ export const datasetsApi = {
 
   get: async (id: string): Promise<Dataset> => {
     const response = await apiClient.get<Dataset>(`/datasets/${id}`);
-    const d = response.data as any;
+    const d = response.data as Dataset & { dataset_id?: string; filename?: string };
     return {
       ...d,
-      id: d.id || d.dataset_id,
+      id: d.id || d.dataset_id || '',
       name: d.name || d.filename || '',
       file_name: d.file_name || d.filename || '',
       row_count: d.row_count ?? 0,
@@ -393,7 +393,6 @@ export const datasetsApi = {
       onProgress?.({ phase: 'uploading', totalBytes: fileSize, uploadedBytes: 0, percentage: 0 });
 
       const startTime = Date.now();
-      let lastLoaded = 0;
 
       const etag = await datasetsApi.uploadToS3(upload_url, file, (progress) => {
         const uploadedBytes = Math.round((progress / 100) * fileSize);
@@ -409,7 +408,6 @@ export const datasetsApi = {
           speed,
           remainingTime: remaining,
         });
-        lastLoaded = uploadedBytes;
       }, uploadMethod, chunkSizeFromServer);
 
       onProgress?.({ phase: 'completing', totalBytes: fileSize, uploadedBytes: fileSize, percentage: 100 });

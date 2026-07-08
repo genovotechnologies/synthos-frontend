@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { validationsApi, datasetsApi, type Validation, type CreateValidationRequest } from '@/lib/api';
 import {
   Plus,
   CheckCircle,
-  Clock,
   AlertCircle,
   Loader2,
   X,
@@ -108,13 +108,15 @@ function ValidationRow({
 function CreateValidationModal({
   isOpen,
   onClose,
-  onSuccess
+  onSuccess,
+  initialDatasetId = '',
 }: {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialDatasetId?: string;
 }) {
-  const [datasetId, setDatasetId] = useState('');
+  const [datasetId, setDatasetId] = useState(initialDatasetId);
   const [validationType, setValidationType] = useState('full');
   const [modelSize, setModelSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [priority, setPriority] = useState<'low' | 'normal' | 'high'>('normal');
@@ -187,7 +189,7 @@ function CreateValidationModal({
 
         <div className="p-5">
           {createMutation.isError && (
-            <div className="mb-4 flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            <div className="mb-4 flex items-center gap-2 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm">
               <AlertCircle size={16} />
               Failed to create validation. Please try again.
             </div>
@@ -277,10 +279,9 @@ function CreateValidationModal({
                 disabled={!datasetId || createMutation.isPending}
                 className={cn(
                   "px-5 py-2.5 rounded-lg font-medium text-sm",
-                  "bg-gradient-to-r from-violet-600 to-violet-500 text-white",
-                  "hover:from-violet-500 hover:to-violet-400",
+                  "bg-violet-600 hover:bg-violet-500 text-white",
                   "disabled:opacity-50 disabled:cursor-not-allowed",
-                  "transition-all duration-200 flex items-center gap-2"
+                  "transition-colors duration-200 flex items-center gap-2"
                 )}
               >
                 {createMutation.isPending ? (
@@ -300,10 +301,13 @@ function CreateValidationModal({
   );
 }
 
-export default function ValidationsPage() {
+function ValidationsContent() {
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  // Deep link from the datasets page: preselect the dataset and open the form.
+  const preselectedDatasetId = searchParams.get('dataset') || '';
   const [page, setPage] = useState(1);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(!!preselectedDatasetId);
   const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
 
   const toggleCompareSelection = (id: string) => {
@@ -317,7 +321,13 @@ export default function ValidationsPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['validations', page],
     queryFn: () => validationsApi.list(page, 12),
-    refetchInterval: 10000,
+    // Only poll while a validation is actively pending/processing.
+    refetchInterval: (query) => {
+      const hasActive = query.state.data?.validations?.some(
+        (v) => v.status === 'pending' || v.status === 'processing'
+      );
+      return hasActive ? 10000 : false;
+    },
   });
 
   const handleCreateSuccess = () => {
@@ -326,10 +336,6 @@ export default function ValidationsPage() {
 
   const activeValidations = data?.validations?.filter(v =>
     v.status === 'pending' || v.status === 'processing'
-  ) || [];
-
-  const completedValidations = data?.validations?.filter(v =>
-    v.status === 'completed' || v.status === 'failed'
   ) || [];
 
   const totalPages = data?.pagination?.total_pages || 1;
@@ -347,9 +353,8 @@ export default function ValidationsPage() {
               href={`/dashboard/validations/compare?id1=${selectedForCompare[0]}&id2=${selectedForCompare[1]}`}
               className={cn(
                 "flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm",
-                "bg-gradient-to-r from-indigo-600 to-indigo-500 text-white",
-                "hover:from-indigo-500 hover:to-indigo-400",
-                "transition-all duration-200"
+                "bg-indigo-600 hover:bg-indigo-500 text-white",
+                "transition-colors duration-200"
               )}
             >
               <GitCompare size={16} />
@@ -363,9 +368,8 @@ export default function ValidationsPage() {
             onClick={() => setCreateModalOpen(true)}
             className={cn(
               "flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm",
-              "bg-gradient-to-r from-violet-600 to-violet-500 text-white",
-              "hover:from-violet-500 hover:to-violet-400",
-              "transition-all duration-200"
+              "bg-violet-600 hover:bg-violet-500 text-white",
+              "transition-colors duration-200"
             )}
           >
             <Plus size={16} />
@@ -396,9 +400,8 @@ export default function ValidationsPage() {
             onClick={() => setCreateModalOpen(true)}
             className={cn(
               "flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm",
-              "bg-gradient-to-r from-violet-600 to-violet-500 text-white",
-              "hover:from-violet-500 hover:to-violet-400",
-              "transition-all duration-200"
+              "bg-violet-600 hover:bg-violet-500 text-white",
+              "transition-colors duration-200"
             )}
           >
             <Plus size={16} />
@@ -472,7 +475,23 @@ export default function ValidationsPage() {
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
         onSuccess={handleCreateSuccess}
+        initialDatasetId={preselectedDatasetId}
       />
     </div>
+  );
+}
+
+export default function ValidationsPage() {
+  // useSearchParams requires a Suspense boundary in prerendered pages.
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-5 h-5 animate-spin text-zinc-600" />
+        </div>
+      }
+    >
+      <ValidationsContent />
+    </Suspense>
   );
 }

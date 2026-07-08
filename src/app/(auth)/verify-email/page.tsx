@@ -6,13 +6,24 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/api/client';
+import { creditsApi } from '@/lib/api/credits';
+import { toast } from '@/components/ui/toast';
 import Cookies from 'js-cookie';
-import { AlertCircle, ArrowLeft, Loader2, CheckCircle, Mail } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Loader2, Mail } from 'lucide-react';
+
+// Mirrors COOKIE_OPTIONS in src/providers/auth-provider.tsx
+const COOKIE_OPTIONS: Cookies.CookieAttributes = {
+  expires: 7,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict',
+  path: '/',
+};
 
 function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get('email') || '';
+  const promoParam = searchParams.get('promo');
 
   const [otp, setOtp] = useState<string[]>(Array(6).fill(''));
   const [error, setError] = useState<string | null>(null);
@@ -48,18 +59,33 @@ function VerifyEmailContent() {
     setIsVerifying(true);
     setError(null);
 
+    // Promo code from the register redirect, with sessionStorage as fallback
+    const promoCode = promoParam || sessionStorage.getItem('pending_promo');
+
     try {
       const response = await apiClient.post('/auth/verify-email', { email, otp: code });
       const data = response.data;
 
       // If backend returned a JWT, auto-login the user
       if (data.access_token) {
-        Cookies.set('access_token', data.access_token, {
-          expires: 7,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'strict',
-          path: '/',
-        });
+        Cookies.set('access_token', data.access_token, COOKIE_OPTIONS);
+        if (data.refresh_token) {
+          Cookies.set('refresh_token', data.refresh_token, { ...COOKIE_OPTIONS, expires: 30 });
+        }
+
+        // Redeem any pending promo code now that the user is authenticated
+        if (promoCode) {
+          try {
+            await creditsApi.redeemPromo(promoCode);
+            sessionStorage.removeItem('pending_promo');
+            // promo_applied (not ?promo=) so billing's auto-redeem doesn't re-run a code
+            router.push('/dashboard/billing?promo_applied=1');
+            return;
+          } catch {
+            toast.error('Could not apply promo code', 'You can redeem it later from Billing.');
+          }
+        }
+
         // Route based on role
         const role = data.user?.role || 'user';
         const roleRoutes: Record<string, string> = {
@@ -71,10 +97,14 @@ function VerifyEmailContent() {
         return;
       }
 
-      // Fallback: redirect to login
-      router.push('/login?verified=true');
-    } catch (err: any) {
-      const message = err?.message || 'Verification failed. Please try again.';
+      // Fallback: redirect to login (carry the promo so it's redeemed after sign-in)
+      router.push(
+        promoCode
+          ? `/login?verified=true&promo=${encodeURIComponent(promoCode)}`
+          : '/login?verified=true'
+      );
+    } catch (err: unknown) {
+      const message = (err as { message?: string })?.message || 'Verification failed. Please try again.';
       setError(message);
       // Try to extract remaining attempts from error
       const match = message.match(/(\d+)\s*attempt/i);
@@ -87,7 +117,7 @@ function VerifyEmailContent() {
     } finally {
       setIsVerifying(false);
     }
-  }, [email, isVerifying, router]);
+  }, [email, isVerifying, promoParam, router]);
 
   const handleChange = useCallback((index: number, value: string) => {
     // Only allow digits
@@ -167,8 +197,8 @@ function VerifyEmailContent() {
     try {
       await apiClient.post('/auth/resend-otp', { email });
       setCooldown(60);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to resend code. Please try again.');
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message || 'Failed to resend code. Please try again.');
     } finally {
       setIsResending(false);
     }
@@ -240,7 +270,11 @@ function VerifyEmailContent() {
       )}
 
       {/* OTP Inputs */}
-      <div className="flex justify-center gap-2 mb-8" onPaste={handlePaste}>
+      <fieldset
+        aria-label="Verification code"
+        className="flex justify-center gap-2 mb-8 border-0 p-0 m-0"
+        onPaste={handlePaste}
+      >
         {otp.map((digit, index) => (
           <input
             key={index}
@@ -249,6 +283,7 @@ function VerifyEmailContent() {
             inputMode="numeric"
             maxLength={1}
             value={digit}
+            aria-label={`Digit ${index + 1}`}
             onChange={(e) => handleChange(index, e.target.value)}
             onKeyDown={(e) => handleKeyDown(index, e)}
             disabled={isVerifying}
@@ -264,7 +299,7 @@ function VerifyEmailContent() {
             autoComplete="one-time-code"
           />
         ))}
-      </div>
+      </fieldset>
 
       {/* Verifying indicator */}
       {isVerifying && (

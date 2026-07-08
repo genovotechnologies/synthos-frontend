@@ -1,15 +1,27 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { User, Settings, Shield, Key, Bell, Eye, EyeOff, Copy, RefreshCw, Check, AlertCircle, Loader2, Globe, Trash2, ChevronDown, ChevronUp, Monitor, Smartphone, X } from 'lucide-react';
+import { User, Shield, Key, Bell, Eye, EyeOff, Copy, RefreshCw, Check, AlertCircle, Loader2, Globe, Trash2, ChevronDown, ChevronUp, Monitor, Smartphone, X } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
-import { authApi, type NotificationPreferences, webhooksApi, type Webhook, type WebhookDelivery } from '@/lib/api';
+import { authApi, type NotificationPreferences, webhooksApi } from '@/lib/api';
 import apiClient from '@/lib/api/client';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Switch } from '@/components/ui/switch';
+import { toast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
 
 type TabType = 'profile' | 'security' | 'notifications' | 'api' | 'webhooks';
+
+/** Map a `?tab=` value to a tab key; `password` is an alias for `security`. */
+function resolveTab(value: string | null): TabType | null {
+  if (!value) return null;
+  if (value === 'password') return 'security';
+  const valid: TabType[] = ['profile', 'security', 'notifications', 'api', 'webhooks'];
+  return valid.includes(value as TabType) ? (value as TabType) : null;
+}
 
 function ProfileSettings() {
   const { user, checkAuth } = useAuth();
@@ -23,9 +35,7 @@ function ProfileSettings() {
     if (user) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(user.name || '');
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCompany(user.company || '');
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRole(user.role || '');
     }
   }, [user]);
@@ -59,7 +69,7 @@ function ProfileSettings() {
       )}
 
       {updateProfileMutation.isError && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400">
           <AlertCircle className="w-4 h-4" />
           <span className="text-sm">Failed to update profile. Please try again.</span>
         </div>
@@ -113,7 +123,7 @@ function ProfileSettings() {
         <button
           onClick={handleSave}
           disabled={updateProfileMutation.isPending}
-          className="w-fit px-6 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:bg-violet-600/50 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+          className="w-fit px-6 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:bg-violet-600/50 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
         >
           {updateProfileMutation.isPending ? (
             <>
@@ -222,7 +232,7 @@ function SecuritySettings() {
       )}
 
       {(validationError || changePasswordMutation.isError) && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400">
           <AlertCircle className="w-4 h-4" />
           <span className="text-sm">
             {validationError || 'Failed to change password. Check your current password and try again.'}
@@ -295,7 +305,7 @@ function SecuritySettings() {
         <button
           onClick={handleChangePassword}
           disabled={changePasswordMutation.isPending}
-          className="w-fit px-6 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:bg-violet-600/50 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+          className="w-fit px-6 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:bg-violet-600/50 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
         >
           {changePasswordMutation.isPending ? (
             <>
@@ -397,7 +407,7 @@ function ActiveSessions() {
                   <button
                     onClick={() => revokeSessionMutation.mutate(session.id)}
                     disabled={revokeSessionMutation.isPending}
-                    className="text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
+                    className="text-xs text-rose-400 hover:text-rose-300 transition-colors disabled:opacity-50"
                   >
                     Revoke
                   </button>
@@ -410,7 +420,7 @@ function ActiveSessions() {
             <button
               onClick={() => revokeAllMutation.mutate()}
               disabled={revokeAllMutation.isPending}
-              className="w-full mt-4 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full mt-4 px-4 py-2.5 text-sm text-rose-400 hover:text-rose-300 bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/20 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {revokeAllMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -492,6 +502,11 @@ function NotificationSettings() {
       title: 'Weekly Digest',
       description: 'Receive a weekly summary of your activity',
     },
+    {
+      key: 'ticket_updates' as const,
+      title: 'Ticket updates',
+      description: 'Replies to your support tickets',
+    },
   ];
 
   return (
@@ -509,7 +524,7 @@ function NotificationSettings() {
       )}
 
       {updatePreferencesMutation.isError && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400">
           <AlertCircle className="w-4 h-4" />
           <span className="text-sm">Failed to save preferences. Please try again.</span>
         </div>
@@ -525,19 +540,12 @@ function NotificationSettings() {
               <p className="text-sm font-medium text-white">{option.title}</p>
               <p className="text-xs text-zinc-500 mt-0.5">{option.description}</p>
             </div>
-            <button
-              onClick={() => handleToggle(option.key)}
+            <Switch
+              checked={settings[option.key]}
+              onChange={() => handleToggle(option.key)}
               disabled={updatePreferencesMutation.isPending}
-              className={`relative w-11 h-6 rounded-full transition-colors ${
-                settings[option.key] ? 'bg-violet-600' : 'bg-zinc-700'
-              }`}
-            >
-              <span
-                className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
-                  settings[option.key] ? 'left-6' : 'left-1'
-                }`}
-              />
-            </button>
+              label={option.title}
+            />
           </div>
         ))}
       </div>
@@ -546,9 +554,11 @@ function NotificationSettings() {
 }
 
 function ApiSettings() {
-  const [showKey, setShowKey] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
+  const [confirmRegenerate, setConfirmRegenerate] = useState(false);
+  // Full key returned once at creation time; never persisted by the backend.
+  const [newKey, setNewKey] = useState<string | null>(null);
+  const [showNewKey, setShowNewKey] = useState(false);
 
   const { data: apiKeyData, isLoading, refetch } = useQuery({
     queryKey: ['api-key'],
@@ -557,27 +567,32 @@ function ApiSettings() {
 
   const regenerateMutation = useMutation({
     mutationFn: authApi.regenerateApiKey,
-    onSuccess: () => {
-      setSuccessMessage('API key regenerated successfully');
+    onSuccess: (data) => {
+      // The backend only stores a masked prefix; the full key is returned
+      // exactly once, when it is created.
+      if (data.api_key && !data.api_key.endsWith('...')) {
+        setNewKey(data.api_key);
+        setShowNewKey(false);
+      }
+      setConfirmRegenerate(false);
+      toast.success('API key regenerated', 'Copy your new key now — it will not be shown again.');
       refetch();
-      setTimeout(() => setSuccessMessage(''), 3000);
+    },
+    onError: () => {
+      setConfirmRegenerate(false);
+      toast.error('Failed to regenerate API key', 'Please try again.');
     },
   });
 
-  const apiKey = apiKeyData?.api_key || 'sk_live_••••••••••••••••••••••••••••••••';
-  const displayKey = showKey ? apiKey : 'sk_live_••••••••••••••••••••••••••••••••';
+  // getApiKey only returns a masked prefix (e.g. "sk_live_ab12..."), never the full key.
+  const keyPrefix = apiKeyData?.api_key || '';
+  const hasKey = !!keyPrefix;
 
   const handleCopy = () => {
-    if (apiKey && !apiKey.includes('••••')) {
-      navigator.clipboard.writeText(apiKey);
+    if (newKey) {
+      navigator.clipboard.writeText(newKey);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const handleRegenerate = () => {
-    if (confirm('Are you sure you want to regenerate your API key? This will invalidate the existing key.')) {
-      regenerateMutation.mutate();
     }
   };
 
@@ -588,60 +603,70 @@ function ApiSettings() {
         <p className="text-sm text-zinc-500">Manage your API key for programmatic access.</p>
       </div>
 
-      {successMessage && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-          <Check className="w-4 h-4" />
-          <span className="text-sm">{successMessage}</span>
-        </div>
-      )}
-
-      {regenerateMutation.isError && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
-          <AlertCircle className="w-4 h-4" />
-          <span className="text-sm">Failed to regenerate API key. Please try again.</span>
-        </div>
-      )}
-
       <div className="space-y-4 max-w-lg">
-        <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-2">Your API Key</label>
-          <div className="flex gap-2">
-            <div className="flex-1 relative">
-              {isLoading ? (
-                <div className="w-full px-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-lg text-zinc-500">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                </div>
-              ) : (
+        {newKey ? (
+          <div>
+            <label className="block text-sm font-medium text-zinc-300 mb-2">Your new API key</label>
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
                 <input
                   type="text"
-                  value={displayKey}
+                  value={showNewKey ? newKey : '•'.repeat(Math.min(newKey.length, 40))}
                   readOnly
                   className="w-full px-4 py-2.5 pr-10 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white font-mono text-sm"
                 />
-              )}
+                <button
+                  onClick={() => setShowNewKey(!showNewKey)}
+                  aria-label={showNewKey ? 'Hide API key' : 'Show API key'}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                >
+                  {showNewKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
               <button
-                onClick={() => setShowKey(!showKey)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                onClick={handleCopy}
+                aria-label="Copy API key"
+                className="px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors"
               >
-                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
               </button>
             </div>
-            <button
-              onClick={handleCopy}
-              disabled={!showKey || isLoading}
-              className="px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 disabled:bg-zinc-800/50 disabled:text-zinc-600 text-zinc-300 rounded-lg transition-colors"
-            >
-              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-            </button>
+            <p className="text-xs text-amber-400/90 mt-2">
+              This is the only time your full key is shown. Copy it now and store it securely.
+            </p>
           </div>
-          <p className="text-xs text-zinc-600 mt-2">
-            Keep your API key secure. Do not share it publicly or commit it to version control.
-          </p>
-        </div>
+        ) : isLoading ? (
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-lg text-zinc-500 text-sm">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Loading API key…
+          </div>
+        ) : hasKey ? (
+          <div>
+            <label className="block text-sm font-medium text-zinc-300 mb-2">Key prefix</label>
+            <input
+              type="text"
+              value={keyPrefix}
+              readOnly
+              className="w-full px-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white font-mono text-sm"
+            />
+            <p className="text-xs text-zinc-600 mt-2">
+              For security, only the key prefix is stored. The full key is shown once, when it is created —
+              regenerate the key if you no longer have it.
+            </p>
+          </div>
+        ) : (
+          <div className="px-4 py-6 bg-zinc-900/50 border border-zinc-800 rounded-lg text-center">
+            <Key className="w-6 h-6 text-zinc-600 mx-auto mb-2" />
+            <p className="text-sm font-medium text-zinc-300">No API key</p>
+            <p className="text-xs text-zinc-600 mt-1">
+              Generate a key to access the Synthos API programmatically.
+            </p>
+          </div>
+        )}
 
         <button
-          onClick={handleRegenerate}
-          disabled={regenerateMutation.isPending}
+          onClick={() => (hasKey ? setConfirmRegenerate(true) : regenerateMutation.mutate())}
+          disabled={regenerateMutation.isPending || isLoading}
           className="flex items-center gap-2 px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 disabled:bg-zinc-800/50 text-zinc-300 rounded-lg transition-colors"
         >
           {regenerateMutation.isPending ? (
@@ -649,8 +674,19 @@ function ApiSettings() {
           ) : (
             <RefreshCw className="w-4 h-4" />
           )}
-          Regenerate Key
+          {hasKey ? 'Regenerate Key' : 'Generate Key'}
         </button>
+
+        <ConfirmDialog
+          open={confirmRegenerate}
+          title="Regenerate API key?"
+          description="Your existing key will be invalidated immediately. Applications using the old key will stop working."
+          confirmLabel="Regenerate"
+          variant="danger"
+          loading={regenerateMutation.isPending}
+          onConfirm={() => regenerateMutation.mutate()}
+          onClose={() => !regenerateMutation.isPending && setConfirmRegenerate(false)}
+        />
       </div>
 
       <div className="pt-6 border-t border-zinc-800/50">
@@ -688,6 +724,7 @@ function WebhookSettings() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [urlError, setUrlError] = useState('');
+  const [deleteWebhookId, setDeleteWebhookId] = useState<string | null>(null);
 
   const { data: webhooksData, isLoading } = useQuery({
     queryKey: ['webhooks'],
@@ -723,9 +760,13 @@ function WebhookSettings() {
   const deleteMutation = useMutation({
     mutationFn: webhooksApi.delete,
     onSuccess: () => {
-      setSuccessMessage('Webhook deleted');
+      setDeleteWebhookId(null);
+      toast.success('Webhook deleted');
       queryClient.invalidateQueries({ queryKey: ['webhooks'] });
-      setTimeout(() => setSuccessMessage(''), 3000);
+    },
+    onError: () => {
+      setDeleteWebhookId(null);
+      toast.error('Failed to delete webhook', 'Please try again.');
     },
   });
 
@@ -766,7 +807,7 @@ function WebhookSettings() {
         {!showCreate && (
           <button
             onClick={() => setShowCreate(true)}
-            className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-medium transition-colors"
+            className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm font-medium transition-colors"
           >
             Create Webhook
           </button>
@@ -780,8 +821,8 @@ function WebhookSettings() {
         </div>
       )}
 
-      {(createMutation.isError || deleteMutation.isError) && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
+      {createMutation.isError && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400">
           <AlertCircle className="w-4 h-4" />
           <span className="text-sm">An error occurred. Please try again.</span>
         </div>
@@ -806,7 +847,7 @@ function WebhookSettings() {
               placeholder="https://example.com/webhooks"
               className="w-full px-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 transition-all"
             />
-            {urlError && <p className="text-xs text-red-400 mt-1">{urlError}</p>}
+            {urlError && <p className="text-xs text-rose-400 mt-1">{urlError}</p>}
           </div>
 
           <div>
@@ -837,7 +878,7 @@ function WebhookSettings() {
           <button
             onClick={handleCreate}
             disabled={createMutation.isPending}
-            className="px-6 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:bg-violet-600/50 text-white rounded-lg font-medium text-sm transition-colors flex items-center gap-2"
+            className="px-6 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:bg-violet-600/50 text-white rounded-lg font-medium text-sm transition-colors flex items-center gap-2"
           >
             {createMutation.isPending ? (
               <>
@@ -868,7 +909,7 @@ function WebhookSettings() {
                   <div className="flex items-center gap-2 mb-1.5">
                     <p className="text-sm font-mono text-white truncate">{webhook.url}</p>
                     {webhook.failure_count > 0 && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 border border-red-500/20 flex-shrink-0">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-400 border border-rose-500/20 flex-shrink-0">
                         {webhook.failure_count} failures
                       </span>
                     )}
@@ -892,22 +933,13 @@ function WebhookSettings() {
 
                 <div className="flex items-center gap-3 ml-4 flex-shrink-0">
                   {/* Active/Inactive Toggle */}
-                  <button
-                    onClick={() => toggleMutation.mutate({ id: webhook.id, is_active: !webhook.is_active })}
+                  <Switch
+                    checked={webhook.is_active}
+                    onChange={(is_active) => toggleMutation.mutate({ id: webhook.id, is_active })}
                     disabled={toggleMutation.isPending}
-                    className={cn(
-                      'relative w-10 h-5.5 rounded-full transition-colors',
-                      webhook.is_active ? 'bg-violet-600' : 'bg-zinc-700'
-                    )}
-                    style={{ width: 40, height: 22 }}
-                  >
-                    <span
-                      className={cn(
-                        'absolute top-[3px] w-4 h-4 rounded-full bg-white transition-transform',
-                        webhook.is_active ? 'left-[21px]' : 'left-[3px]'
-                      )}
-                    />
-                  </button>
+                    label={webhook.is_active ? 'Disable webhook' : 'Enable webhook'}
+                    size="sm"
+                  />
 
                   {/* Expand */}
                   <button
@@ -923,11 +955,10 @@ function WebhookSettings() {
 
                   {/* Delete */}
                   <button
-                    onClick={() => {
-                      if (confirm('Delete this webhook?')) deleteMutation.mutate(webhook.id);
-                    }}
+                    onClick={() => setDeleteWebhookId(webhook.id)}
                     disabled={deleteMutation.isPending}
-                    className="text-zinc-500 hover:text-red-400 transition-colors"
+                    aria-label="Delete webhook"
+                    className="text-zinc-500 hover:text-rose-400 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -953,7 +984,7 @@ function WebhookSettings() {
                             <span
                               className={cn(
                                 'w-2 h-2 rounded-full',
-                                delivery.success ? 'bg-emerald-500' : 'bg-red-500'
+                                delivery.success ? 'bg-emerald-500' : 'bg-rose-500'
                               )}
                             />
                             <span className="text-xs text-zinc-300">{delivery.event_type}</span>
@@ -962,7 +993,7 @@ function WebhookSettings() {
                                 'text-[10px] px-1.5 py-0.5 rounded font-mono',
                                 delivery.success
                                   ? 'bg-emerald-500/10 text-emerald-400'
-                                  : 'bg-red-500/10 text-red-400'
+                                  : 'bg-rose-500/10 text-rose-400'
                               )}
                             >
                               {delivery.response_status}
@@ -982,12 +1013,36 @@ function WebhookSettings() {
           </div>
         ))}
       </div>
+
+      {/* Delete Webhook Confirmation */}
+      <ConfirmDialog
+        open={!!deleteWebhookId}
+        title="Delete this webhook?"
+        description="The endpoint will stop receiving event deliveries immediately. This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleteMutation.isPending}
+        onConfirm={() => deleteWebhookId && deleteMutation.mutate(deleteWebhookId)}
+        onClose={() => !deleteMutation.isPending && setDeleteWebhookId(null)}
+      />
     </div>
   );
 }
 
-export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<TabType>('profile');
+function SettingsContent() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<TabType>(() => resolveTab(tabParam) ?? 'profile');
+
+  // Keep the active tab in sync when navigating to e.g. ?tab=notifications
+  // while the page is already mounted.
+  useEffect(() => {
+    const resolved = resolveTab(tabParam);
+    if (resolved) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setActiveTab(resolved);
+    }
+  }, [tabParam]);
 
   const tabs = [
     { id: 'profile' as const, label: 'Profile', icon: User },
@@ -1039,5 +1094,20 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  // useSearchParams requires a Suspense boundary in prerendered pages.
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-5 h-5 animate-spin text-zinc-600" />
+        </div>
+      }
+    >
+      <SettingsContent />
+    </Suspense>
   );
 }

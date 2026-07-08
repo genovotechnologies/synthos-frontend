@@ -114,8 +114,8 @@ export default function StatusPage() {
       <header className="border-b border-zinc-800/60">
         <div className="container mx-auto px-4 py-5 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <Activity className="w-6 h-6 text-cyan-400" />
-            <span className="text-lg font-semibold tracking-tight text-white group-hover:text-cyan-300 transition-colors">
+            <Activity className="w-6 h-6 text-violet-400" />
+            <span className="text-lg font-semibold tracking-tight text-white group-hover:text-violet-300 transition-colors">
               Synthos
             </span>
           </Link>
@@ -179,10 +179,10 @@ export default function StatusPage() {
             ))}
         </div>
 
-        {/* Uptime Note */}
+        {/* Refresh Note */}
         <div className="mt-10 p-5 rounded-xl bg-zinc-900/30 border border-zinc-800/40 text-center">
           <p className="text-sm text-zinc-400">
-            <span className="text-emerald-400 font-semibold">99.9%</span> uptime over the last 30 days
+            Live status refreshes every 30 seconds
           </p>
         </div>
       </main>
@@ -191,13 +191,15 @@ export default function StatusPage() {
       <footer className="border-t border-zinc-800/40 mt-auto">
         <div className="container mx-auto px-4 py-6 flex items-center justify-between">
           <p className="text-xs text-zinc-600">Powered by Synthos</p>
-          <Link
+          <a
             href="https://synthos.dev"
-            className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-cyan-400 transition-colors"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-violet-400 transition-colors"
           >
             synthos.dev
             <ExternalLink className="w-3 h-3" />
-          </Link>
+          </a>
         </div>
       </footer>
     </div>

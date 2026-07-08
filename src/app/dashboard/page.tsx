@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { analyticsApi, validationsApi, datasetsApi, apiClient, type UsageAnalytics } from '@/lib/api';
-import { ArrowUpRight, ArrowDownRight, AlertCircle, Loader2, Upload, CheckCircle, Code, ArrowRight, BarChart3 } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, AlertCircle, Loader2, Upload, CheckCircle, Code, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -35,7 +35,7 @@ function DashboardSkeleton() {
         <div className="h-7 w-48 bg-zinc-800/50 rounded" />
         <div className="h-4 w-72 bg-zinc-800/30 rounded" />
       </div>
-      <div className="grid grid-cols-4 gap-12">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-16 gap-y-10">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="space-y-3">
             <div className="h-3 w-20 bg-zinc-800/30 rounded" />
@@ -56,13 +56,13 @@ export default function DashboardOverview() {
     retry: 1,
   });
 
-  const { data: validationsData, isLoading: validationsLoading } = useQuery({
+  const { data: validationsData, isLoading: validationsLoading, error: validationsError } = useQuery({
     queryKey: ['validations', 'recent'],
     queryFn: () => validationsApi.list(1, 8),
     retry: 1,
   });
 
-  const { data: datasetsData } = useQuery({
+  const { data: datasetsData, error: datasetsError } = useQuery({
     queryKey: ['datasets', 'list'],
     queryFn: () => datasetsApi.list(1, 10),
     retry: 1,
@@ -111,7 +111,7 @@ export default function DashboardOverview() {
       }))
     : null;
   const qualityScore = Math.max(0, 100 - (stats.avg_risk_score || 0));
-  const readyDatasets = datasetsData?.datasets?.filter(d => d.status === 'ready').length || 0;
+  const readyDatasets = datasetsData?.datasets?.filter(d => d.status === 'ready' || d.status === 'processed').length || 0;
   const failedValidations = validationsData?.validations?.filter(v => v.status === 'failed').length || 0;
 
   return (
@@ -123,12 +123,28 @@ export default function DashboardOverview() {
         <p className="text-sm text-zinc-500 mt-1">Overview of your validation activity and system health</p>
       </header>
 
-      {analyticsError && (
-        <div className="flex items-center gap-2 text-sm text-amber-500/80">
-          <AlertCircle size={14} />
-          <span>Unable to connect to analytics service</span>
+      {(analyticsError || validationsError || datasetsError) ? (
+        <div className="space-y-2">
+          {analyticsError ? (
+            <div className="flex items-center gap-2 text-sm text-amber-500/80">
+              <AlertCircle size={14} />
+              <span>Unable to connect to analytics service</span>
+            </div>
+          ) : null}
+          {validationsError ? (
+            <div className="flex items-center gap-2 text-sm text-amber-500/80">
+              <AlertCircle size={14} />
+              <span>Unable to load validations</span>
+            </div>
+          ) : null}
+          {datasetsError ? (
+            <div className="flex items-center gap-2 text-sm text-amber-500/80">
+              <AlertCircle size={14} />
+              <span>Unable to load datasets</span>
+            </div>
+          ) : null}
         </div>
-      )}
+      ) : null}
 
       {isNewUser && (
         <section className="rounded-xl border border-violet-500/20 bg-gradient-to-br from-violet-500/10 via-violet-500/5 to-transparent p-8">
@@ -192,8 +208,11 @@ export default function DashboardOverview() {
 
       <section>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-16 gap-y-10">
-          <Link href="/dashboard/datasets" className="group">
-            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">Datasets</p>
+          <Link href="/dashboard/datasets" className="group block">
+            <p className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">
+              Datasets
+              <ArrowUpRight size={11} className="text-zinc-700 opacity-0 group-hover:opacity-100 group-hover:text-zinc-400 transition-all" />
+            </p>
             <div className="flex items-baseline gap-3">
               <span className="text-3xl font-semibold text-zinc-100 tabular-nums tracking-tight">{stats.total_datasets}</span>
               <span className="text-sm text-zinc-600">{readyDatasets} ready</span>
@@ -201,8 +220,11 @@ export default function DashboardOverview() {
             <div className="h-px bg-zinc-800 mt-4 group-hover:bg-zinc-700 transition-colors" />
           </Link>
 
-          <Link href="/dashboard/validations" className="group">
-            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">Validations</p>
+          <Link href="/dashboard/validations" className="group block">
+            <p className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">
+              Validations
+              <ArrowUpRight size={11} className="text-zinc-700 opacity-0 group-hover:opacity-100 group-hover:text-zinc-400 transition-all" />
+            </p>
             <div className="flex items-baseline gap-3">
               <span className="text-3xl font-semibold text-zinc-100 tabular-nums tracking-tight">{stats.total_validations}</span>
               <span className="flex items-center gap-1 text-sm text-emerald-500">
@@ -212,7 +234,7 @@ export default function DashboardOverview() {
             <div className="h-px bg-zinc-800 mt-4 group-hover:bg-zinc-700 transition-colors" />
           </Link>
 
-          <div>
+          <div className="cursor-default">
             <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">Rows Processed</p>
             <div className="flex items-baseline gap-3">
               <span className="text-3xl font-semibold text-zinc-100 tabular-nums tracking-tight">{(stats.total_rows_validated / 1000).toFixed(1)}k</span>
@@ -221,7 +243,7 @@ export default function DashboardOverview() {
             <div className="h-px bg-zinc-800 mt-4" />
           </div>
 
-          <div>
+          <div className="cursor-default">
             <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">Quality Score</p>
             <div className="flex items-baseline gap-3">
               <span className="text-3xl font-semibold text-zinc-100 tabular-nums tracking-tight">{qualityScore}%</span>
@@ -414,7 +436,7 @@ export default function DashboardOverview() {
                   <span className="text-sm text-zinc-300 truncate group-hover:text-zinc-100 transition-colors">{v.dataset_name || 'Untitled'}</span>
                 </div>
                 <div className="col-span-2 flex items-center"><span className="text-sm text-zinc-500">{v.validation_type}</span></div>
-                <div className="col-span-2 flex items-center justify-end"><span className="text-sm text-zinc-400 tabular-nums">{v.results?.risk_score ? `${v.results.risk_score}%` : '—'}</span></div>
+                <div className="col-span-2 flex items-center justify-end"><span className="text-sm text-zinc-400 tabular-nums">{(v.risk_score ?? v.results?.risk_score) != null ? `${v.risk_score ?? v.results?.risk_score}%` : '—'}</span></div>
                 <div className="col-span-2 flex items-center justify-end"><span className="text-sm text-zinc-500 tabular-nums">{new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span></div>
                 <div className="col-span-2 flex items-center justify-end gap-2"><StatusDot status={v.status} /><span className="text-sm text-zinc-500 capitalize">{v.status}</span></div>
               </Link>

@@ -3,9 +3,10 @@
 import { use, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supportApi } from '@/lib/api/support';
+import { toast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { ArrowLeft, Send, Loader2 } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, Tag } from 'lucide-react';
 
 const priorityPill: Record<string, string> = {
   low: 'bg-zinc-800 text-zinc-400',
@@ -31,6 +32,8 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
   const [replyMessage, setReplyMessage] = useState('');
   const [isInternal, setIsInternal] = useState(false);
   const [assignTo, setAssignTo] = useState('');
+  const [assignValidating, setAssignValidating] = useState(false);
+  const [resolvedAssignee, setResolvedAssignee] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['support', 'ticket', resolvedParams.id],
@@ -42,28 +45,58 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
     mutationFn: () => supportApi.replyToTicket(resolvedParams.id, replyMessage, isInternal),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['support', 'ticket', resolvedParams.id] });
+      toast.success(isInternal ? 'Internal note added' : 'Reply sent');
       setReplyMessage('');
       setIsInternal(false);
     },
+    onError: (err: Error) => toast.error('Failed to send reply', err.message),
   });
 
   const statusMutation = useMutation({
     mutationFn: (status: string) => supportApi.updateTicketStatus(resolvedParams.id, status),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['support', 'ticket', resolvedParams.id] }),
+    onError: (err: Error) => toast.error('Failed to update status', err.message),
   });
 
   const priorityMutation = useMutation({
     mutationFn: (priority: string) => supportApi.updateTicketPriority(resolvedParams.id, priority),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['support', 'ticket', resolvedParams.id] }),
+    onError: (err: Error) => toast.error('Failed to update priority', err.message),
   });
 
   const assignMutation = useMutation({
-    mutationFn: (userId: string) => supportApi.assignTicket(resolvedParams.id, userId),
-    onSuccess: () => {
+    mutationFn: ({ userId }: { userId: string; name: string }) =>
+      supportApi.assignTicket(resolvedParams.id, userId),
+    onSuccess: (_data, { name }) => {
       queryClient.invalidateQueries({ queryKey: ['support', 'ticket', resolvedParams.id] });
+      toast.success('Ticket assigned', `Assigned to ${name}`);
       setAssignTo('');
+      setResolvedAssignee(null);
+    },
+    onError: (err: Error) => {
+      toast.error('Failed to assign ticket', err.message);
+      setResolvedAssignee(null);
     },
   });
+
+  // Validate the user ID against the support API before assigning, so typos
+  // don't silently assign the ticket to a non-existent user.
+  const handleAssign = async () => {
+    const userId = assignTo.trim();
+    if (!userId) return;
+    setAssignValidating(true);
+    setResolvedAssignee(null);
+    try {
+      const user = await supportApi.getUser(userId);
+      const name = user.full_name || user.email || userId;
+      setResolvedAssignee(name);
+      assignMutation.mutate({ userId, name });
+    } catch {
+      toast.error('No user found with that ID');
+    } finally {
+      setAssignValidating(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -104,6 +137,12 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
               <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium capitalize', priorityPill[ticket.priority])}>
                 {ticket.priority}
               </span>
+              {ticket.category && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium capitalize bg-zinc-800/80 text-zinc-400 border border-zinc-700/50">
+                  <Tag size={10} />
+                  {ticket.category.replace(/_/g, ' ')}
+                </span>
+              )}
               {ticket.assignee_name && (
                 <span className="text-xs text-zinc-500">Assigned to {ticket.assignee_name}</span>
               )}
@@ -131,9 +170,9 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
                       <div className={cn(
                         'rounded-xl px-4 py-3',
                         isInternalNote
-                          ? 'bg-amber-500/10 border border-amber-500/20'
+                          ? 'bg-amber-500/5 border border-dashed border-amber-500/30'
                           : isSupport
-                            ? 'bg-violet-500/10 border border-violet-500/20'
+                            ? 'bg-amber-500/10 border border-amber-500/20'
                             : 'bg-zinc-900 border border-zinc-800/50'
                       )}>
                         {isInternalNote && (
@@ -223,18 +262,26 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
                 <input
                   type="text"
                   value={assignTo}
-                  onChange={(e) => setAssignTo(e.target.value)}
+                  onChange={(e) => { setAssignTo(e.target.value); setResolvedAssignee(null); }}
                   placeholder="User ID"
-                  className="flex-1 bg-zinc-900/50 border border-zinc-800/50 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700"
+                  className="min-w-0 flex-1 bg-zinc-900/50 border border-zinc-800/50 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700"
                 />
                 <button
-                  onClick={() => assignTo && assignMutation.mutate(assignTo)}
-                  disabled={!assignTo || assignMutation.isPending}
-                  className="px-3 py-2 text-sm text-white bg-amber-600 hover:bg-amber-500 rounded-lg disabled:opacity-50 transition-colors"
+                  onClick={handleAssign}
+                  disabled={!assignTo.trim() || assignValidating || assignMutation.isPending}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-white bg-amber-600 hover:bg-amber-500 rounded-lg disabled:opacity-50 transition-colors"
                 >
+                  {(assignValidating || assignMutation.isPending) && (
+                    <Loader2 size={12} className="animate-spin" />
+                  )}
                   Set
                 </button>
               </div>
+              {resolvedAssignee && (
+                <p className="text-xs text-amber-400/80 mt-2">
+                  Assigning to <span className="font-medium text-amber-400">{resolvedAssignee}</span>…
+                </p>
+              )}
             </div>
           </div>
         </div>

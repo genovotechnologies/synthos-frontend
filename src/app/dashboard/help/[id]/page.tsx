@@ -3,9 +3,10 @@
 import { use, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ticketsApi } from '@/lib/api/tickets';
+import { toast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { ArrowLeft, Send, Loader2 } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 
 const priorityPill: Record<string, string> = {
   low: 'bg-zinc-800 text-zinc-400',
@@ -27,7 +28,7 @@ export default function CustomerTicketDetailPage({ params }: { params: Promise<{
   const queryClient = useQueryClient();
   const [replyMessage, setReplyMessage] = useState('');
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error, refetch, isRefetching } = useQuery({
     queryKey: ['tickets', 'detail', resolvedParams.id],
     queryFn: () => ticketsApi.get(resolvedParams.id),
     retry: 1,
@@ -38,6 +39,10 @@ export default function CustomerTicketDetailPage({ params }: { params: Promise<{
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tickets', 'detail', resolvedParams.id] });
       setReplyMessage('');
+      toast.success('Reply sent');
+    },
+    onError: () => {
+      toast.error('Failed to send reply', 'Please try again.');
     },
   });
 
@@ -45,6 +50,30 @@ export default function CustomerTicketDetailPage({ params }: { params: Promise<{
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="w-5 h-5 animate-spin text-zinc-600" />
+      </div>
+    );
+  }
+
+  // Query error (network/server) — distinct from a ticket that doesn't exist.
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <Link href="/dashboard/help" className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-300 transition-colors">
+          <ArrowLeft size={14} /> Back to Help
+        </Link>
+        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-8 text-center">
+          <AlertCircle size={32} className="text-rose-400 mx-auto mb-3" />
+          <p className="font-medium text-zinc-200">Failed to load ticket</p>
+          <p className="text-sm text-zinc-500 mt-1">Something went wrong while fetching this ticket.</p>
+          <button
+            onClick={() => refetch()}
+            disabled={isRefetching}
+            className="mt-5 inline-flex items-center gap-2 px-4 py-2 text-sm text-white bg-violet-600 hover:bg-violet-500 rounded-lg disabled:opacity-50 transition-colors"
+          >
+            {isRefetching ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+            Retry
+          </button>
+        </div>
       </div>
     );
   }

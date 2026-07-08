@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Users, Tag, Mail, CheckCircle, Database, ScrollText, Settings, LogOut, Menu, X, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SynthosLogo } from '@/components/ui/synthos-logo';
 import { useAuth } from '@/providers/auth-provider';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const navigation = [
   { name: 'Overview', href: '/admin', icon: LayoutDashboard },
@@ -22,15 +22,8 @@ const navigation = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
-  const { user, logout, isLoading, isAuthenticated } = useAuth();
+  const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isLoading, isAuthenticated, router]);
 
   return (
     <>

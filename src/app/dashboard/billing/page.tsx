@@ -1,14 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { creditsApi, CreditPackage, CreditTransaction } from '@/lib/api/credits';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/providers/auth-provider';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { toast } from '@/components/ui/toast';
 import {
   Coins, CreditCard, History, Zap, Shield, TrendingUp,
-  Check, ArrowRight, Loader2, AlertCircle, Tag, Star, Gift
+  Check, Loader2, AlertCircle, Tag, Star, Gift, ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 declare global {
@@ -54,6 +56,9 @@ export default function BillingPage() {
   const [promoCode, setPromoCode] = useState('');
   const [promoMessage, setPromoMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [devPurchasePkg, setDevPurchasePkg] = useState<CreditPackage | null>(null);
+  const promoAttempted = useRef(false);
 
   const { data: balance, isLoading: balanceLoading } = useQuery({
     queryKey: ['credits', 'balance'],
@@ -66,14 +71,22 @@ export default function BillingPage() {
   });
 
   const { data: historyData } = useQuery({
-    queryKey: ['credits', 'history'],
-    queryFn: () => creditsApi.getHistory(1, 10),
+    queryKey: ['credits', 'history', historyPage],
+    queryFn: () => creditsApi.getHistory(historyPage, 10),
   });
 
   const purchaseMutation = useMutation({
     mutationFn: (packageId: string) => creditsApi.purchase(packageId),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['credits'] });
+      setDevPurchasePkg(null);
+      toast.success(
+        'Purchase complete',
+        `${formatCredits(data.total_added)} credits added to your account.`
+      );
+    },
+    onError: (err: Error) => {
+      toast.error('Purchase failed', err.message || 'Please try again.');
     },
   });
 
@@ -121,15 +134,26 @@ export default function BillingPage() {
     document.head.appendChild(script);
   }, [queryClient]);
 
-  // Auto-redeem promo from URL params (after registration)
+  // Auto-redeem promo from URL params (after registration).
+  // Guarded by a ref so the effect can only fire the mutation once.
   useEffect(() => {
+    if (promoAttempted.current) return;
     const params = new URLSearchParams(window.location.search);
+    // Set by verify-email after it has already redeemed the registration promo
+    if (params.get('promo_applied')) {
+      promoAttempted.current = true;
+      setPromoMessage({ type: 'success', text: 'Promo code applied to your account' });
+      window.history.replaceState({}, '', '/dashboard/billing');
+      return;
+    }
     const promo = params.get('promo');
     if (promo && balance && balance.lifetime_purchased === 0) {
+      promoAttempted.current = true;
       redeemMutation.mutate(promo);
       // Clean up URL
       window.history.replaceState({}, '', '/dashboard/billing');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [balance]);
 
   return (
@@ -170,7 +194,7 @@ export default function BillingPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6"
+          className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-6"
         >
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 rounded-lg bg-emerald-500/20">
@@ -187,7 +211,7 @@ export default function BillingPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6"
+          className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-6"
         >
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 rounded-lg bg-blue-500/20">
@@ -203,7 +227,7 @@ export default function BillingPage() {
 
       {/* Credit Costs Info */}
       {balance?.credit_costs && balance.credit_costs.length > 0 && (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+        <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-6">
           <h3 className="text-sm font-medium text-zinc-400 mb-3">Credit Usage Per Operation</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {balance.credit_costs.map((cost) => (
@@ -217,7 +241,7 @@ export default function BillingPage() {
       )}
 
       {/* Promo Code */}
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+      <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-6">
         <div className="flex items-center gap-3 mb-4">
           <Gift size={20} className="text-violet-400" />
           <h3 className="text-lg font-medium text-white">Redeem Promo Code</h3>
@@ -243,10 +267,9 @@ export default function BillingPage() {
             disabled={!promoCode || redeemMutation.isPending}
             className={cn(
               "px-6 py-3 rounded-lg font-medium text-sm",
-              "bg-gradient-to-r from-violet-600 to-violet-500 text-white",
-              "hover:from-violet-500 hover:to-violet-400",
+              "bg-violet-600 hover:bg-violet-500 text-white",
               "disabled:opacity-50 disabled:cursor-not-allowed",
-              "transition-all duration-200 flex items-center gap-2"
+              "transition-colors duration-200 flex items-center gap-2"
             )}
           >
             {redeemMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Gift size={16} />}
@@ -261,7 +284,7 @@ export default function BillingPage() {
               exit={{ opacity: 0 }}
               className={cn(
                 "text-sm mt-3 flex items-center gap-2",
-                promoMessage.type === 'success' ? "text-green-400" : "text-red-400"
+                promoMessage.type === 'success' ? "text-emerald-400" : "text-rose-400"
               )}
             >
               {promoMessage.type === 'success' ? <Check size={14} /> : <AlertCircle size={14} />}
@@ -292,7 +315,7 @@ export default function BillingPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.1 }}
                   className={cn(
-                    "relative bg-zinc-900/50 border rounded-xl p-6 flex flex-col",
+                    "relative bg-zinc-900/30 border rounded-xl p-6 flex flex-col",
                     isPopular ? "border-violet-500/50 ring-1 ring-violet-500/20" : "border-zinc-800"
                   )}
                 >
@@ -324,8 +347,16 @@ export default function BillingPage() {
                   <button
                     onClick={() => {
                       if (typeof window !== 'undefined' && window.Paddle) {
+                        if (!pkg.paddle_price_id) {
+                          // Never pass an internal package id to Paddle.
+                          toast.error(
+                            'Checkout unavailable for this package',
+                            'This package is not configured for checkout yet. Please contact support.'
+                          );
+                          return;
+                        }
                         window.Paddle.Checkout.open({
-                          items: [{ priceId: (pkg as CreditPackage & { paddle_price_id?: string }).paddle_price_id || pkg.id, quantity: 1 }],
+                          items: [{ priceId: pkg.paddle_price_id, quantity: 1 }],
                           customer: { email: user?.email },
                           customData: { user_id: user?.id, package_id: pkg.id },
                           settings: {
@@ -335,20 +366,18 @@ export default function BillingPage() {
                         });
                       } else {
                         // Dev mode fallback
-                        if (confirm(`Purchase ${pkg.name} for ${formatCurrency(pkg.price_cents)}?`)) {
-                          purchaseMutation.mutate(pkg.id);
-                        }
+                        setDevPurchasePkg(pkg);
                       }
                     }}
                     disabled={purchaseMutation.isPending}
                     className={cn(
                       "mt-6 w-full py-3 px-4 rounded-lg font-medium text-sm",
-                      "bg-gradient-to-r text-white flex items-center justify-center gap-2",
+                      "text-white flex items-center justify-center gap-2",
                       isPopular
-                        ? "from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400"
-                        : "from-zinc-700 to-zinc-600 hover:from-zinc-600 hover:to-zinc-500",
+                        ? "bg-violet-600 hover:bg-violet-500"
+                        : "bg-zinc-700 hover:bg-zinc-600",
                       "disabled:opacity-50 disabled:cursor-not-allowed",
-                      "transition-all duration-200"
+                      "transition-colors duration-200"
                     )}
                   >
                     {purchaseMutation.isPending ? (
@@ -373,8 +402,19 @@ export default function BillingPage() {
           <History size={20} className="text-zinc-400" />
           <h2 className="text-xl font-semibold text-white">Transaction History</h2>
         </div>
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
-          {historyData?.transactions?.length === 0 ? (
+        <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl overflow-hidden">
+          {!historyData ? (
+            <div className="p-4 space-y-3 animate-pulse">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <div className="h-5 w-20 bg-zinc-800/60 rounded-full" />
+                  <div className="h-4 flex-1 bg-zinc-800/40 rounded" />
+                  <div className="h-4 w-16 bg-zinc-800/40 rounded" />
+                  <div className="h-4 w-24 bg-zinc-800/40 rounded" />
+                </div>
+              ))}
+            </div>
+          ) : historyData.transactions?.length === 0 ? (
             <div className="text-center py-12 text-zinc-500">
               <Coins size={32} className="mx-auto mb-3 opacity-50" />
               <p>No transactions yet</p>
@@ -399,7 +439,7 @@ export default function BillingPage() {
                         "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium",
                         tx.type === 'purchase' && "bg-emerald-500/10 text-emerald-400",
                         tx.type === 'bonus' && "bg-violet-500/10 text-violet-400",
-                        tx.type === 'deduction' && "bg-red-500/10 text-red-400",
+                        tx.type === 'deduction' && "bg-rose-500/10 text-rose-400",
                         tx.type === 'refund' && "bg-blue-500/10 text-blue-400"
                       )}>
                         {tx.type === 'purchase' && <CreditCard size={12} />}
@@ -411,7 +451,7 @@ export default function BillingPage() {
                     <td className="px-4 py-3 text-sm text-zinc-300">{tx.description}</td>
                     <td className={cn(
                       "px-4 py-3 text-sm text-right font-medium",
-                      tx.amount > 0 ? "text-emerald-400" : "text-red-400"
+                      tx.amount > 0 ? "text-emerald-400" : "text-rose-400"
                     )}>
                       {tx.amount > 0 ? '+' : ''}{formatCredits(tx.amount)}
                     </td>
@@ -423,7 +463,52 @@ export default function BillingPage() {
             </table>
           )}
         </div>
+
+        {/* History Pagination */}
+        {historyData && historyData.pagination && historyData.pagination.total_pages > 1 && (
+          <div className="flex items-center justify-between mt-4">
+            <p className="text-sm text-zinc-500 tabular-nums">
+              Page {historyData.pagination.page} of {historyData.pagination.total_pages}
+              {' · '}{historyData.pagination.total_count} transactions
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+                disabled={historyPage === 1}
+                aria-label="Previous page"
+                className="p-2 text-zinc-400 hover:text-white disabled:text-zinc-600 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setHistoryPage((p) => Math.min(historyData.pagination.total_pages, p + 1))}
+                disabled={historyPage >= historyData.pagination.total_pages}
+                aria-label="Next page"
+                className="p-2 text-zinc-400 hover:text-white disabled:text-zinc-600 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Dev-mode Purchase Confirmation */}
+      <ConfirmDialog
+        open={!!devPurchasePkg}
+        title={devPurchasePkg ? `Purchase ${devPurchasePkg.name}?` : 'Purchase'}
+        description={
+          devPurchasePkg
+            ? `You will be charged ${formatCurrency(devPurchasePkg.price_cents)} for ${formatCredits(
+                devPurchasePkg.credits + (devPurchasePkg.bonus_credits || 0)
+              )} credits.`
+            : undefined
+        }
+        confirmLabel="Purchase"
+        loading={purchaseMutation.isPending}
+        onConfirm={() => devPurchasePkg && purchaseMutation.mutate(devPurchasePkg.id)}
+        onClose={() => !purchaseMutation.isPending && setDevPurchasePkg(null)}
+      />
     </div>
   );
 }

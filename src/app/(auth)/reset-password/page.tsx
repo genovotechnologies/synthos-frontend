@@ -78,7 +78,7 @@ function ResetPasswordContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
 
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<'invalid_token' | 'generic' | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -107,8 +107,14 @@ function ResetPasswordContent() {
       });
       setIsSuccess(true);
       setTimeout(() => router.push('/login?reset=true'), 2000);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to reset password. The link may have expired.');
+    } catch (err: unknown) {
+      // Map raw backend messages to friendly copy — never render err.message directly.
+      const message = (err instanceof Error ? err.message : '').toLowerCase();
+      if (message.includes('token') || message.includes('invalid') || message.includes('expire')) {
+        setError('invalid_token');
+      } else {
+        setError('generic');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -199,7 +205,22 @@ function ResetPasswordContent() {
           className="flex items-start gap-3 p-3.5 mb-6 rounded-xl bg-red-500/8 border border-red-500/15 text-red-400"
         >
           <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
-          <p className="text-sm leading-relaxed">{error}</p>
+          {error === 'invalid_token' ? (
+            <p className="text-sm leading-relaxed">
+              This reset link is invalid or has expired.{' '}
+              <Link
+                href="/forgot-password"
+                className="font-medium underline underline-offset-2 hover:text-red-300 transition-colors"
+              >
+                Request a new one
+              </Link>
+              .
+            </p>
+          ) : (
+            <p className="text-sm leading-relaxed">
+              Something went wrong while resetting your password. Please try again.
+            </p>
+          )}
         </motion.div>
       )}
 
@@ -222,8 +243,8 @@ function ResetPasswordContent() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
               className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400 transition-colors"
-              tabIndex={-1}
             >
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
@@ -255,8 +276,8 @@ function ResetPasswordContent() {
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
               className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400 transition-colors"
-              tabIndex={-1}
             >
               {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>

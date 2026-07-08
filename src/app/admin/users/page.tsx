@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { adminApi } from '@/lib/api/admin';
+import { toast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
-import { Search, ChevronLeft, ChevronRight, Loader2, Trash2 } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Loader2, Trash2, AlertCircle } from 'lucide-react';
 
 const ROLES = ['all', 'admin', 'developer', 'support', 'user'] as const;
 const STATUSES = ['all', 'active', 'suspended'] as const;
@@ -21,13 +21,22 @@ const rolePillClass: Record<string, string> = {
 export default function AdminUsersPage() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const router = useRouter();
   const [confirmAction, setConfirmAction] = useState<{ type: 'role' | 'status' | 'delete'; userId: string; value: string } | null>(null);
 
-  const { data, isLoading } = useQuery({
+  // Debounce search input before it hits the query key.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['admin', 'users', page, search, roleFilter, statusFilter],
     queryFn: () => adminApi.listUsers(
       page, 20,
@@ -40,17 +49,32 @@ export default function AdminUsersPage() {
 
   const roleMutation = useMutation({
     mutationFn: ({ id, role }: { id: string; role: string }) => adminApi.updateUserRole(id, role),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }); setConfirmAction(null); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      setConfirmAction(null);
+      toast.success('Role updated');
+    },
+    onError: (err: Error) => toast.error('Failed to update role', err.message),
   });
 
   const statusMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => adminApi.updateUserStatus(id, isActive),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }); setConfirmAction(null); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      setConfirmAction(null);
+      toast.success('Status updated');
+    },
+    onError: (err: Error) => toast.error('Failed to update status', err.message),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deleteUser(id),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }); setConfirmAction(null); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      setConfirmAction(null);
+      toast.success('User removed', 'The account was deactivated and access revoked.');
+    },
+    onError: (err: Error) => toast.error('Failed to remove user', err.message),
   });
 
   const users = data?.users ?? [];
@@ -69,8 +93,8 @@ export default function AdminUsersPage() {
           <input
             type="text"
             placeholder="Search users..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="bg-transparent text-sm text-zinc-300 placeholder:text-zinc-600 focus:outline-none w-full"
           />
         </div>
@@ -96,9 +120,23 @@ export default function AdminUsersPage() {
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-5 h-5 animate-spin text-zinc-600" />
         </div>
+      ) : isError ? (
+        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-8 text-center">
+          <AlertCircle className="w-6 h-6 text-rose-400 mx-auto mb-3" />
+          <p className="text-sm text-zinc-300 mb-1">Failed to load users</p>
+          <p className="text-xs text-zinc-600 mb-4">{error instanceof Error ? error.message : 'An unexpected error occurred'}</p>
+          <button
+            onClick={() => refetch()}
+            className="px-4 py-2 text-sm text-white bg-rose-600 hover:bg-rose-500 rounded-lg transition-colors"
+          >
+            Retry
+          </button>
+        </div>
       ) : (
-        <div className="border-t border-zinc-800/50">
-          <div className="grid grid-cols-12 gap-4 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-zinc-800/50">
+        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <div className="min-w-[820px]">
+          <div className="grid grid-cols-12 gap-4 px-5 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-zinc-800/50">
             <div className="col-span-3">Name</div>
             <div className="col-span-3">Email</div>
             <div className="col-span-2">Role</div>
@@ -110,7 +148,7 @@ export default function AdminUsersPage() {
             <div className="py-12 text-center text-sm text-zinc-600">No users found</div>
           ) : (
             users.map((user) => (
-              <div key={user.id} className="grid grid-cols-12 gap-4 py-3.5 border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors items-center group">
+              <div key={user.id} className="grid grid-cols-12 gap-4 px-5 py-3.5 border-b border-zinc-800/30 last:border-b-0 hover:bg-zinc-900/30 transition-colors items-center group">
                 <Link href={`/admin/users/${user.id}`} className="col-span-3 flex items-center gap-3">
                   <div className="w-7 h-7 rounded-md bg-zinc-800/80 flex items-center justify-center text-xs font-medium text-zinc-400">
                     {user.full_name?.charAt(0).toUpperCase() || 'U'}
@@ -121,8 +159,14 @@ export default function AdminUsersPage() {
                   <span className="text-sm text-zinc-500 truncate">{user.email}</span>
                 </Link>
                 <div className="col-span-2">
+                  {/* While a role-change confirm is open for this user, show the pending
+                      value so the select doesn't snap back; cancelling the modal restores it. */}
                   <select
-                    value={user.role}
+                    value={
+                      confirmAction?.type === 'role' && confirmAction.userId === user.id
+                        ? confirmAction.value
+                        : user.role
+                    }
                     onChange={(e) => setConfirmAction({ type: 'role', userId: user.id, value: e.target.value })}
                     className={cn(
                       'text-[11px] font-medium px-2 py-0.5 rounded-full border-0 focus:outline-none cursor-pointer appearance-none',
@@ -154,7 +198,7 @@ export default function AdminUsersPage() {
                   <button
                     onClick={() => setConfirmAction({ type: 'delete', userId: user.id, value: user.email })}
                     className="p-1.5 rounded-md text-zinc-700 hover:text-rose-400 hover:bg-rose-500/10 opacity-0 group-hover:opacity-100 transition-all"
-                    title="Delete user"
+                    title="Remove user"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -162,6 +206,8 @@ export default function AdminUsersPage() {
               </div>
             ))
           )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -197,7 +243,7 @@ export default function AdminUsersPage() {
               {confirmAction.type === 'role'
                 ? `Change this user's role to "${confirmAction.value}"?`
                 : confirmAction.type === 'delete'
-                  ? `Permanently delete user "${confirmAction.value}"? This action cannot be undone.`
+                  ? `Deactivate and remove access for "${confirmAction.value}". This can be reversed by an administrator.`
                   : confirmAction.value === 'suspend'
                     ? 'Suspend this user? They will lose access to the platform.'
                     : 'Reactivate this user? They will regain access to the platform.'}
@@ -222,7 +268,7 @@ export default function AdminUsersPage() {
                 disabled={roleMutation.isPending || statusMutation.isPending || deleteMutation.isPending}
                 className="flex-1 px-4 py-2 text-sm text-white bg-rose-600 hover:bg-rose-500 rounded-lg disabled:opacity-50 transition-colors"
               >
-                {roleMutation.isPending || statusMutation.isPending || deleteMutation.isPending ? 'Processing...' : confirmAction.type === 'delete' ? 'Delete' : 'Confirm'}
+                {roleMutation.isPending || statusMutation.isPending || deleteMutation.isPending ? 'Processing...' : confirmAction.type === 'delete' ? 'Remove user' : 'Confirm'}
               </button>
             </div>
           </div>

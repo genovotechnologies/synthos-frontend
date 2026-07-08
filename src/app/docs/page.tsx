@@ -10,7 +10,6 @@ import {
   Check,
   Lock,
   ArrowLeft,
-  ExternalLink,
   BookOpen,
   Key,
   Database,
@@ -98,14 +97,15 @@ const ENDPOINT_GROUPS: EndpointGroup[] = [
       {
         method: 'POST',
         path: '/api/v1/auth/login',
-        description: 'Authenticate and receive a JWT access token. The token is valid for 24 hours.',
+        description: 'Authenticate and receive JWT tokens. Use the access token as the Bearer token and the refresh token to renew expired sessions.',
         auth: false,
         request: `{
   "email": "jane@example.com",
   "password": "secureP@ss123"
 }`,
         response: `{
-  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
   "user": {
     "id": "usr_abc123",
     "email": "jane@example.com",
@@ -734,10 +734,10 @@ const RATE_LIMITS = [
 ];
 
 const CREDIT_COSTS = [
-  { operation: 'Quick Scan', credits: '10', description: 'Basic quality check and row count verification' },
   { operation: 'Standard Validation', credits: '25', description: 'Collapse detection + quality scoring' },
-  { operation: 'Comprehensive Validation', credits: '50', description: 'Full cascade validation with training prediction' },
-  { operation: 'Warranty Request', credits: '100', description: 'Performance warranty issuance' },
+  { operation: 'Express Validation', credits: '50', description: 'Priority validation with faster turnaround' },
+  { operation: 'Warranty Request', credits: '15', description: 'Performance warranty issuance' },
+  { operation: 'Re-validation', credits: '20', description: 'Re-run validation on an updated dataset' },
 ];
 
 const ERROR_CODES = [
@@ -758,10 +758,14 @@ const ERROR_CODES = [
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API unavailable (insecure context / permissions) — fail quietly.
+    }
   }, [text]);
 
   return (
@@ -769,6 +773,7 @@ function CopyButton({ text }: { text: string }) {
       onClick={handleCopy}
       className="absolute top-3 right-3 p-1.5 rounded-md bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors"
       title="Copy to clipboard"
+      aria-label="Copy to clipboard"
     >
       {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
     </button>
@@ -935,15 +940,16 @@ export default function ApiDocsPage() {
                 <ol className="list-decimal list-inside space-y-3 text-sm text-zinc-400">
                   <li>
                     <strong className="text-zinc-200">Create an account</strong> by calling{' '}
-                    <code className="text-blue-400">POST /api/v1/auth/register</code> with your email and password.
+                    <code className="text-violet-400">POST /api/v1/auth/register</code> with your email and password.
                   </li>
                   <li>
                     <strong className="text-zinc-200">Verify your email</strong> using the OTP code sent to your inbox via{' '}
-                    <code className="text-blue-400">POST /api/v1/auth/verify-email</code>.
+                    <code className="text-violet-400">POST /api/v1/auth/verify-email</code>.
                   </li>
                   <li>
-                    <strong className="text-zinc-200">Get your token</strong> by calling{' '}
-                    <code className="text-blue-400">POST /api/v1/auth/login</code>. This returns a JWT valid for 24 hours.
+                    <strong className="text-zinc-200">Get your tokens</strong> by calling{' '}
+                    <code className="text-violet-400">POST /api/v1/auth/login</code>. This returns an{' '}
+                    <code className="text-violet-400">access_token</code> and a <code className="text-violet-400">refresh_token</code>.
                   </li>
                   <li>
                     <strong className="text-zinc-200">Include the token</strong> in all authenticated requests using the{' '}
