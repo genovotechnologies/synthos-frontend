@@ -4,6 +4,7 @@ import { use, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { validationsApi, warrantiesApi, type ValidationDimensions } from '@/lib/api';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ValidationPipeline, FindingsSection } from '@/components/dashboard/validation-extras';
 import { toast } from '@/components/ui/toast';
 import {
   ArrowLeft,
@@ -14,6 +15,7 @@ import {
   AlertTriangle,
   Shield,
   GitCompare,
+  RotateCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -272,6 +274,15 @@ export default function ValidationDetailPage({ params }: { params: Promise<{ id:
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {(validation.status === 'completed' || validation.status === 'failed') && validation.dataset_id && (
+            <Link
+              href={`/dashboard/validations?dataset=${validation.dataset_id}`}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-zinc-400 hover:text-zinc-100 border border-zinc-800 hover:border-zinc-700 rounded-md transition-colors"
+            >
+              <RotateCw size={13} />
+              Re-validate
+            </Link>
+          )}
           {(validation.status === 'pending' || validation.status === 'processing') && (
             <button
               onClick={() => setCancelDialogOpen(true)}
@@ -291,9 +302,13 @@ export default function ValidationDetailPage({ params }: { params: Promise<{ id:
         </div>
       </div>
 
-      {/* Processing State */}
+      {/* Processing State — live pipeline when the backend supports it */}
       {(validation.status === 'pending' || validation.status === 'processing') && (
-        <ProcessingView progress={validation.progress} />
+        <ValidationPipeline
+          validationId={validation.id}
+          active
+          fallback={<ProcessingView progress={validation.progress} />}
+        />
       )}
 
       {/* Failed State */}
@@ -381,6 +396,9 @@ export default function ValidationDetailPage({ params }: { params: Promise<{ id:
               )}
             </div>
           </div>
+
+          {/* Row-level findings (backend ≥ findings endpoint) */}
+          <FindingsSection validationId={validation.id} />
 
           {/* Warranty Request */}
           {validation.results.risk_score < 50 && (

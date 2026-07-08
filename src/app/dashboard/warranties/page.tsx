@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { warrantiesApi, type Warranty } from '@/lib/api';
+import { toast } from '@/components/ui/toast';
 import {
   Shield,
   CheckCircle,
@@ -11,12 +12,14 @@ import {
   Loader2,
   ExternalLink,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  X,
+  FileWarning,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
-function WarrantyCard({ warranty }: { warranty: Warranty }) {
+function WarrantyCard({ warranty, onClaim }: { warranty: Warranty; onClaim?: (w: Warranty) => void }) {
   const statusConfig = {
     active: { icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10', label: 'Active' },
     pending: { icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/10', label: 'Pending' },
@@ -109,6 +112,15 @@ function WarrantyCard({ warranty }: { warranty: Warranty }) {
         {warranty.status === 'active' && daysRemaining !== null && daysRemaining > 0 && (
           <p className="text-xs text-zinc-500">{daysRemaining} days remaining</p>
         )}
+        {warranty.status === 'active' && onClaim && (
+          <button
+            onClick={() => onClaim(warranty)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium text-amber-300 bg-amber-500/10 ring-1 ring-amber-500/20 hover:bg-amber-500/[0.18] transition-all"
+          >
+            <FileWarning size={11} />
+            File a claim
+          </button>
+        )}
         {warranty.status === 'expired' && (
           <p className="text-xs text-zinc-500">Coverage ended</p>
         )}
@@ -132,6 +144,7 @@ function WarrantyCard({ warranty }: { warranty: Warranty }) {
 
 export default function WarrantiesPage() {
   const [page, setPage] = useState(1);
+  const [claimTarget, setClaimTarget] = useState<Warranty | null>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['warranties', page],
@@ -227,7 +240,7 @@ export default function WarrantiesPage() {
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {activeWarranties.map((warranty) => (
-                  <WarrantyCard key={warranty.id} warranty={warranty} />
+                  <WarrantyCard key={warranty.id} warranty={warranty} onClaim={setClaimTarget} />
                 ))}
               </div>
             </div>
@@ -270,6 +283,135 @@ export default function WarrantiesPage() {
           )}
         </div>
       )}
+
+      {claimTarget && (
+        <ClaimModal warranty={claimTarget} onClose={() => setClaimTarget(null)} />
+      )}
+    </div>
+  );
+}
+
+function ClaimModal({ warranty, onClose }: { warranty: Warranty; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const [claimType, setClaimType] = useState('performance_shortfall');
+  const [amount, setAmount] = useState('');
+  const [description, setDescription] = useState('');
+
+  const maxAmount = warranty.coverage_amount;
+  const parsedAmount = Number(amount);
+  const amountInvalid =
+    amount !== '' && (!Number.isFinite(parsedAmount) || parsedAmount <= 0 || parsedAmount > maxAmount);
+
+  const claimMutation = useMutation({
+    mutationFn: () =>
+      warrantiesApi.claim(warranty.id, {
+        claim_type: claimType,
+        claim_amount: parsedAmount,
+        description: description.trim(),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['warranties'] });
+      toast.success('Claim filed', 'Our team will review your claim and follow up by email.');
+      onClose();
+    },
+    onError: (err: Error) => {
+      toast.error('Could not file claim', err.message || 'Please try again.');
+    },
+  });
+
+  const canSubmit = !amountInvalid && amount !== '' && description.trim().length >= 20 && !claimMutation.isPending;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={claimMutation.isPending ? undefined : onClose} />
+      <div className="relative w-full max-w-md surface">
+        <div className="flex items-center justify-between p-5 border-b border-white/[0.07]">
+          <div>
+            <h2 className="text-base font-semibold text-zinc-100">File a warranty claim</h2>
+            <p className="text-[13px] text-zinc-500 mt-0.5 truncate">{warranty.dataset_name}</p>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={claimMutation.isPending}
+            aria-label="Close"
+            className="p-2 text-zinc-500 hover:text-zinc-300 disabled:opacity-50 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <div>
+            <label htmlFor="claim-type" className="block text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-1.5">
+              Claim type
+            </label>
+            <select
+              id="claim-type"
+              value={claimType}
+              onChange={(e) => setClaimType(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl bg-white/[0.04] ring-1 ring-white/[0.08] text-sm text-zinc-200 focus:outline-none focus:ring-violet-500/50 appearance-none cursor-pointer"
+            >
+              <option value="performance_shortfall">Model performance shortfall</option>
+              <option value="collapse_event">Model collapse event</option>
+              <option value="prediction_error">Prediction accuracy error</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="claim-amount" className="block text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-1.5">
+              Claim amount (USD)
+            </label>
+            <input
+              id="claim-amount"
+              type="number"
+              min={1}
+              max={maxAmount}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder={`Up to ${maxAmount.toLocaleString()}`}
+              className="w-full px-3 py-2 rounded-xl bg-white/[0.04] ring-1 ring-white/[0.08] text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-violet-500/50 tabular-nums"
+            />
+            {amountInvalid && (
+              <p className="text-[11px] text-rose-400 mt-1">
+                Enter an amount between $1 and ${maxAmount.toLocaleString()} (your coverage limit).
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="claim-description" className="block text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-1.5">
+              What happened?
+            </label>
+            <textarea
+              id="claim-description"
+              rows={4}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe the failure, the model affected, and how the validated data was used (min 20 characters)…"
+              className="w-full px-3 py-2 rounded-xl bg-white/[0.04] ring-1 ring-white/[0.08] text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-violet-500/50 resize-none"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 p-5 border-t border-white/[0.07]">
+          <button
+            onClick={onClose}
+            disabled={claimMutation.isPending}
+            className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-200 disabled:opacity-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => claimMutation.mutate()}
+            disabled={!canSubmit}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {claimMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            Submit claim
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

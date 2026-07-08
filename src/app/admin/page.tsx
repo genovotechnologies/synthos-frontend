@@ -3,6 +3,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { adminApi } from '@/lib/api/admin';
 import { developerApi } from '@/lib/api/developer';
+import { platformApi } from '@/lib/api';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { Users, Tag, ArrowRight, Shield, Clock, ExternalLink, AlertCircle } from 'lucide-react';
@@ -52,6 +54,14 @@ function Skeleton() {
 }
 
 export default function AdminOverview() {
+  // Growth series — hidden until the backend ships /admin/analytics/growth.
+  const { data: growth } = useQuery({
+    queryKey: ['admin', 'growth'],
+    queryFn: () => platformApi.getAdminGrowth('30d'),
+    retry: false,
+    staleTime: 5 * 60_000,
+  });
+
   const { data, isLoading, isError } = useQuery({
     queryKey: ['admin', 'overview'],
     queryFn: adminApi.getOverview,
@@ -115,6 +125,59 @@ export default function AdminOverview() {
           </div>
         )}
       </section>
+
+      {/* Growth (backend >= admin growth analytics) */}
+      {growth && (
+        <section>
+          <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-5">Growth — last 30 days</p>
+          <div className="h-52">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={growth} margin={{ top: 4, right: 4, bottom: 0, left: -12 }}>
+                <defs>
+                  <linearGradient id="signupsGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.16} />
+                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="validationsGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#059669" stopOpacity={0.16} />
+                    <stop offset="100%" stopColor="#059669" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.05)" strokeDasharray="3 6" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#52525b', fontSize: 11 }} dy={8} interval="preserveStartEnd" />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#3f3f46', fontSize: 10 }} width={30} tickCount={4} allowDecimals={false} />
+                <Tooltip
+                  cursor={{ stroke: 'rgba(255,255,255,0.12)', strokeWidth: 1 }}
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null;
+                    return (
+                      <div className="surface px-3.5 py-2.5 space-y-0.5">
+                        <p className="text-[10px] text-zinc-500 uppercase tracking-wider">{label}</p>
+                        {payload.map((entry) => (
+                          <p key={String(entry.dataKey)} className="text-sm text-zinc-100 tabular-nums">
+                            {Number(entry.value ?? 0).toLocaleString()}
+                            <span className="text-zinc-500 font-normal"> {String(entry.dataKey)}</span>
+                          </p>
+                        ))}
+                      </div>
+                    );
+                  }}
+                />
+                <Legend
+                  verticalAlign="top"
+                  align="right"
+                  height={28}
+                  iconType="circle"
+                  iconSize={7}
+                  formatter={(value: string) => <span className="text-[11px] text-zinc-500 capitalize">{value}</span>}
+                />
+                <Area type="monotone" dataKey="signups" stroke="#8b5cf6" strokeWidth={2} fill="url(#signupsGradient)" activeDot={{ r: 4, fill: '#8b5cf6', stroke: '#09090b', strokeWidth: 2 }} />
+                <Area type="monotone" dataKey="validations" stroke="#059669" strokeWidth={2} fill="url(#validationsGradient)" activeDot={{ r: 4, fill: '#059669', stroke: '#09090b', strokeWidth: 2 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+      )}
 
       {/* System Health */}
       {(services.length > 0 || servicesIsError) && (

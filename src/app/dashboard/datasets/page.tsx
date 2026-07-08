@@ -2,14 +2,14 @@
 
 import { useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Upload, Database, Trash2, FileText, AlertCircle, Check, X,
   Loader2, ChevronLeft, ChevronRight, Search, MoreHorizontal,
   FolderOpen, ShieldCheck, Table2, Image as ImageIcon, AudioLines,
   Film, Binary, Archive, type LucideIcon
 } from 'lucide-react';
-import { datasetsApi, type Dataset, type UploadProgress } from '@/lib/api';
+import { datasetsApi, validationsApi, platformApi, type Dataset, type UploadProgress } from '@/lib/api';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from '@/components/ui/toast';
 
@@ -222,9 +222,20 @@ function DatasetRow({ dataset, onDelete }: { dataset: Dataset; onDelete: (datase
           <FileKindIcon name={dataset.file_name || dataset.name} sizeClass="w-5 h-5" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-white truncate">{dataset.name}</p>
-          <p className="text-xs text-zinc-500 mt-0.5">
-            {formatBytes(dataset.file_size)} • {formatDate(dataset.created_at)}
+          <Link
+            href={`/dashboard/datasets/${dataset.id}`}
+            className="text-sm font-medium text-white truncate hover:text-violet-300 transition-colors block"
+          >
+            {dataset.name}
+          </Link>
+          <p className="text-xs text-zinc-500 mt-0.5 flex items-center gap-2">
+            <span>{formatBytes(dataset.file_size)} • {formatDate(dataset.created_at)}</span>
+            {dataset.group_name && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white/[0.04] ring-1 ring-white/[0.06] text-[10px] text-zinc-400">
+                <FolderOpen className="w-2.5 h-2.5" />
+                {dataset.group_name}
+              </span>
+            )}
           </p>
         </div>
       </div>
@@ -280,6 +291,8 @@ function MultiUploadModal({ onClose, onSuccess }: { onClose: () => void; onSucce
   const [skippedCount, setSkippedCount] = useState(0);
   const [truncated, setTruncated] = useState(false);
   const [phase, setPhase] = useState<'select' | 'uploading' | 'done'>('select');
+  const [groupName, setGroupName] = useState('');
+  const groupNameTouched = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -311,6 +324,11 @@ function MultiUploadModal({ onClose, onSuccess }: { onClose: () => void; onSucce
       const capped = merged.slice(0, MAX_BATCH_FILES);
       setTruncated((t) => t || merged.length > MAX_BATCH_FILES);
       setSkippedCount((s) => s + skipped);
+      // Default the group name to the top-level folder of a directory upload.
+      if (!groupNameTouched.current) {
+        const foldered = capped.find((q) => q.relativePath.includes('/'));
+        if (foldered) setGroupName(foldered.relativePath.split('/')[0]);
+      }
       return capped;
     });
   }, []);
@@ -371,7 +389,9 @@ function MultiUploadModal({ onClose, onSuccess }: { onClose: () => void; onSucce
           progress: { phase: 'preparing', totalBytes: item.file.size, uploadedBytes: 0, percentage: 0 },
         });
         try {
-          await datasetsApi.upload(item.file, (progress) => update(id, { progress }), signal);
+          await datasetsApi.upload(item.file, (progress) => update(id, { progress }), signal, {
+            groupName: groupName.trim() || undefined,
+          });
           succeeded++;
           update(id, {
             status: 'success',
@@ -533,6 +553,29 @@ function MultiUploadModal({ onClose, onSuccess }: { onClose: () => void; onSucce
                 </div>
               )}
 
+              {/* Optional dataset group for multi-file uploads */}
+              {queue.length > 1 && !isUploading && phase !== 'done' && (
+                <div className="mb-4">
+                  <label htmlFor="dataset-group" className="block text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-1.5">
+                    Dataset group <span className="normal-case tracking-normal font-normal text-zinc-600">(optional)</span>
+                  </label>
+                  <input
+                    id="dataset-group"
+                    type="text"
+                    value={groupName}
+                    onChange={(e) => {
+                      groupNameTouched.current = true;
+                      setGroupName(e.target.value);
+                    }}
+                    placeholder="e.g. training-corpus-v2"
+                    className="w-full px-3 py-2 rounded-xl bg-white/[0.04] ring-1 ring-white/[0.08] text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-violet-500/50 transition-all"
+                  />
+                  <p className="text-[11px] text-zinc-600 mt-1.5">
+                    Files in a group can be validated together as one logical dataset.
+                  </p>
+                </div>
+              )}
+
               {/* Aggregate progress */}
               {(isUploading || phase === 'done') && (
                 <div className="mb-4">
@@ -690,6 +733,24 @@ export default function DatasetsPage() {
     queryFn: () => datasetsApi.list(page, 10),
   });
 
+  // Dataset groups — hidden until the backend ships the endpoint.
+  const { data: groups } = useQuery({
+    queryKey: ['dataset-groups'],
+    queryFn: platformApi.listGroups,
+    retry: false,
+    staleTime: 60_000,
+  });
+
+  const validateGroupMutation = useMutation({
+    mutationFn: (groupId: string) =>
+      validationsApi.create({ group_id: groupId, validation_type: 'standard' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['validations'] });
+      toast.success('Group validation started', 'The whole group will be validated as one dataset.');
+    },
+    onError: (err: Error) => toast.error('Could not start group validation', err.message),
+  });
+
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -753,6 +814,34 @@ export default function DatasetsPage() {
           />
         </div>
       </div>
+
+      {/* Dataset groups strip (backend ≥ groups) */}
+      {groups && groups.length > 0 && (
+        <div className="mb-6">
+          <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-3">Dataset Groups</p>
+          <div className="flex flex-wrap gap-3">
+            {groups.map((group) => (
+              <div key={group.id} className="panel px-4 py-3 flex items-center gap-4">
+                <FolderOpen className="w-4 h-4 text-violet-400 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-zinc-200 truncate">{group.name}</p>
+                  <p className="text-[11px] text-zinc-600 tabular-nums">
+                    {group.dataset_count} file{group.dataset_count === 1 ? '' : 's'} • {formatBytes(group.total_size_bytes)}
+                  </p>
+                </div>
+                <button
+                  onClick={() => validateGroupMutation.mutate(group.id)}
+                  disabled={validateGroupMutation.isPending}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium text-violet-300 bg-violet-500/10 ring-1 ring-violet-500/20 hover:bg-violet-500/[0.18] disabled:opacity-50 transition-all"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Validate group
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Error State */}
       {error && (

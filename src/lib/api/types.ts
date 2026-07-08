@@ -49,6 +49,9 @@ export interface Dataset {
   row_count: number;
   column_count: number;
   status: 'uploading' | 'processing' | 'processed' | 'ready' | 'error';
+  /** Dataset-group membership (backend ≥ groups) */
+  group_id?: string;
+  group_name?: string;
   created_at: string;
   updated_at: string;
 }
@@ -105,7 +108,10 @@ export interface ValidationOptions {
 }
 
 export interface CreateValidationRequest {
-  dataset_id: string;
+  /** Validate a single dataset… */
+  dataset_id?: string;
+  /** …or an entire dataset group as one logical dataset (backend ≥ groups). */
+  group_id?: string;
   validation_type: string;
   options?: ValidationOptions;
 }
