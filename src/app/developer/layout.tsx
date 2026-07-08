@@ -1,26 +1,28 @@
 'use client';
 
+import { LayoutDashboard, Server, BookOpen, Terminal, ScrollText, BarChart3 } from 'lucide-react';
 import { AuthProvider } from '@/providers/auth-provider';
 import { QueryProvider } from '@/providers/query-provider';
-import { DeveloperSidebar } from '@/components/developer/sidebar';
+import { SectionShell } from '@/components/app-shell/section-shell';
 import { SectionGate } from '@/components/ui/section-gate';
+
+const nav = [
+  { name: 'Overview', href: '/developer', icon: LayoutDashboard },
+  { name: 'Services', href: '/developer/services', icon: Server },
+  { name: 'API Docs', href: '/developer/api-docs', icon: BookOpen },
+  { name: 'Playground', href: '/developer/playground', icon: Terminal },
+  { name: 'Logs', href: '/developer/logs', icon: ScrollText },
+  { name: 'Metrics', href: '/developer/metrics', icon: BarChart3 },
+];
 
 export default function DeveloperLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <QueryProvider>
         <SectionGate role="developer">
-          <div className="min-h-screen bg-[#0a0a0b]">
-            <div className="flex relative">
-              <DeveloperSidebar />
-              <main className="flex-1 min-h-screen">
-                <div className="h-14 lg:hidden" />
-                <div className="px-6 lg:px-12 py-8 lg:py-10 max-w-[1400px] mx-auto">
-                  <div className="mt-2">{children}</div>
-                </div>
-              </main>
-            </div>
-          </div>
+          <SectionShell accent="blue" badge="Developer" homeHref="/developer" nav={nav}>
+            {children}
+          </SectionShell>
         </SectionGate>
       </QueryProvider>
     </AuthProvider>

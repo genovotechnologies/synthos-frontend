@@ -157,7 +157,7 @@ export default function DeveloperOverviewPage() {
     <div className="space-y-12">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Developer Overview</h1>
+          <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Developer Overview</h1>
           <p className="text-sm text-zinc-500 mt-1">Service health, API metrics, and quick access</p>
         </div>
         <div className="flex items-center gap-2 text-xs text-zinc-600">
@@ -179,7 +179,7 @@ export default function DeveloperOverviewPage() {
             {services.map((svc) => (
               <div
                 key={svc.name}
-                className="bg-zinc-900/40 border border-zinc-800/50 rounded-xl p-5 hover:border-zinc-700/50 transition-colors"
+                className="bg-zinc-900/40 border border-white/[0.06] rounded-xl p-5 hover:border-zinc-700/50 transition-colors"
               >
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-sm font-medium text-zinc-200">{svc.name}</span>
@@ -225,7 +225,7 @@ export default function DeveloperOverviewPage() {
             return (
               <div
                 key={metric.label}
-                className="bg-zinc-900/40 border border-zinc-800/50 rounded-xl p-5"
+                className="bg-zinc-900/40 border border-white/[0.06] rounded-xl p-5"
               >
                 <div className="flex items-center gap-2 mb-3">
                   <Icon size={14} className="text-blue-400" />
@@ -265,17 +265,17 @@ export default function DeveloperOverviewPage() {
         {logsError ? (
           <InlineLoadError label="Failed to load recent logs. Retrying automatically every 15 seconds." />
         ) : recentErrors.length === 0 ? (
-          <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6 text-center">
+          <div className="panel p-6 text-center">
             <p className="text-sm text-zinc-600">
               No errors in the last {Math.min(fetchedLogs.length, ERROR_LOG_WINDOW) || ERROR_LOG_WINDOW} requests.
             </p>
           </div>
         ) : (
-          <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl overflow-hidden">
+          <div className="panel overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px]">
                 <thead>
-                  <tr className="border-b border-zinc-800/50">
+                  <tr className="border-b border-white/[0.06]">
                     <th className="text-left text-[10px] font-medium text-zinc-600 uppercase tracking-wider px-4 py-2.5">Time</th>
                     <th className="text-left text-[10px] font-medium text-zinc-600 uppercase tracking-wider px-4 py-2.5">Endpoint</th>
                     <th className="text-left text-[10px] font-medium text-zinc-600 uppercase tracking-wider px-4 py-2.5">Method</th>
@@ -285,7 +285,7 @@ export default function DeveloperOverviewPage() {
                 </thead>
                 <tbody>
                   {displayedErrors.map((err) => (
-                    <tr key={err.id} className="border-b border-zinc-800/30 last:border-0">
+                    <tr key={err.id} className="border-b border-white/[0.04] last:border-0">
                       <td className="px-4 py-2.5 text-xs text-zinc-500 tabular-nums whitespace-nowrap">
                         {new Date(err.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' })}
                       </td>
@@ -308,7 +308,7 @@ export default function DeveloperOverviewPage() {
               </table>
             </div>
             {recentErrors.length > displayedErrors.length && (
-              <p className="px-4 py-2.5 text-[11px] text-zinc-600 border-t border-zinc-800/50">
+              <p className="px-4 py-2.5 text-[11px] text-zinc-600 border-t border-white/[0.06]">
                 Showing {displayedErrors.length} of {recentErrors.length} errors — see the logs page for the rest.
               </p>
             )}
@@ -326,7 +326,7 @@ export default function DeveloperOverviewPage() {
               <Link
                 key={action.href + action.name}
                 href={action.href}
-                className="bg-zinc-900/40 border border-zinc-800/50 rounded-xl p-4 hover:border-zinc-700/50 hover:bg-zinc-900/60 transition-all group flex flex-col items-center text-center gap-3"
+                className="bg-zinc-900/40 border border-white/[0.06] rounded-xl p-4 hover:border-zinc-700/50 hover:bg-zinc-900/60 transition-all group flex flex-col items-center text-center gap-3"
               >
                 <div className="w-10 h-10 rounded-lg bg-zinc-800/50 flex items-center justify-center group-hover:bg-zinc-800 transition-colors">
                   <Icon size={18} className={action.color} />

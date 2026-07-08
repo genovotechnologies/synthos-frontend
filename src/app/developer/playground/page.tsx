@@ -211,7 +211,7 @@ export default function DeveloperPlaygroundPage() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">API Playground</h1>
+        <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">API Playground</h1>
         <p className="text-sm text-zinc-500 mt-1">
           Test and debug API endpoints interactively. Requests are sent through the authenticated API client.
         </p>
@@ -238,7 +238,7 @@ export default function DeveloperPlaygroundPage() {
 
         {/* URL Input (path relative to /api/v1) */}
         <div className="flex items-stretch">
-          <span className="flex items-center px-3 text-sm font-mono text-zinc-500 bg-zinc-900/60 border border-r-0 border-zinc-800/50 rounded-l-lg select-none">
+          <span className="flex items-center px-3 text-sm font-mono text-zinc-500 bg-zinc-900/60 border border-r-0 border-white/[0.06] rounded-l-lg select-none">
             /api/v1
           </span>
           <input
@@ -249,7 +249,7 @@ export default function DeveloperPlaygroundPage() {
               setSelectedScenario('Custom Request');
             }}
             placeholder="/datasets"
-            className="flex-1 bg-zinc-900/30 border border-zinc-800/50 rounded-r-lg px-4 py-3 text-sm font-mono text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-colors"
+            className="flex-1 bg-zinc-900/30 border border-white/[0.06] rounded-r-lg px-4 py-3 text-sm font-mono text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-colors"
           />
         </div>
 
@@ -261,7 +261,7 @@ export default function DeveloperPlaygroundPage() {
           <select
             value={selectedScenario}
             onChange={(e) => handleScenarioChange(e.target.value)}
-            className="w-full bg-zinc-900/30 border border-zinc-800/50 rounded-lg px-4 py-2.5 text-sm text-zinc-300 focus:outline-none focus:border-blue-500/50 cursor-pointer"
+            className="w-full bg-zinc-900/30 border border-white/[0.06] rounded-lg px-4 py-2.5 text-sm text-zinc-300 focus:outline-none focus:border-blue-500/50 cursor-pointer"
           >
             {scenarios.map((s) => (
               <option key={s.label} value={s.label} className="bg-zinc-900">
@@ -282,7 +282,7 @@ export default function DeveloperPlaygroundPage() {
               onChange={(e) => setRequestBody(e.target.value)}
               placeholder='{ "key": "value" }'
               rows={8}
-              className="w-full bg-zinc-950 border border-zinc-800/50 rounded-lg px-4 py-3 text-sm font-mono text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 resize-none transition-colors"
+              className="w-full bg-zinc-950 border border-white/[0.06] rounded-lg px-4 py-3 text-sm font-mono text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 resize-none transition-colors"
             />
           </div>
         )}
@@ -313,7 +313,7 @@ export default function DeveloperPlaygroundPage() {
 
       {/* Response */}
       {response && (
-        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5 space-y-4">
+        <div className="panel p-5 space-y-4">
           <div className="flex items-center gap-3">
             <p className="text-[11px] font-medium text-zinc-600 uppercase tracking-wider">Response</p>
             <span
@@ -329,7 +329,7 @@ export default function DeveloperPlaygroundPage() {
               {response.time}ms
             </span>
           </div>
-          <pre className="bg-zinc-950 border border-zinc-800/50 rounded-lg p-4 text-sm font-mono text-zinc-300 overflow-x-auto max-h-[28rem] overflow-y-auto">
+          <pre className="bg-zinc-950 border border-white/[0.06] rounded-lg p-4 text-sm font-mono text-zinc-300 overflow-x-auto max-h-[28rem] overflow-y-auto">
             {response.body}
           </pre>
         </div>
@@ -341,7 +341,7 @@ export default function DeveloperPlaygroundPage() {
           <p className="text-[11px] font-medium text-zinc-600 uppercase tracking-wider">
             Request History
           </p>
-          <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl divide-y divide-zinc-800/40">
+          <div className="panel divide-y divide-zinc-800/40">
             {history.map((entry) => (
               <button
                 key={entry.id}

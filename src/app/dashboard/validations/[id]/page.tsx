@@ -170,7 +170,7 @@ function DimensionsBarChart({ dimensions }: { dimensions: ValidationDimensions }
 
 function ProcessingView({ progress }: { progress?: number }) {
   return (
-    <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-8 text-center">
+    <div className="panel p-8 text-center">
       <Loader2 size={48} className="animate-spin mx-auto text-violet-400 mb-4" />
       <h2 className="text-xl font-semibold text-zinc-100 mb-2">Validation in Progress</h2>
       <p className="text-zinc-500 mb-6">
@@ -265,7 +265,7 @@ export default function ValidationDetailPage({ params }: { params: Promise<{ id:
             Back
           </Link>
           <div>
-            <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">
+            <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">
               {validation.dataset_name || 'Dataset'} Validation
             </h1>
             <p className="text-sm text-zinc-500 mt-0.5">{validation.validation_type}</p>
@@ -314,26 +314,26 @@ export default function ValidationDetailPage({ params }: { params: Promise<{ id:
         <>
           {/* Risk Score Section */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6">
+            <div className="panel p-6">
               <h3 className="font-medium text-zinc-300 mb-6 text-center text-sm">Risk Score</h3>
               <RiskScoreGauge score={validation.results.risk_score} />
             </div>
 
-            <div className="lg:col-span-2 bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6">
+            <div className="lg:col-span-2 panel p-6">
               <h3 className="font-medium text-zinc-300 mb-4 text-sm">Quality Dimensions</h3>
               <DimensionsChart dimensions={validation.results.dimensions} />
             </div>
           </div>
 
           {/* Detailed Breakdown */}
-          <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6">
+          <div className="panel p-6">
             <h3 className="font-medium text-zinc-300 mb-4 text-sm">Dimension Breakdown</h3>
             <DimensionsBarChart dimensions={validation.results.dimensions} />
           </div>
 
           {/* Collapse Probability & Recommendations */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6">
+            <div className="panel p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-amber-500/10 rounded-lg">
                   <AlertTriangle className="text-amber-400" size={18} />
@@ -355,7 +355,7 @@ export default function ValidationDetailPage({ params }: { params: Promise<{ id:
               </p>
             </div>
 
-            <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6">
+            <div className="panel p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-violet-500/10 rounded-lg">
                   <Shield className="text-violet-400" size={18} />
@@ -384,7 +384,7 @@ export default function ValidationDetailPage({ params }: { params: Promise<{ id:
 
           {/* Warranty Request */}
           {validation.results.risk_score < 50 && (
-            <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6">
+            <div className="panel p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-emerald-500/10 rounded-lg">
@@ -431,7 +431,7 @@ export default function ValidationDetailPage({ params }: { params: Promise<{ id:
       )}
 
       {/* Metadata */}
-      <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6">
+      <div className="panel p-6">
         <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-4">Details</p>
         <dl className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
           <div>

@@ -92,13 +92,13 @@ export default function AdminOverview() {
   return (
     <div className="space-y-16">
       <header>
-        <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Platform Overview</h1>
+        <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Platform Overview</h1>
         <p className="text-sm text-zinc-500 mt-1">System-wide metrics and administration</p>
       </header>
 
       <section>
         {isError ? (
-          <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5">
+          <div className="panel p-5">
             <InlineLoadError message="Failed to load platform metrics" />
           </div>
         ) : (
@@ -126,7 +126,7 @@ export default function AdminOverview() {
               <ExternalLink size={11} />
             </Link>
           </div>
-          <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5">
+          <div className="panel p-5">
             {servicesIsError ? (
               <InlineLoadError message="Failed to load service health" />
             ) : (
@@ -155,16 +155,16 @@ export default function AdminOverview() {
           </Link>
         </div>
         {auditIsError ? (
-          <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6">
+          <div className="panel p-6">
             <InlineLoadError message="Failed to load recent activity" />
           </div>
         ) : auditEvents.length === 0 ? (
-          <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6 text-center">
+          <div className="panel p-6 text-center">
             <p className="text-sm text-zinc-600">No recent admin activity</p>
           </div>
         ) : (
-          <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl overflow-hidden">
-            <div className="divide-y divide-zinc-800/50">
+          <div className="panel overflow-hidden">
+            <div className="divide-y divide-white/[0.06]">
               {auditEvents.slice(0, 5).map((event: Record<string, unknown>, idx: number) => {
                 const { action, actor, time } = readAuditEvent(event);
                 return (
@@ -192,7 +192,7 @@ export default function AdminOverview() {
       {roleEntries.length > 0 && (
         <section>
           <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-6">Users by Role</p>
-          <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5">
+          <div className="panel p-5">
             <div className="space-y-3">
               {roleEntries.map(([role, count]) => (
                 <div key={role} className="flex items-center justify-between py-1.5">
@@ -218,21 +218,21 @@ export default function AdminOverview() {
       <section>
         <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-6">Quick Actions</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Link href="/admin/users" className="flex items-center justify-between bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5 hover:border-zinc-700/50 transition-colors group">
+          <Link href="/admin/users" className="flex items-center justify-between panel p-5 hover:bg-white/[0.04] transition-colors group">
             <div className="flex items-center gap-3">
               <Users size={16} className="text-rose-400" />
               <span className="text-sm text-zinc-300 group-hover:text-zinc-100 transition-colors">Manage Users</span>
             </div>
             <ArrowRight size={14} className="text-zinc-600 group-hover:text-zinc-400 transition-colors" />
           </Link>
-          <Link href="/admin/promo-codes" className="flex items-center justify-between bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5 hover:border-zinc-700/50 transition-colors group">
+          <Link href="/admin/promo-codes" className="flex items-center justify-between panel p-5 hover:bg-white/[0.04] transition-colors group">
             <div className="flex items-center gap-3">
               <Tag size={16} className="text-rose-400" />
               <span className="text-sm text-zinc-300 group-hover:text-zinc-100 transition-colors">Promo Codes</span>
             </div>
             <ArrowRight size={14} className="text-zinc-600 group-hover:text-zinc-400 transition-colors" />
           </Link>
-          <Link href="/admin/warranties" className="flex items-center justify-between bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5 hover:border-zinc-700/50 transition-colors group">
+          <Link href="/admin/warranties" className="flex items-center justify-between panel p-5 hover:bg-white/[0.04] transition-colors group">
             <div className="flex items-center gap-3">
               <Shield size={16} className="text-emerald-400" />
               <span className="text-sm text-zinc-300 group-hover:text-zinc-100 transition-colors">Manage Warranties</span>

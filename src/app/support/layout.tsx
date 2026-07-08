@@ -1,26 +1,24 @@
 'use client';
 
+import { LayoutDashboard, Ticket } from 'lucide-react';
 import { AuthProvider } from '@/providers/auth-provider';
 import { QueryProvider } from '@/providers/query-provider';
-import { SupportSidebar } from '@/components/support/sidebar';
+import { SectionShell } from '@/components/app-shell/section-shell';
 import { SectionGate } from '@/components/ui/section-gate';
+
+const nav = [
+  { name: 'Overview', href: '/support', icon: LayoutDashboard },
+  { name: 'Tickets', href: '/support/tickets', icon: Ticket },
+];
 
 export default function SupportLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <QueryProvider>
         <SectionGate role="support">
-          <div className="min-h-screen bg-[#0a0a0b]">
-            <div className="flex relative">
-              <SupportSidebar />
-              <main className="flex-1 min-h-screen">
-                <div className="h-14 lg:hidden" />
-                <div className="px-6 lg:px-12 py-8 lg:py-10 max-w-[1400px] mx-auto">
-                  <div className="mt-2">{children}</div>
-                </div>
-              </main>
-            </div>
-          </div>
+          <SectionShell accent="amber" badge="Support" homeHref="/support" nav={nav}>
+            {children}
+          </SectionShell>
         </SectionGate>
       </QueryProvider>
     </AuthProvider>

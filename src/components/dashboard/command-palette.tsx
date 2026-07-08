@@ -106,8 +106,8 @@ export function CommandPalette() {
   return createPortal(
     <div className="fixed inset-0 z-[95] flex items-start justify-center px-4 pt-[18vh]" role="dialog" aria-modal="true" aria-label="Command palette">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150" onClick={() => setOpen(false)} />
-      <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl shadow-black/60 animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-center gap-3 border-b border-zinc-800 px-4">
+      <div className="relative w-full max-w-lg overflow-hidden surface animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex items-center gap-3 border-b border-white/[0.07] px-4">
           <Search className="h-4 w-4 flex-shrink-0 text-zinc-500" />
           <input
             ref={inputRef}

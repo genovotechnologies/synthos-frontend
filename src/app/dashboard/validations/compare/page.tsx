@@ -228,7 +228,7 @@ function CompareContent() {
           Back
         </Link>
         <div>
-          <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">
+          <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">
             Validation Comparison
           </h1>
           <p className="text-sm text-zinc-500 mt-0.5">
@@ -239,7 +239,7 @@ function CompareContent() {
 
       {/* Select second validation if not provided */}
       {urlId1 && !effectiveId2 && (
-        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6">
+        <div className="panel p-6">
           <p className="text-sm text-zinc-300 mb-3">Select a second validation to compare with:</p>
           <div className="max-w-md">
             <ValidationSelector
@@ -279,7 +279,7 @@ function CompareContent() {
           {/* Side-by-side scores */}
           <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
             {/* Validation 1 */}
-            <div className="lg:col-span-3 bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6">
+            <div className="lg:col-span-3 panel p-6">
               <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-1">Validation A</p>
               <p className="text-sm font-medium text-zinc-200 mb-4 truncate">{name1}</p>
               <div className="mb-6">
@@ -327,7 +327,7 @@ function CompareContent() {
             </div>
 
             {/* Validation 2 */}
-            <div className="lg:col-span-3 bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6">
+            <div className="lg:col-span-3 panel p-6">
               <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-1">Validation B</p>
               <p className="text-sm font-medium text-zinc-200 mb-4 truncate">{name2}</p>
               <div className="mb-6">
@@ -361,7 +361,7 @@ function CompareContent() {
           </div>
 
           {/* Bar chart comparison */}
-          <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6">
+          <div className="panel p-6">
             <h3 className="font-medium text-zinc-300 mb-4 text-sm">Dimension Comparison</h3>
             <ComparisonBarChart
               dimensions1={validation1.results!.dimensions}
@@ -379,7 +379,7 @@ function CompareContent() {
                 ? 'bg-emerald-500/5 border-emerald-500/20'
                 : riskDelta > 0
                 ? 'bg-rose-500/5 border-rose-500/20'
-                : 'bg-zinc-900/30 border-zinc-800/50'
+                : 'bg-zinc-900/30 border-white/[0.06]'
             )}
           >
             <p className="text-sm text-zinc-400 mb-2">Overall Quality Change</p>

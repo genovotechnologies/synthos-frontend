@@ -34,12 +34,12 @@ export default function AdminDatasets() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">All Datasets</h1>
+        <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">All Datasets</h1>
         <p className="text-sm text-zinc-500 mt-1">Cross-user dataset overview</p>
       </header>
 
       {isError ? (
-        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-8 text-center">
+        <div className="panel p-8 text-center">
           <AlertCircle className="w-6 h-6 text-rose-400 mx-auto mb-3" />
           <p className="text-sm text-zinc-300 mb-1">Failed to load datasets</p>
           <p className="text-xs text-zinc-600 mb-4">{error instanceof Error ? error.message : 'An unexpected error occurred'}</p>
@@ -51,7 +51,7 @@ export default function AdminDatasets() {
           </button>
         </div>
       ) : (
-        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl overflow-hidden">
+        <div className="panel overflow-hidden">
           {isLoading ? (
             <div className="flex justify-center py-20"><Loader2 className="w-5 h-5 animate-spin text-zinc-600" /></div>
           ) : !data?.datasets?.length ? (
@@ -59,7 +59,7 @@ export default function AdminDatasets() {
           ) : (
             <div className="overflow-x-auto">
               <div className="min-w-[640px]">
-                <div className="grid grid-cols-12 gap-4 px-5 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-zinc-800/50">
+                <div className="grid grid-cols-12 gap-4 px-5 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-white/[0.06]">
                   <div className="col-span-5">Dataset</div>
                   <div className="col-span-3">Size</div>
                   <div className="col-span-2 text-right">Date</div>
@@ -67,7 +67,7 @@ export default function AdminDatasets() {
                 </div>
                 <div className="px-5">
                   {data.datasets.map((d) => (
-                    <div key={d.id} className="grid grid-cols-12 gap-4 py-3 border-b border-zinc-800/30 last:border-b-0 items-center text-sm">
+                    <div key={d.id} className="grid grid-cols-12 gap-4 py-3 border-b border-white/[0.04] last:border-b-0 items-center text-sm">
                       <div className="col-span-5 flex items-center gap-2.5">
                         <FileText size={14} className="text-zinc-600 flex-shrink-0" />
                         <span className="text-zinc-300 truncate">{d.name || d.file_name || 'Untitled'}</span>
@@ -97,14 +97,14 @@ export default function AdminDatasets() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="p-2 rounded-md border border-zinc-800/50 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-2 rounded-md border border-white/[0.06] text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft size={14} />
             </button>
             <button
               onClick={() => setPage((p) => Math.min(pagination.total_pages, p + 1))}
               disabled={page >= pagination.total_pages}
-              className="p-2 rounded-md border border-zinc-800/50 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-2 rounded-md border border-white/[0.06] text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronRight size={14} />
             </button>

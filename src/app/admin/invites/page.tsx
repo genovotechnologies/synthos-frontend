@@ -57,7 +57,7 @@ export default function AdminInvitesPage() {
     <div className="space-y-10">
       <div className="flex items-center justify-between">
         <header>
-          <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Team Invites</h1>
+          <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Team Invites</h1>
           <p className="text-sm text-zinc-500 mt-1">Invite new team members to the platform</p>
         </header>
         <button
@@ -70,7 +70,7 @@ export default function AdminInvitesPage() {
       </div>
 
       {showForm && (
-        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6 space-y-5">
+        <div className="panel p-6 space-y-5">
           <p className="text-sm font-medium text-zinc-300">Send Invite</p>
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
@@ -80,7 +80,7 @@ export default function AdminInvitesPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="team@company.com"
-                className="w-full bg-zinc-900/50 border border-zinc-800/50 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700"
+                className="w-full bg-zinc-900/50 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700"
               />
             </div>
             <div className="w-40">
@@ -88,7 +88,7 @@ export default function AdminInvitesPage() {
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="w-full bg-zinc-900/50 border border-zinc-800/50 rounded-lg px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:border-zinc-700 appearance-none cursor-pointer"
+                className="w-full bg-zinc-900/50 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:border-zinc-700 appearance-none cursor-pointer"
               >
                 {INVITE_ROLES.map((r) => (
                   <option key={r} value={r} className="bg-zinc-900">{r.charAt(0).toUpperCase() + r.slice(1)}</option>
@@ -115,7 +115,7 @@ export default function AdminInvitesPage() {
           <Loader2 className="w-5 h-5 animate-spin text-zinc-600" />
         </div>
       ) : isError ? (
-        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-8 text-center">
+        <div className="panel p-8 text-center">
           <AlertCircle className="w-6 h-6 text-rose-400 mx-auto mb-3" />
           <p className="text-sm text-zinc-300 mb-1">Failed to load invites</p>
           <p className="text-xs text-zinc-600 mb-4">{error instanceof Error ? error.message : 'An unexpected error occurred'}</p>
@@ -127,10 +127,10 @@ export default function AdminInvitesPage() {
           </button>
         </div>
       ) : (
-        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl overflow-hidden">
+        <div className="panel overflow-hidden">
           <div className="overflow-x-auto">
             <div className="min-w-[820px]">
-              <div className="grid grid-cols-12 gap-4 px-5 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-zinc-800/50">
+              <div className="grid grid-cols-12 gap-4 px-5 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-white/[0.06]">
                 <div className="col-span-3">Email</div>
                 <div className="col-span-2">Role</div>
                 <div className="col-span-2">Status</div>
@@ -143,7 +143,7 @@ export default function AdminInvitesPage() {
                 <div className="py-12 text-center text-sm text-zinc-600">No invites sent yet</div>
               ) : (
                 invites.map((invite) => (
-                  <div key={invite.id} className="grid grid-cols-12 gap-4 px-5 py-3.5 border-b border-zinc-800/30 last:border-b-0 hover:bg-zinc-900/30 transition-colors items-center">
+                  <div key={invite.id} className="grid grid-cols-12 gap-4 px-5 py-3.5 border-b border-white/[0.04] last:border-b-0 hover:bg-white/[0.02] transition-colors items-center">
                     <div className="col-span-3">
                       <span className="text-sm text-zinc-300 truncate">{invite.email}</span>
                     </div>

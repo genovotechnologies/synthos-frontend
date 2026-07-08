@@ -1,26 +1,31 @@
 'use client';
 
+import { LayoutDashboard, Users, Tag, Mail, CheckCircle, Database, ScrollText, Settings, Shield } from 'lucide-react';
 import { AuthProvider } from '@/providers/auth-provider';
 import { QueryProvider } from '@/providers/query-provider';
-import { AdminSidebar } from '@/components/admin/sidebar';
+import { SectionShell } from '@/components/app-shell/section-shell';
 import { SectionGate } from '@/components/ui/section-gate';
+
+const nav = [
+  { name: 'Overview', href: '/admin', icon: LayoutDashboard },
+  { name: 'Users', href: '/admin/users', icon: Users },
+  { name: 'Promo Codes', href: '/admin/promo-codes', icon: Tag },
+  { name: 'Invites', href: '/admin/invites', icon: Mail },
+  { name: 'Validations', href: '/admin/validations', icon: CheckCircle },
+  { name: 'Warranties', href: '/admin/warranties', icon: Shield },
+  { name: 'Datasets', href: '/admin/datasets', icon: Database },
+  { name: 'Audit Log', href: '/admin/audit-log', icon: ScrollText },
+  { name: 'Settings', href: '/admin/settings', icon: Settings },
+];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <QueryProvider>
         <SectionGate role="admin">
-          <div className="min-h-screen bg-[#0a0a0b]">
-            <div className="flex relative">
-              <AdminSidebar />
-              <main className="flex-1 min-h-screen">
-                <div className="h-14 lg:hidden" />
-                <div className="px-6 lg:px-12 py-8 lg:py-10 max-w-[1400px] mx-auto">
-                  <div className="mt-2">{children}</div>
-                </div>
-              </main>
-            </div>
-          </div>
+          <SectionShell accent="rose" badge="Admin" homeHref="/admin" nav={nav}>
+            {children}
+          </SectionShell>
         </SectionGate>
       </QueryProvider>
     </AuthProvider>

@@ -130,7 +130,7 @@ export default function AdminSettings() {
     return (
       <div className="space-y-8">
         <header>
-          <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Admin Settings</h1>
+          <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Admin Settings</h1>
           <p className="text-sm text-zinc-500 mt-1">Platform configuration and preferences</p>
         </header>
         <div className="flex items-center justify-center py-20">
@@ -143,7 +143,7 @@ export default function AdminSettings() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Admin Settings</h1>
+        <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Admin Settings</h1>
         <p className="text-sm text-zinc-500 mt-1">Platform configuration and preferences</p>
       </header>
 
@@ -163,7 +163,7 @@ export default function AdminSettings() {
 
       <div className="space-y-6 max-w-lg">
         {/* Registration Enabled */}
-        <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-900/30 border border-zinc-800/50">
+        <div className="flex items-center justify-between p-4 rounded-xl bg-zinc-900/30 border border-white/[0.06]">
           <div>
             <p className="text-sm font-medium text-zinc-200">Registration Enabled</p>
             <p className="text-xs text-zinc-500 mt-0.5">Allow new users to register on the platform</p>
@@ -181,7 +181,7 @@ export default function AdminSettings() {
           'flex items-center justify-between p-4 rounded-xl border',
           settings.maintenance_mode
             ? 'bg-amber-500/5 border-amber-500/30'
-            : 'bg-zinc-900/30 border-zinc-800/50'
+            : 'bg-zinc-900/30 border-white/[0.06]'
         )}>
           <div className="flex items-start gap-3">
             {settings.maintenance_mode && <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />}
@@ -204,7 +204,7 @@ export default function AdminSettings() {
         </div>
 
         {/* Max Upload Size */}
-        <div className="p-4 rounded-xl bg-zinc-900/30 border border-zinc-800/50">
+        <div className="p-4 rounded-xl bg-zinc-900/30 border border-white/[0.06]">
           <label className="block text-sm font-medium text-zinc-200 mb-1">Max Upload Size (GB)</label>
           <p className="text-xs text-zinc-500 mb-3">Maximum file size users can upload</p>
           <input
@@ -224,7 +224,7 @@ export default function AdminSettings() {
         </div>
 
         {/* Default Signup Credits */}
-        <div className="p-4 rounded-xl bg-zinc-900/30 border border-zinc-800/50">
+        <div className="p-4 rounded-xl bg-zinc-900/30 border border-white/[0.06]">
           <label className="block text-sm font-medium text-zinc-200 mb-1">Default Signup Credits</label>
           <p className="text-xs text-zinc-500 mb-3">Credits given to new users upon registration</p>
           <input
@@ -243,7 +243,7 @@ export default function AdminSettings() {
         </div>
 
         {/* Allowed Email Domains */}
-        <div className="p-4 rounded-xl bg-zinc-900/30 border border-zinc-800/50">
+        <div className="p-4 rounded-xl bg-zinc-900/30 border border-white/[0.06]">
           <label className="block text-sm font-medium text-zinc-200 mb-1">Allowed Email Domains</label>
           <p className="text-xs text-zinc-500 mb-3">Comma-separated domains. Leave empty to allow all.</p>
           <input
