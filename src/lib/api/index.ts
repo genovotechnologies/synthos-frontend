@@ -16,4 +16,10 @@ export { developerApi } from './developer';
 export { ticketsApi } from './tickets';
 export { webhooksApi } from './webhooks';
 export type { Webhook, WebhookDelivery } from './webhooks';
+export { platformApi, apiKeysApi, validationsForDataset } from './platform';
+export type {
+  DatasetGroup, ValidationProgress, ValidationStage, ValidationFinding,
+  FindingsResponse, DatasetPreview, DatasetColumn, UsagePoint, GrowthPoint,
+  CertificateVerification, ApiKeySummary,
+} from './platform';
 export * from './types';

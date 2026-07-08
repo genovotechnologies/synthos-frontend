@@ -221,12 +221,15 @@ export const datasetsApi = {
 
   // ============ Simple Upload (for files < 100MB) ============
   
-  getUploadUrl: async (fileName: string, fileSize: number): Promise<UploadUrlResponse> => {
-    const response = await apiClient.post<UploadUrlResponse>('/datasets/upload', {
+  getUploadUrl: async (fileName: string, fileSize: number, groupName?: string): Promise<UploadUrlResponse> => {
+    const body: Record<string, unknown> = {
       filename: fileName,
       file_size: fileSize,
       file_type: fileName.split('.').pop() || 'csv',
-    });
+    };
+    // Optional dataset-group membership; ignored by backends that predate groups.
+    if (groupName) body.group_name = groupName;
+    const response = await apiClient.post<UploadUrlResponse>('/datasets/upload', body);
     return response.data;
   },
 
@@ -362,7 +365,8 @@ export const datasetsApi = {
   upload: async (
     file: File,
     onProgress?: (progress: UploadProgress) => void,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
+    opts?: { groupName?: string }
   ): Promise<Dataset> => {
     const fileSize = file.size;
     const fileName = file.name;
@@ -385,7 +389,7 @@ export const datasetsApi = {
     if (fileSize < MULTIPART_THRESHOLD && !existingState) {
       onProgress?.({ phase: 'preparing', totalBytes: fileSize, uploadedBytes: 0, percentage: 0 });
       
-      const uploadResponse = await datasetsApi.getUploadUrl(fileName, fileSize);
+      const uploadResponse = await datasetsApi.getUploadUrl(fileName, fileSize, opts?.groupName);
       const { upload_url, dataset_id } = uploadResponse;
       const uploadMethod = uploadResponse.upload_method || 'direct';
       const chunkSizeFromServer = uploadResponse.chunk_size || 8 * 1024 * 1024;

@@ -4,13 +4,16 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { creditsApi, CreditPackage, CreditTransaction } from '@/lib/api/credits';
+import { platformApi } from '@/lib/api';
+import { AreaChart, Area, XAxis, YAxis, Tooltip as ChartTip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/providers/auth-provider';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from '@/components/ui/toast';
 import {
   Coins, CreditCard, History, Zap, Shield, TrendingUp,
-  Check, Loader2, AlertCircle, Tag, Star, Gift, ChevronLeft, ChevronRight
+  Check, Loader2, AlertCircle, Tag, Star, Gift, ChevronLeft, ChevronRight,
+  ExternalLink,
 } from 'lucide-react';
 
 declare global {
@@ -74,6 +77,17 @@ export default function BillingPage() {
     queryKey: ['credits', 'history', historyPage],
     queryFn: () => creditsApi.getHistory(historyPage, 10),
   });
+
+  // Spend-over-time series — hidden until the backend ships the endpoint.
+  const { data: usageSeries } = useQuery({
+    queryKey: ['credits', 'usage-series'],
+    queryFn: () => platformApi.getUsageSeries('90d'),
+    retry: false,
+    staleTime: 5 * 60_000,
+  });
+
+  const lowBalance =
+    !!balance && balance.lifetime_purchased > 0 && balance.balance > 0 && balance.balance < 25;
 
   const purchaseMutation = useMutation({
     mutationFn: (packageId: string) => creditsApi.purchase(packageId),
@@ -163,6 +177,14 @@ export default function BillingPage() {
         <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Billing & Credits</h1>
         <p className="text-sm text-zinc-500 mt-1">Manage your credits, purchase packages, and view transaction history</p>
       </div>
+
+      {/* Low balance nudge */}
+      {lowBalance && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 text-amber-400 text-sm">
+          <AlertCircle size={16} />
+          You&apos;re running low on credits ({formatCredits(balance.balance)} left) — top up below to keep validations running.
+        </div>
+      )}
 
       {/* Payment Success Banner */}
       {showSuccess && (
@@ -396,6 +418,44 @@ export default function BillingPage() {
         </div>
       </div>
 
+      {/* Credit spend over time (backend >= usage-series) */}
+      {usageSeries && (
+        <div>
+          <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-5">Credit Spend — last 90 days</p>
+          <div className="h-44">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={usageSeries} margin={{ top: 4, right: 4, bottom: 0, left: -12 }}>
+                <defs>
+                  <linearGradient id="spendGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.18} />
+                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.05)" strokeDasharray="3 6" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#52525b', fontSize: 11 }} dy={8} interval="preserveStartEnd" />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#3f3f46', fontSize: 10 }} width={34} tickCount={4} />
+                <ChartTip
+                  cursor={{ stroke: 'rgba(255,255,255,0.12)', strokeWidth: 1 }}
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null;
+                    return (
+                      <div className="surface px-3.5 py-2.5">
+                        <p className="text-[10px] text-zinc-500 uppercase tracking-wider">{label}</p>
+                        <p className="text-sm font-medium text-zinc-100 tabular-nums">
+                          {Number(payload[0]?.value ?? 0).toLocaleString()}
+                          <span className="text-zinc-500 font-normal"> credits spent</span>
+                        </p>
+                      </div>
+                    );
+                  }}
+                />
+                <Area type="monotone" dataKey="spent" stroke="#8b5cf6" strokeWidth={2} fill="url(#spendGradient)" activeDot={{ r: 4, fill: '#8b5cf6', stroke: '#09090b', strokeWidth: 2 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
       {/* Transaction History */}
       <div>
         <div className="flex items-center gap-3 mb-4">
@@ -448,7 +508,19 @@ export default function BillingPage() {
                         {tx.type}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-zinc-300">{tx.description}</td>
+                    <td className="px-4 py-3 text-sm text-zinc-300">
+                      {tx.description}
+                      {tx.receipt_url && (
+                        <a
+                          href={tx.receipt_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 ml-2 text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                        >
+                          Receipt <ExternalLink size={10} />
+                        </a>
+                      )}
+                    </td>
                     <td className={cn(
                       "px-4 py-3 text-sm text-right font-medium",
                       tx.amount > 0 ? "text-emerald-400" : "text-rose-400"

@@ -14,6 +14,9 @@ interface StatusData {
   status: string;
   services: Record<string, ServiceStatus>;
   timestamp: string;
+  /** Real measured uptime, present once the backend exposes /health/uptime */
+  uptime_30d_pct?: number;
+  incidents?: { date: string; summary: string; resolved?: boolean }[];
 }
 
 function getStatusColor(status: string) {
@@ -178,6 +181,31 @@ export default function StatusPage() {
               </div>
             ))}
         </div>
+
+        {/* Uptime (measured; shown when the backend reports it) */}
+        {typeof data?.uptime_30d_pct === 'number' && (
+          <div className="mt-10 p-5 rounded-xl bg-zinc-900/30 border border-zinc-800/40 text-center">
+            <p className="text-2xl font-semibold text-zinc-100 tabular-nums">
+              {data!.uptime_30d_pct!.toFixed(2)}%
+            </p>
+            <p className="text-sm text-zinc-500 mt-1">measured uptime over the last 30 days</p>
+          </div>
+        )}
+
+        {/* Incident history (shown when the backend reports it) */}
+        {data?.incidents && data.incidents.length > 0 && (
+          <div className="mt-6 rounded-xl bg-zinc-900/30 border border-zinc-800/40 divide-y divide-zinc-800/40">
+            {data.incidents.slice(0, 5).map((incident, i) => (
+              <div key={i} className="p-4 flex items-start gap-3">
+                <span className={`mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${incident.resolved === false ? 'bg-amber-400' : 'bg-zinc-600'}`} />
+                <div>
+                  <p className="text-sm text-zinc-300">{incident.summary}</p>
+                  <p className="text-xs text-zinc-600 mt-0.5">{incident.date}{incident.resolved === false ? ' — ongoing' : ''}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Refresh Note */}
         <div className="mt-10 p-5 rounded-xl bg-zinc-900/30 border border-zinc-800/40 text-center">

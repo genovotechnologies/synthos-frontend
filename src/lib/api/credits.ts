@@ -34,6 +34,8 @@ export interface CreditTransaction {
   description: string;
   reference_type?: string;
   reference_id?: string;
+  /** Hosted receipt/invoice URL (e.g. Paddle) when available */
+  receipt_url?: string;
   created_at: string;
 }
 

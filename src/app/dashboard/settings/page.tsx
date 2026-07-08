@@ -4,9 +4,9 @@ import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { User, Shield, Key, Bell, Eye, EyeOff, Copy, RefreshCw, Check, AlertCircle, Loader2, Globe, Trash2, ChevronDown, ChevronUp, Monitor, Smartphone, X } from 'lucide-react';
+import { User, Shield, Key, Bell, Eye, EyeOff, Copy, Check, AlertCircle, Loader2, Globe, Trash2, ChevronDown, ChevronUp, Monitor, Smartphone, X, Plus, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
-import { authApi, type NotificationPreferences, webhooksApi } from '@/lib/api';
+import { authApi, type NotificationPreferences, webhooksApi, apiKeysApi, platformApi, type ApiKeySummary } from '@/lib/api';
 import apiClient from '@/lib/api/client';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Switch } from '@/components/ui/switch';
@@ -554,140 +554,192 @@ function NotificationSettings() {
 }
 
 function ApiSettings() {
-  const [copied, setCopied] = useState(false);
-  const [confirmRegenerate, setConfirmRegenerate] = useState(false);
+  const queryClient = useQueryClient();
+  const [creating, setCreating] = useState(false);
+  const [newKeyName, setNewKeyName] = useState('');
+  const [revokeTarget, setRevokeTarget] = useState<ApiKeySummary | null>(null);
   // Full key returned once at creation time; never persisted by the backend.
-  const [newKey, setNewKey] = useState<string | null>(null);
+  const [newKey, setNewKey] = useState<{ name: string; key: string } | null>(null);
   const [showNewKey, setShowNewKey] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  const { data: apiKeyData, isLoading, refetch } = useQuery({
-    queryKey: ['api-key'],
-    queryFn: authApi.getApiKey,
+  const { data: keys, isLoading } = useQuery({
+    queryKey: ['api-keys'],
+    queryFn: apiKeysApi.list,
   });
 
-  const regenerateMutation = useMutation({
-    mutationFn: authApi.regenerateApiKey,
-    onSuccess: (data) => {
-      // The backend only stores a masked prefix; the full key is returned
-      // exactly once, when it is created.
-      if (data.api_key && !data.api_key.endsWith('...')) {
-        setNewKey(data.api_key);
-        setShowNewKey(false);
-      }
-      setConfirmRegenerate(false);
-      toast.success('API key regenerated', 'Copy your new key now — it will not be shown again.');
-      refetch();
+  const createMutation = useMutation({
+    mutationFn: (name: string) => apiKeysApi.create(name),
+    onSuccess: (data, name) => {
+      setNewKey({ name, key: data.key });
+      setShowNewKey(false);
+      setCreating(false);
+      setNewKeyName('');
+      queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+      toast.success('API key created', 'Copy it now — it will not be shown again.');
     },
-    onError: () => {
-      setConfirmRegenerate(false);
-      toast.error('Failed to regenerate API key', 'Please try again.');
-    },
+    onError: (err: Error) => toast.error('Failed to create API key', err.message),
   });
 
-  // getApiKey only returns a masked prefix (e.g. "sk_live_ab12..."), never the full key.
-  const keyPrefix = apiKeyData?.api_key || '';
-  const hasKey = !!keyPrefix;
+  const revokeMutation = useMutation({
+    mutationFn: (id: string) => apiKeysApi.revoke(id),
+    onSuccess: () => {
+      setRevokeTarget(null);
+      queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+      toast.success('API key revoked');
+    },
+    onError: (err: Error) => toast.error('Failed to revoke key', err.message),
+  });
 
   const handleCopy = () => {
-    if (newKey) {
-      navigator.clipboard.writeText(newKey);
+    if (!newKey) return;
+    navigator.clipboard.writeText(newKey.key).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    }
+    }).catch(() => toast.error('Could not copy to clipboard'));
   };
+
+  const formatKeyDate = (d?: string) =>
+    d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
   return (
     <div className="space-y-8">
-      <div>
-        <h3 className="text-lg font-medium text-white mb-1">API Access</h3>
-        <p className="text-sm text-zinc-500">Manage your API key for programmatic access.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-medium text-white mb-1">API Keys</h3>
+          <p className="text-sm text-zinc-500">Create named keys for each integration so they can be revoked independently.</p>
+        </div>
+        <button
+          onClick={() => setCreating(true)}
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[13px] font-medium text-white bg-violet-600 hover:bg-violet-500 transition-colors flex-shrink-0"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          New key
+        </button>
       </div>
 
-      <div className="space-y-4 max-w-lg">
-        {newKey ? (
-          <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-2">Your new API key</label>
-            <div className="flex gap-2">
-              <div className="flex-1 relative">
-                <input
-                  type="text"
-                  value={showNewKey ? newKey : '•'.repeat(Math.min(newKey.length, 40))}
-                  readOnly
-                  className="w-full px-4 py-2.5 pr-10 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white font-mono text-sm"
-                />
-                <button
-                  onClick={() => setShowNewKey(!showNewKey)}
-                  aria-label={showNewKey ? 'Hide API key' : 'Show API key'}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
-                >
-                  {showNewKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
+      {/* One-time full key reveal */}
+      {newKey && (
+        <div className="panel p-4">
+          <label className="block text-sm font-medium text-zinc-300 mb-2">
+            &ldquo;{newKey.name}&rdquo; — copy your key now
+          </label>
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                value={showNewKey ? newKey.key : '•'.repeat(Math.min(newKey.key.length, 40))}
+                readOnly
+                className="w-full px-4 py-2.5 pr-10 bg-white/[0.04] ring-1 ring-white/[0.08] rounded-lg text-white font-mono text-sm"
+              />
               <button
-                onClick={handleCopy}
-                aria-label="Copy API key"
-                className="px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors"
+                onClick={() => setShowNewKey(!showNewKey)}
+                aria-label={showNewKey ? 'Hide API key' : 'Show API key'}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
               >
-                {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                {showNewKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            <p className="text-xs text-amber-400/90 mt-2">
-              This is the only time your full key is shown. Copy it now and store it securely.
-            </p>
+            <button
+              onClick={handleCopy}
+              aria-label="Copy API key"
+              className="px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors"
+            >
+              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+            </button>
           </div>
-        ) : isLoading ? (
-          <div className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-lg text-zinc-500 text-sm">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Loading API key…
-          </div>
-        ) : hasKey ? (
-          <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-2">Key prefix</label>
+          <p className="text-xs text-amber-400/90 mt-2">
+            This is the only time the full key is shown. Store it securely, then dismiss this notice.
+          </p>
+          <button onClick={() => setNewKey(null)} className="text-xs text-zinc-500 hover:text-zinc-300 mt-2 transition-colors">
+            I&apos;ve stored it — dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Create form */}
+      {creating && (
+        <div className="panel p-4 flex flex-wrap items-end gap-3">
+          <div className="flex-1 min-w-[200px]">
+            <label htmlFor="key-name" className="block text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-1.5">
+              Key name
+            </label>
             <input
+              id="key-name"
               type="text"
-              value={keyPrefix}
-              readOnly
-              className="w-full px-4 py-2.5 bg-zinc-900/50 border border-zinc-800 rounded-lg text-white font-mono text-sm"
+              value={newKeyName}
+              onChange={(e) => setNewKeyName(e.target.value)}
+              placeholder="e.g. ci-pipeline, staging"
+              className="w-full px-3 py-2 rounded-xl bg-white/[0.04] ring-1 ring-white/[0.08] text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-violet-500/50"
             />
-            <p className="text-xs text-zinc-600 mt-2">
-              For security, only the key prefix is stored. The full key is shown once, when it is created —
-              regenerate the key if you no longer have it.
-            </p>
           </div>
-        ) : (
-          <div className="px-4 py-6 bg-zinc-900/50 border border-zinc-800 rounded-lg text-center">
-            <Key className="w-6 h-6 text-zinc-600 mx-auto mb-2" />
-            <p className="text-sm font-medium text-zinc-300">No API key</p>
-            <p className="text-xs text-zinc-600 mt-1">
-              Generate a key to access the Synthos API programmatically.
-            </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setCreating(false); setNewKeyName(''); }}
+              className="px-3.5 py-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => createMutation.mutate(newKeyName.trim())}
+              disabled={!newKeyName.trim() || createMutation.isPending}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 transition-colors"
+            >
+              {createMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Create
+            </button>
           </div>
-        )}
+        </div>
+      )}
 
-        <button
-          onClick={() => (hasKey ? setConfirmRegenerate(true) : regenerateMutation.mutate())}
-          disabled={regenerateMutation.isPending || isLoading}
-          className="flex items-center gap-2 px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 disabled:bg-zinc-800/50 text-zinc-300 rounded-lg transition-colors"
-        >
-          {regenerateMutation.isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <RefreshCw className="w-4 h-4" />
-          )}
-          {hasKey ? 'Regenerate Key' : 'Generate Key'}
-        </button>
+      {/* Key list */}
+      {isLoading ? (
+        <div className="flex items-center gap-2 text-sm text-zinc-500">
+          <Loader2 className="w-4 h-4 animate-spin" /> Loading keys…
+        </div>
+      ) : !keys || keys.length === 0 ? (
+        <div className="panel px-4 py-8 text-center">
+          <Key className="w-6 h-6 text-zinc-600 mx-auto mb-2" />
+          <p className="text-sm font-medium text-zinc-300">No API keys</p>
+          <p className="text-xs text-zinc-600 mt-1">Create a key to access the Synthos API programmatically.</p>
+        </div>
+      ) : (
+        <div className="panel overflow-hidden">
+          <div className="divide-y divide-white/[0.05]">
+            {keys.map((k) => (
+              <div key={k.id} className="flex items-center gap-4 px-4 py-3">
+                <Key className="w-4 h-4 text-zinc-600 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-zinc-200 truncate">{k.name || 'Unnamed key'}</p>
+                  <p className="text-[11px] text-zinc-600 font-mono">{k.key_prefix}…</p>
+                </div>
+                <div className="hidden sm:block text-right text-[11px] text-zinc-600">
+                  <p>Created {formatKeyDate(k.created_at)}</p>
+                  <p>Last used {formatKeyDate(k.last_used_at)}</p>
+                </div>
+                <button
+                  onClick={() => setRevokeTarget(k)}
+                  aria-label={'Revoke ' + (k.name || 'key')}
+                  className="p-2 text-zinc-600 hover:text-rose-400 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-        <ConfirmDialog
-          open={confirmRegenerate}
-          title="Regenerate API key?"
-          description="Your existing key will be invalidated immediately. Applications using the old key will stop working."
-          confirmLabel="Regenerate"
-          variant="danger"
-          loading={regenerateMutation.isPending}
-          onConfirm={() => regenerateMutation.mutate()}
-          onClose={() => !regenerateMutation.isPending && setConfirmRegenerate(false)}
-        />
-      </div>
+      <ConfirmDialog
+        open={!!revokeTarget}
+        title="Revoke API key?"
+        description={revokeTarget ? '"' + (revokeTarget.name || revokeTarget.key_prefix) + '" will stop working immediately. Applications using it will fail to authenticate.' : undefined}
+        confirmLabel="Revoke"
+        variant="danger"
+        loading={revokeMutation.isPending}
+        onConfirm={() => revokeTarget && revokeMutation.mutate(revokeTarget.id)}
+        onClose={() => !revokeMutation.isPending && setRevokeTarget(null)}
+      />
 
       <div className="pt-6 border-t border-white/[0.06]">
         <h4 className="text-sm font-medium text-white mb-3">API Documentation</h4>
@@ -704,6 +756,167 @@ function ApiSettings() {
           </svg>
         </Link>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Two-factor authentication card. Hidden entirely until the backend exposes
+ * /auth/2fa/* endpoints.
+ */
+function TwoFactorSettings() {
+  const queryClient = useQueryClient();
+  const [enrollment, setEnrollment] = useState<{ secret: string; otpauth_url: string } | null>(null);
+  const [code, setCode] = useState('');
+  const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
+  const [disabling, setDisabling] = useState(false);
+
+  const { data: status } = useQuery({
+    queryKey: ['2fa-status'],
+    queryFn: platformApi.get2faStatus,
+    retry: false,
+    staleTime: 60_000,
+  });
+
+  const enrollMutation = useMutation({
+    mutationFn: platformApi.enroll2fa,
+    onSuccess: (data) => setEnrollment(data),
+    onError: (err: Error) => toast.error('Could not start 2FA setup', err.message),
+  });
+
+  const activateMutation = useMutation({
+    mutationFn: (otp: string) => platformApi.activate2fa(otp),
+    onSuccess: (data) => {
+      setEnrollment(null);
+      setCode('');
+      setRecoveryCodes(data.recovery_codes ?? null);
+      queryClient.invalidateQueries({ queryKey: ['2fa-status'] });
+      toast.success('Two-factor authentication enabled');
+    },
+    onError: (err: Error) => toast.error('Invalid code', err.message),
+  });
+
+  const disableMutation = useMutation({
+    mutationFn: (otp: string) => platformApi.disable2fa(otp),
+    onSuccess: () => {
+      setDisabling(false);
+      setCode('');
+      queryClient.invalidateQueries({ queryKey: ['2fa-status'] });
+      toast.success('Two-factor authentication disabled');
+    },
+    onError: (err: Error) => toast.error('Invalid code', err.message),
+  });
+
+  // Backend hasn't shipped 2FA yet — render nothing.
+  if (!status) return null;
+
+  return (
+    <div className="pt-8 mt-8 border-t border-white/[0.06] space-y-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-medium text-white mb-1 flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            Two-factor authentication
+          </h3>
+          <p className="text-sm text-zinc-500">
+            Require a one-time code from an authenticator app when signing in.
+          </p>
+        </div>
+        {status.enabled ? (
+          <span className="px-2.5 py-1 rounded-full text-[11px] font-medium text-emerald-300 bg-emerald-500/10 ring-1 ring-emerald-500/20">Enabled</span>
+        ) : (
+          <span className="px-2.5 py-1 rounded-full text-[11px] font-medium text-zinc-400 bg-white/[0.04] ring-1 ring-white/[0.08]">Off</span>
+        )}
+      </div>
+
+      {recoveryCodes && (
+        <div className="panel p-4">
+          <p className="text-sm font-medium text-zinc-200 mb-2">Recovery codes — store these safely</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 font-mono text-[13px] text-zinc-300">
+            {recoveryCodes.map((rc) => <span key={rc}>{rc}</span>)}
+          </div>
+          <button onClick={() => setRecoveryCodes(null)} className="text-xs text-zinc-500 hover:text-zinc-300 mt-3 transition-colors">
+            I&apos;ve stored them — dismiss
+          </button>
+        </div>
+      )}
+
+      {!status.enabled && !enrollment && (
+        <button
+          onClick={() => enrollMutation.mutate()}
+          disabled={enrollMutation.isPending}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 transition-colors"
+        >
+          {enrollMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+          Enable 2FA
+        </button>
+      )}
+
+      {enrollment && (
+        <div className="panel p-4 space-y-3 max-w-lg">
+          <p className="text-sm text-zinc-300">
+            Add this secret to your authenticator app (or open the setup link), then enter the 6-digit code:
+          </p>
+          <code className="block px-3 py-2 rounded-lg bg-white/[0.04] ring-1 ring-white/[0.08] font-mono text-[13px] text-zinc-200 break-all">
+            {enrollment.secret}
+          </code>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+              placeholder="123456"
+              aria-label="Authenticator code"
+              className="w-32 px-3 py-2 rounded-xl bg-white/[0.04] ring-1 ring-white/[0.08] text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-violet-500/50 font-mono tracking-widest text-center"
+            />
+            <button
+              onClick={() => activateMutation.mutate(code)}
+              disabled={code.length !== 6 || activateMutation.isPending}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 transition-colors"
+            >
+              {activateMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Verify &amp; enable
+            </button>
+            <button onClick={() => { setEnrollment(null); setCode(''); }} className="px-3 py-2 text-sm text-zinc-500 hover:text-zinc-300 transition-colors">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {status.enabled && !disabling && (
+        <button onClick={() => setDisabling(true)} className="text-sm text-rose-400 hover:text-rose-300 transition-colors">
+          Disable 2FA…
+        </button>
+      )}
+
+      {disabling && (
+        <div className="flex gap-2 items-center">
+          <input
+            type="text"
+            inputMode="numeric"
+            maxLength={6}
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+            placeholder="123456"
+            aria-label="Authenticator code to disable"
+            className="w-32 px-3 py-2 rounded-xl bg-white/[0.04] ring-1 ring-white/[0.08] text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-rose-500/50 font-mono tracking-widest text-center"
+          />
+          <button
+            onClick={() => disableMutation.mutate(code)}
+            disabled={code.length !== 6 || disableMutation.isPending}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-rose-600 hover:bg-rose-500 disabled:opacity-50 transition-colors"
+          >
+            {disableMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            Confirm disable
+          </button>
+          <button onClick={() => { setDisabling(false); setCode(''); }} className="px-3 py-2 text-sm text-zinc-500 hover:text-zinc-300 transition-colors">
+            Cancel
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1086,7 +1299,7 @@ function SettingsContent() {
         <div className="flex-1 min-w-0">
           <div className="p-6 rounded-xl bg-zinc-900/30 border border-white/[0.06]">
             {activeTab === 'profile' && <ProfileSettings />}
-            {activeTab === 'security' && <SecuritySettings />}
+            {activeTab === 'security' && <><SecuritySettings /><TwoFactorSettings /></>}
             {activeTab === 'notifications' && <NotificationSettings />}
             {activeTab === 'api' && <ApiSettings />}
             {activeTab === 'webhooks' && <WebhookSettings />}

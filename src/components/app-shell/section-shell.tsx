@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { LogOut, Menu, X, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SynthosLogo } from '@/components/ui/synthos-logo';
+import { MaintenanceBanner } from './maintenance-banner';
 import { useAuth } from '@/providers/auth-provider';
 
 export interface SectionNavItem {
@@ -192,6 +193,7 @@ export function SectionShell({ accent, badge, homeHref, nav, topbar, children }:
         {/* Content column */}
         <main className="relative flex-1 min-w-0 min-h-screen">
           <div className="h-14 lg:hidden" />
+          <MaintenanceBanner />
           <div className="px-5 sm:px-8 lg:px-12 py-8 lg:py-10 max-w-[1400px] mx-auto">
             {topbar}
             <div className={topbar ? 'mt-8' : 'mt-2'}>{children}</div>
