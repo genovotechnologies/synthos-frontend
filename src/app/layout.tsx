@@ -119,6 +119,7 @@ const jsonLd = {
     "Outlier detection",
     "Data quality warranties with financial guarantees",
     "REST API for pipeline integration",
+    "Multimodal dataset support (tabular, text, image, audio, video)",
     "Large dataset support up to 500GB",
   ],
   screenshot: "https://synthos.dev/synthos-logo.jpeg",
