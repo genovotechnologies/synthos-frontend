@@ -264,8 +264,8 @@ export default function DatasetDetailPage() {
                 className="flex items-center gap-4 py-3.5 border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors group"
               >
                 <span className={`w-1.5 h-1.5 rounded-full ${validationStatusChip[v.status] ?? 'bg-zinc-500'}`} />
-                <span className="flex-1 text-sm text-zinc-300 group-hover:text-zinc-100 transition-colors capitalize">
-                  {v.validation_type} validation
+                <span className="flex-1 text-sm text-zinc-300 group-hover:text-zinc-100 transition-colors">
+                  {v.name?.trim() || <span className="capitalize">{v.validation_type} validation</span>}
                 </span>
                 <span className="text-sm text-zinc-500 tabular-nums">
                   {(v.risk_score ?? v.results?.risk_score) != null ? `${v.risk_score ?? v.results?.risk_score}% risk` : '—'}

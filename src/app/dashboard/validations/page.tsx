@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { validationsApi, datasetsApi, type Validation, type CreateValidationRequest } from '@/lib/api';
+import { EditableValidationName, validationDisplayName } from '@/components/dashboard/validation-extras';
 import {
   Plus,
   CheckCircle,
@@ -77,12 +78,14 @@ function ValidationRow({
       >
         <div className="col-span-3 flex items-center gap-3">
           <div className="w-7 h-7 rounded-md bg-zinc-800/80 flex items-center justify-center text-xs font-medium text-zinc-400 group-hover:bg-zinc-800 transition-colors">
-            {validation.dataset_name?.charAt(0).toUpperCase() || 'D'}
+            {validationDisplayName(validation).charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <span className="text-sm text-zinc-300 truncate block group-hover:text-zinc-100 transition-colors">
-              {validation.dataset_name || 'Untitled validation'}
-            </span>
+            <EditableValidationName
+              validation={validation}
+              textClassName="text-sm text-zinc-300 group-hover:text-zinc-100 transition-colors"
+              inputClassName="text-sm"
+            />
           </div>
         </div>
         <div className="col-span-2 flex items-center">

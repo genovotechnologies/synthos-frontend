@@ -1,5 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import Cookies from 'js-cookie';
+import { guardWriteWhileImpersonating } from '@/lib/impersonation';
 
 // Default to a same-origin proxy ('/api/v1' -> see src/app/api/v1/[...path]). If
 // NEXT_PUBLIC_API_URL is set (e.g. https://api.synthos.dev/api/v1) the browser calls
@@ -22,9 +23,14 @@ export const apiClient = axios.create({
   withCredentials: false,
 });
 
-// Attach the access token to every request.
+// Attach the access token to every request. Billing/destructive writes are
+// refused while an admin is impersonating a user (see lib/impersonation).
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    const blocked = guardWriteWhileImpersonating(config.method, config.url);
+    if (blocked) {
+      return Promise.reject(new Error(blocked));
+    }
     const token = Cookies.get('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

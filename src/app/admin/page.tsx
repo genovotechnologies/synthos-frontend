@@ -57,7 +57,7 @@ export default function AdminOverview() {
   // Growth series — hidden until the backend ships /admin/analytics/growth.
   const { data: growth } = useQuery({
     queryKey: ['admin', 'growth'],
-    queryFn: () => platformApi.getAdminGrowth('30d'),
+    queryFn: () => platformApi.getAdminGrowth(30),
     retry: false,
     staleTime: 5 * 60_000,
   });

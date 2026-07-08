@@ -139,6 +139,8 @@ export interface ValidationResults {
 export interface Validation {
   id: string;
   validation_id?: string;
+  /** User-editable display name; falls back to dataset_name when unset */
+  name?: string;
   dataset_id: string;
   dataset_name?: string;
   validation_type: string;

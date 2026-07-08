@@ -6,7 +6,9 @@ import Link from 'next/link';
 import { adminApi } from '@/lib/api/admin';
 import { toast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
-import { Search, ChevronLeft, ChevronRight, Loader2, Trash2, AlertCircle } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Loader2, Trash2, AlertCircle, Eye } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { startImpersonation } from '@/lib/impersonation';
 
 const ROLES = ['all', 'admin', 'developer', 'support', 'user'] as const;
 const STATUSES = ['all', 'active', 'suspended'] as const;
@@ -26,6 +28,32 @@ export default function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [confirmAction, setConfirmAction] = useState<{ type: 'role' | 'status' | 'delete'; userId: string; value: string } | null>(null);
+  const [impersonateTarget, setImpersonateTarget] = useState<{ id: string; label: string } | null>(null);
+  const [impersonating, setImpersonating] = useState(false);
+
+  const handleImpersonate = async () => {
+    if (!impersonateTarget) return;
+    setImpersonating(true);
+    try {
+      const result = await adminApi.impersonate(impersonateTarget.id);
+      startImpersonation({
+        token: result.token,
+        expires_at: result.expires_at,
+        impersonator_id: result.impersonator_id,
+        user_id: impersonateTarget.id,
+        user_label: impersonateTarget.label,
+      });
+      window.location.href = '/dashboard';
+    } catch (err) {
+      const status = (err as { status?: number })?.status;
+      toast.error(
+        status === 404 || status === 405 ? 'Impersonation not available yet' : 'Could not start impersonation',
+        status === 404 || status === 405 ? 'The backend endpoint has not shipped.' : (err as Error).message
+      );
+      setImpersonating(false);
+      setImpersonateTarget(null);
+    }
+  };
 
   // Debounce search input before it hits the query key.
   useEffect(() => {
@@ -194,7 +222,15 @@ export default function AdminUsersPage() {
                     {new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </span>
                 </div>
-                <div className="col-span-1 text-right">
+                <div className="col-span-1 text-right flex items-center justify-end gap-1">
+                  <button
+                    onClick={() => setImpersonateTarget({ id: user.id, label: user.full_name || user.email })}
+                    className="p-1.5 rounded-md text-zinc-700 hover:text-amber-400 hover:bg-amber-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                    title="View as user"
+                    aria-label={`View as ${user.email}`}
+                  >
+                    <Eye size={14} />
+                  </button>
                   <button
                     onClick={() => setConfirmAction({ type: 'delete', userId: user.id, value: user.email })}
                     className="p-1.5 rounded-md text-zinc-700 hover:text-rose-400 hover:bg-rose-500/10 opacity-0 group-hover:opacity-100 transition-all"
@@ -274,6 +310,15 @@ export default function AdminUsersPage() {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={!!impersonateTarget}
+        title="View as user?"
+        description={impersonateTarget ? `You will see the dashboard exactly as ${impersonateTarget.label} does. Billing and destructive actions are disabled, and a banner will show until you exit.` : undefined}
+        confirmLabel="Start viewing"
+        loading={impersonating}
+        onConfirm={handleImpersonate}
+        onClose={() => !impersonating && setImpersonateTarget(null)}
+      />
     </div>
   );
 }

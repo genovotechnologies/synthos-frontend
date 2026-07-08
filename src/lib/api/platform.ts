@@ -184,12 +184,30 @@ export const platformApi = {
       return Array.isArray(points) && points.length > 0 ? points : null;
     }),
 
-  // Admin growth ---------------------------------------------------------------
-  getAdminGrowth: (period = '30d') =>
+  // Admin growth (overview mini-chart) — merged from GET /admin/metrics.
+  getAdminGrowth: (days = 30) =>
     optional(async () => {
-      const { data } = await apiClient.get(`/admin/analytics/growth?period=${period}`);
-      const points = (data.points ?? data) as GrowthPoint[];
-      return Array.isArray(points) && points.length > 0 ? points : null;
+      const to = new Date().toISOString().slice(0, 10);
+      const from = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+      const params = (metric: string) =>
+        new URLSearchParams({ metric, from, to, granularity: 'day' }).toString();
+      const [signupsRes, validationsRes] = await Promise.all([
+        apiClient.get(`/admin/metrics?${params('signups')}`),
+        apiClient.get(`/admin/metrics?${params('validations')}`),
+      ]);
+      const byDate = new Map<string, GrowthPoint>();
+      for (const p of signupsRes.data.series ?? []) {
+        const date = String(p.bucket).slice(0, 10);
+        byDate.set(date, { date, signups: p.value, validations: 0 });
+      }
+      for (const p of validationsRes.data.series ?? []) {
+        const date = String(p.bucket).slice(0, 10);
+        const existing = byDate.get(date) ?? { date, signups: 0, validations: 0 };
+        existing.validations = p.value;
+        byDate.set(date, existing);
+      }
+      const points = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+      return points.length > 0 ? points : null;
     }),
 
   // Public certificate verification ---------------------------------------------

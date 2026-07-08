@@ -1,10 +1,149 @@
 'use client';
 
 import * as React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Check, Loader2, X, Minus, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
-import { platformApi, type ValidationStage, type ValidationFinding } from '@/lib/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Check, Loader2, X, Minus, ChevronLeft, ChevronRight, AlertTriangle, Pencil } from 'lucide-react';
+import { platformApi, validationsApi, type Validation, type ValidationStage, type ValidationFinding } from '@/lib/api';
+import { toast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
+
+/** Display name for a validation: user-set name, else a dataset-based fallback. */
+export function validationDisplayName(
+  v: Pick<Validation, 'name' | 'dataset_name'>,
+  fallback = 'Untitled validation'
+): string {
+  return v.name?.trim() || v.dataset_name?.trim() || fallback;
+}
+
+const NAME_MAX = 120;
+
+/**
+ * Inline click-to-edit validation name. Enter saves, Esc cancels. Optimistic
+ * across every cached validations query, with rollback + toast on failure.
+ * Safe inside row <Link>s: all interactions stop propagation.
+ */
+export function EditableValidationName({
+  validation,
+  fallback = 'Untitled validation',
+  textClassName,
+  inputClassName,
+}: {
+  validation: Pick<Validation, 'id' | 'name' | 'dataset_name'>;
+  fallback?: string;
+  textClassName?: string;
+  inputClassName?: string;
+}) {
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = React.useState(false);
+  const [value, setValue] = React.useState('');
+  const display = validationDisplayName(validation, fallback);
+
+  const trimmed = value.trim();
+  const invalid = trimmed.length === 0 || trimmed.length > NAME_MAX;
+
+  const renameMutation = useMutation({
+    mutationFn: (name: string) => validationsApi.rename(validation.id, name),
+    onMutate: async (name: string) => {
+      await queryClient.cancelQueries({ queryKey: ['validations'] });
+      await queryClient.cancelQueries({ queryKey: ['validation', validation.id] });
+      const listSnapshots = queryClient.getQueriesData({ queryKey: ['validations'] });
+      const detailSnapshot = queryClient.getQueryData(['validation', validation.id]);
+      queryClient.setQueriesData({ queryKey: ['validations'] }, (old: unknown) => {
+        const o = old as { validations?: Validation[] } | undefined;
+        if (!o?.validations) return old;
+        return {
+          ...o,
+          validations: o.validations.map((v) => (v.id === validation.id ? { ...v, name } : v)),
+        };
+      });
+      queryClient.setQueryData(['validation', validation.id], (old: Validation | undefined) =>
+        old ? { ...old, name } : old
+      );
+      return { listSnapshots, detailSnapshot };
+    },
+    onSuccess: () => toast.success('Validation renamed'),
+    onError: (err: Error & { status?: number }, _name, ctx) => {
+      ctx?.listSnapshots?.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      if (ctx && ctx.detailSnapshot !== undefined) {
+        queryClient.setQueryData(['validation', validation.id], ctx.detailSnapshot);
+      }
+      const unavailable = err.status === 404 || err.status === 405;
+      toast.error(
+        unavailable ? 'Rename not available yet' : 'Could not rename validation',
+        unavailable ? 'The rename endpoint has not shipped on this backend.' : err.message
+      );
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['validations'] });
+      queryClient.invalidateQueries({ queryKey: ['validation', validation.id] });
+    },
+  });
+
+  const stop = (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const beginEdit = (e: React.SyntheticEvent) => {
+    stop(e);
+    setValue(validation.name?.trim() || display);
+    setEditing(true);
+  };
+
+  const commit = () => {
+    setEditing(false);
+    if (invalid || trimmed === display) return;
+    renameMutation.mutate(trimmed);
+  };
+
+  if (editing) {
+    return (
+      <span className="inline-flex flex-col min-w-0" onClick={stop}>
+        <input
+          autoFocus
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onClick={stop}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === 'Enter' && !invalid) commit();
+            else if (e.key === 'Escape') setEditing(false);
+          }}
+          onBlur={() => setEditing(false)}
+          maxLength={NAME_MAX + 20}
+          aria-label="Validation name"
+          className={cn(
+            'bg-white/[0.05] ring-1 rounded-lg px-2 py-1 text-zinc-100 focus:outline-none min-w-0 w-full',
+            invalid ? 'ring-rose-500/50' : 'ring-violet-500/50',
+            inputClassName
+          )}
+        />
+        {trimmed.length > NAME_MAX && (
+          <span className="text-[10px] text-rose-400 mt-0.5">Max {NAME_MAX} characters</span>
+        )}
+      </span>
+    );
+  }
+
+  return (
+    <span className="group/name inline-flex items-center gap-1.5 min-w-0">
+      <span className={cn('truncate', textClassName)}>{display}</span>
+      {renameMutation.isPending ? (
+        <Loader2 className="w-3 h-3 animate-spin text-zinc-500 flex-shrink-0" />
+      ) : (
+        <button
+          type="button"
+          onClick={beginEdit}
+          aria-label={`Rename ${display}`}
+          title="Rename"
+          className="p-0.5 rounded text-zinc-600 opacity-0 group-hover/name:opacity-100 focus-visible:opacity-100 hover:text-zinc-300 transition-all flex-shrink-0"
+        >
+          <Pencil className="w-3 h-3" />
+        </button>
+      )}
+    </span>
+  );
+}
 
 /**
  * Live pipeline view for a running validation. Polls /validations/:id/progress;
@@ -132,7 +271,26 @@ export function FindingsSection({ validationId }: { validationId: string }) {
     staleTime: 5 * 60_000,
   });
 
-  if (!data || data.findings.length === 0) return null;
+  // Endpoint not shipped yet — hide entirely.
+  if (!data) return null;
+
+  // Endpoint live but no findings: either a clean sample, or a columnar format
+  // (parquet/arrow/…) that the sampling pipeline doesn't inspect yet.
+  if (data.findings.length === 0) {
+    return (
+      <div className="panel p-6">
+        <h3 className="font-medium text-zinc-300 text-sm flex items-center gap-2 mb-2">
+          <AlertTriangle className="w-4 h-4 text-zinc-500" />
+          Problematic Rows
+        </h3>
+        <p className="text-sm text-zinc-500 leading-relaxed">
+          No row-level findings. Findings are computed from a sample of up to 5,000 rows of
+          CSV, TSV, or JSONL data — columnar formats aren&apos;t sampled yet. Full-file ML
+          findings are coming with the GPU pipeline.
+        </p>
+      </div>
+    );
+  }
 
   const totalPages = data.pagination?.total_pages ?? 1;
 
@@ -150,7 +308,9 @@ export function FindingsSection({ validationId }: { validationId: string }) {
           <AlertTriangle className="w-4 h-4 text-amber-400" />
           Problematic Rows
         </h3>
-        <span className="text-xs text-zinc-600 tabular-nums">{data.total.toLocaleString()} findings</span>
+        <span className="text-xs text-zinc-600 tabular-nums">
+          {data.total.toLocaleString()} findings · sampled from up to 5,000 rows
+        </span>
       </div>
       <div className="overflow-x-auto -mx-6 px-6">
         <table className="w-full min-w-[680px] text-sm">

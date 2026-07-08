@@ -62,6 +62,8 @@ export default function BillingPage() {
   const [historyPage, setHistoryPage] = useState(1);
   const [devPurchasePkg, setDevPurchasePkg] = useState<CreditPackage | null>(null);
   const promoAttempted = useRef(false);
+  // Latest known balance, for detecting the post-checkout webhook credit.
+  const balanceRef = useRef<number | undefined>(undefined);
 
   const { data: balance, isLoading: balanceLoading } = useQuery({
     queryKey: ['credits', 'balance'],
@@ -85,6 +87,10 @@ export default function BillingPage() {
     retry: false,
     staleTime: 5 * 60_000,
   });
+
+  useEffect(() => {
+    balanceRef.current = balance?.balance;
+  }, [balance?.balance]);
 
   const lowBalance =
     !!balance && balance.lifetime_purchased > 0 && balance.balance > 0 && balance.balance < 25;
@@ -139,7 +145,27 @@ export default function BillingPage() {
           token: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN || '',
           eventCallback: (event: Record<string, unknown>) => {
             if (event.name === 'checkout.completed') {
-              queryClient.invalidateQueries({ queryKey: ['credits'] });
+              setShowSuccess(true);
+              setTimeout(() => setShowSuccess(false), 6000);
+              // The webhook that credits the account can lag the checkout by a
+              // few seconds — poll the balance until it moves (max ~20s).
+              const before = balanceRef.current;
+              let attempts = 0;
+              const poll = setInterval(async () => {
+                attempts += 1;
+                const result = await queryClient.fetchQuery({
+                  queryKey: ['credits', 'balance'],
+                  queryFn: creditsApi.getBalance,
+                });
+                if (result.balance !== before || attempts >= 10) {
+                  clearInterval(poll);
+                  queryClient.invalidateQueries({ queryKey: ['credits'] });
+                }
+              }, 2000);
+            } else if (event.name === 'checkout.closed') {
+              toast.info('Checkout closed', 'No charge was made. Your cart is discarded.');
+            } else if (event.name === 'checkout.error' || event.name === 'checkout.failed') {
+              toast.error('Checkout failed', 'Your payment was not processed. Please try again or contact support.');
             }
           },
         });
