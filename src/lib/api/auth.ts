@@ -55,6 +55,9 @@ export const authApi = {
     if (data.invite_token) {
       body.invite_token = data.invite_token;
     }
+    if (data.turnstile_token) {
+      body.turnstile_token = data.turnstile_token;
+    }
     const response = await apiClient.post<RegisterResponse>('/auth/register', body);
     return response.data;
   },
