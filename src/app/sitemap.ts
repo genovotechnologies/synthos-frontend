@@ -1,9 +1,30 @@
 import type { MetadataRoute } from 'next';
+import { BLOG_POSTS } from '@/content/blog';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://www.synthos.dev';
 
+  const blogEntries: MetadataRoute.Sitemap = BLOG_POSTS.map((post) => ({
+    url: `${baseUrl}/blog/${post.slug}`,
+    lastModified: new Date(`${post.date}T00:00:00Z`),
+    changeFrequency: 'monthly',
+    priority: 0.7,
+  }));
+
   return [
+    {
+      url: `${baseUrl}/blog`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+    ...blogEntries,
+    {
+      url: `${baseUrl}/changelog`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.6,
+    },
     {
       url: baseUrl,
       lastModified: new Date(),

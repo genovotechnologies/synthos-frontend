@@ -52,6 +52,12 @@ export const validationsApi = {
     await apiClient.post(`/validations/${id}/cancel`);
   },
 
+  /** Rename a validation. Name rules: trimmed, 1-120 chars, non-empty. */
+  rename: async (id: string, name: string): Promise<Validation> => {
+    const response = await apiClient.patch<Validation>(`/validations/${id}`, { name: name.trim() });
+    return normalizeValidation(response.data as unknown as Record<string, unknown>);
+  },
+
   compare: async (id1: string, id2: string) => {
     const { data } = await apiClient.get(`/validations/compare?id1=${id1}&id2=${id2}`);
     return data;

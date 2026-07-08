@@ -153,7 +153,7 @@ function ValidationSelector({
         <option value="">Select a validation to compare</option>
         {completedValidations.map((v) => (
           <option key={v.id} value={v.id}>
-            {v.dataset_name || 'Untitled'} - Risk: {v.results?.risk_score ?? '?'}% ({new Date(v.created_at).toLocaleDateString()})
+            {v.name?.trim() || v.dataset_name || 'Untitled'} - Risk: {v.results?.risk_score ?? '?'}% ({new Date(v.created_at).toLocaleDateString()})
           </option>
         ))}
       </select>
@@ -213,8 +213,8 @@ function CompareContent() {
     ? validation2.results!.risk_score - validation1.results!.risk_score
     : 0;
 
-  const name1 = validation1?.dataset_name || 'Validation 1';
-  const name2 = validation2?.dataset_name || 'Validation 2';
+  const name1 = validation1?.name?.trim() || validation1?.dataset_name || 'Validation 1';
+  const name2 = validation2?.name?.trim() || validation2?.dataset_name || 'Validation 2';
 
   return (
     <div className="space-y-8">

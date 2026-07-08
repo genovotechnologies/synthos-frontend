@@ -432,7 +432,7 @@ export default function DashboardOverview() {
               validationsData.validations.slice(0, 6).map((v) => (
                 <Link key={v.id} href={`/dashboard/validations/${v.id}`} className="flex items-center gap-4 py-2.5 group">
                   <StatusDot status={v.status} />
-                  <span className="flex-1 text-sm text-zinc-300 truncate group-hover:text-zinc-100 transition-colors">{v.dataset_name || 'Untitled validation'}</span>
+                  <span className="flex-1 text-sm text-zinc-300 truncate group-hover:text-zinc-100 transition-colors">{v.name?.trim() || v.dataset_name || 'Untitled validation'}</span>
                   <span className="text-xs text-zinc-600 tabular-nums">{new Date(v.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                 </Link>
               ))
@@ -462,8 +462,8 @@ export default function DashboardOverview() {
             {validationsData.validations.map((v) => (
               <Link key={v.id} href={`/dashboard/validations/${v.id}`} className="grid grid-cols-12 gap-4 py-3.5 border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors group">
                 <div className="col-span-4 flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-md bg-zinc-800/80 flex items-center justify-center text-xs font-medium text-zinc-400 group-hover:bg-zinc-800 transition-colors">{v.dataset_name?.charAt(0).toUpperCase() || 'D'}</div>
-                  <span className="text-sm text-zinc-300 truncate group-hover:text-zinc-100 transition-colors">{v.dataset_name || 'Untitled'}</span>
+                  <div className="w-7 h-7 rounded-md bg-zinc-800/80 flex items-center justify-center text-xs font-medium text-zinc-400 group-hover:bg-zinc-800 transition-colors">{(v.name?.trim() || v.dataset_name || 'D').charAt(0).toUpperCase()}</div>
+                  <span className="text-sm text-zinc-300 truncate group-hover:text-zinc-100 transition-colors">{v.name?.trim() || v.dataset_name || 'Untitled'}</span>
                 </div>
                 <div className="col-span-2 flex items-center"><span className="text-sm text-zinc-500">{v.validation_type}</span></div>
                 <div className="col-span-2 flex items-center justify-end"><span className="text-sm text-zinc-400 tabular-nums">{(v.risk_score ?? v.results?.risk_score) != null ? `${v.risk_score ?? v.results?.risk_score}%` : '—'}</span></div>

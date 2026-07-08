@@ -5,6 +5,8 @@ import { SynthosLogoWithText } from '@/components/ui/synthos-logo';
 
 const footerLinks = [
   { name: 'About', href: '/about' },
+  { name: 'Blog', href: '/blog' },
+  { name: 'Changelog', href: '/changelog' },
   { name: 'Pricing', href: '/pricing' },
   { name: 'API Docs', href: '/docs' },
   { name: 'Status', href: '/status' },

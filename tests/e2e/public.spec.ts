@@ -71,6 +71,32 @@ test.describe('status page', () => {
   });
 });
 
+test.describe('blog + changelog', () => {
+  test('blog index lists the launch post and navigates to it', async ({ page }) => {
+    await page.goto('/blog');
+    const postLink = page.getByRole('link', { name: /model collapse/i }).first();
+    await expect(postLink).toBeVisible();
+    await postLink.click();
+    await expect(page).toHaveURL(/\/blog\/model-collapse/);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(/model collapse/i);
+  });
+
+  test('rss feed serves valid xml', async ({ request }) => {
+    const res = await request.get('/blog/rss.xml');
+    expect(res.status()).toBe(200);
+    expect(res.headers()['content-type']).toContain('rss+xml');
+    const body = await res.text();
+    expect(body).toContain('<rss');
+    expect(body).toContain('/blog/model-collapse');
+  });
+
+  test('changelog renders dated entries with anchors', async ({ page }) => {
+    await page.goto('/changelog');
+    await expect(page.getByRole('heading', { level: 1, name: /changelog/i })).toBeVisible();
+    await expect(page.locator('article[id]').first()).toBeVisible();
+  });
+});
+
 test.describe('route protection', () => {
   test('dashboard redirects unauthenticated visitors to login', async ({ page }) => {
     await page.goto('/dashboard');

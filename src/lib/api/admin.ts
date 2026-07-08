@@ -130,6 +130,43 @@ export const adminApi = {
   rejectWarranty: async (id: string, reason: string) => {
     await apiClient.patch(`/admin/warranties/${id}/reject`, { reason });
   },
+  /**
+   * Time-series platform metrics. Falls back to a deterministic sample series
+   * (flagged mocked: true) while the endpoint is not live.
+   * TODO(remove-mock): drop the fallback once /admin/metrics ships.
+   */
+  getMetrics: async (
+    metric: 'signups' | 'validations' | 'revenue',
+    from: string,
+    to: string,
+    granularity: 'day' | 'week' | 'month'
+  ): Promise<{ series: { bucket: string; value: number }[]; mocked: boolean }> => {
+    try {
+      const params = new URLSearchParams({ metric, from, to, granularity });
+      const { data } = await apiClient.get(`/admin/metrics?${params}`);
+      return { series: data.series ?? [], mocked: false };
+    } catch (err) {
+      const status = (err as { status?: number })?.status;
+      if (status !== 404 && status !== 405 && status !== 501) throw err;
+      // Deterministic placeholder so the page is reviewable pre-backend.
+      const start = new Date(from).getTime();
+      const end = new Date(to).getTime();
+      const stepMs = granularity === 'day' ? 86_400_000 : granularity === 'week' ? 7 * 86_400_000 : 30 * 86_400_000;
+      const buckets = Math.max(2, Math.min(90, Math.floor((end - start) / stepMs) + 1));
+      const base = metric === 'revenue' ? 400 : metric === 'validations' ? 12 : 6;
+      const series = Array.from({ length: buckets }, (_, i) => ({
+        bucket: new Date(start + i * stepMs).toISOString(),
+        value: Math.round(base + base * 0.6 * Math.sin(i / 3) + (i * base) / buckets + ((i * 7) % 5)),
+      }));
+      return { series, mocked: true };
+    }
+  },
+
+  impersonate: async (userId: string): Promise<{ token: string; expires_at: string; impersonator_id: string }> => {
+    const { data } = await apiClient.post('/admin/impersonate', { user_id: userId });
+    return data;
+  },
+
   getSettings: async (): Promise<AdminSettings> => {
     const { data } = await apiClient.get('/admin/settings');
     return data;

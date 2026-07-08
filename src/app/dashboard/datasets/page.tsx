@@ -571,7 +571,7 @@ function MultiUploadModal({ onClose, onSuccess }: { onClose: () => void; onSucce
                     className="w-full px-3 py-2 rounded-xl bg-white/[0.04] ring-1 ring-white/[0.08] text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-violet-500/50 transition-all"
                   />
                   <p className="text-[11px] text-zinc-600 mt-1.5">
-                    Files in a group can be validated together as one logical dataset.
+                    Grouped files can be validated together — currently runs on the group&rsquo;s largest ready file.
                   </p>
                 </div>
               )}
@@ -746,7 +746,7 @@ export default function DatasetsPage() {
       validationsApi.create({ group_id: groupId, validation_type: 'standard' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['validations'] });
-      toast.success('Group validation started', 'The whole group will be validated as one dataset.');
+      toast.success('Group validation started', "Runs on the group's largest ready file; the report covers the group.");
     },
     onError: (err: Error) => toast.error('Could not start group validation', err.message),
   });

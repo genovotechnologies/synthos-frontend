@@ -4,7 +4,7 @@ import { use, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { validationsApi, warrantiesApi, type ValidationDimensions } from '@/lib/api';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { ValidationPipeline, FindingsSection } from '@/components/dashboard/validation-extras';
+import { ValidationPipeline, FindingsSection, EditableValidationName } from '@/components/dashboard/validation-extras';
 import { toast } from '@/components/ui/toast';
 import {
   ArrowLeft,
@@ -268,7 +268,12 @@ export default function ValidationDetailPage({ params }: { params: Promise<{ id:
           </Link>
           <div>
             <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">
-              {validation.dataset_name || 'Dataset'} Validation
+              <EditableValidationName
+                validation={validation}
+                fallback={`${validation.dataset_name || 'Dataset'} Validation`}
+                textClassName="text-2xl font-semibold text-zinc-100 tracking-tight"
+                inputClassName="text-xl font-semibold"
+              />
             </h1>
             <p className="text-sm text-zinc-500 mt-0.5">{validation.validation_type}</p>
           </div>
