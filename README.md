@@ -16,6 +16,19 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Environment variables
+
+| Variable | Purpose |
+| --- | --- |
+| `BACKEND_URL` | Backend API origin the `/api/v1` proxy forwards to (default `https://api.synthos.dev`). |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key. When set, a CAPTCHA renders on the registration form. |
+| `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret. When set, the `/api/v1` proxy verifies the token server-side on `POST /auth/register` and rejects failures with 403 `CAPTCHA_FAILED`. Set both keys to activate bot protection. |
+
+Abuse-prone endpoints (register, login, password reset, OTP, promo) are also
+rate-limited per IP in the proxy (`src/app/api/v1/[...path]/route.ts`). The
+limiter is in-memory per server instance — keep hard guarantees at the WAF or
+backend layer.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

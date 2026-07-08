@@ -30,6 +30,8 @@ export interface RegisterRequest {
   name: string;
   company?: string;
   invite_token?: string;
+  /** Cloudflare Turnstile response token; verified by the API proxy when configured */
+  turnstile_token?: string;
 }
 
 export interface RegisterResponse {

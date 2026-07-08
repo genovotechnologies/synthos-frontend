@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Upload, Database, Trash2, FileText, AlertCircle, Check, X,
   Loader2, ChevronLeft, ChevronRight, Search, MoreHorizontal,
-  Pause, Play, RefreshCw, ShieldCheck
+  FolderOpen, ShieldCheck
 } from 'lucide-react';
 import { datasetsApi, type Dataset, type UploadProgress } from '@/lib/api';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -16,12 +16,74 @@ import { toast } from '@/components/ui/toast';
 const MAX_FILE_SIZE = 500 * 1024 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = ['.csv', '.json', '.jsonl', '.parquet', '.hdf5', '.h5', '.xlsx', '.xls', '.tsv', '.arrow', '.feather', '.orc', '.avro', '.pkl', '.pickle'];
 
-interface UploadState {
-  status: 'idle' | 'checking-resume' | 'preparing' | 'uploading' | 'completing' | 'paused' | 'success' | 'error';
+// Datasets frequently ship as folders of many files (per-split CSVs, sharded
+// parquet, etc.), so the uploader accepts multiple files and whole directories.
+// Each file becomes its own dataset (the backend model is one dataset per file).
+const MAX_BATCH_FILES = 300;
+const UPLOAD_CONCURRENCY = 2;
+
+interface QueuedFile {
+  id: number;
+  file: File;
+  /** Path shown in the list; includes folder prefix for directory uploads */
+  relativePath: string;
+  status: 'queued' | 'uploading' | 'success' | 'error';
   progress: UploadProgress | null;
-  error: string | null;
-  canResume: boolean;
-  resumeInfo?: { completedChunks: number; totalChunks: number };
+  error?: string;
+}
+
+interface IncomingFile {
+  file: File;
+  relativePath: string;
+}
+
+/**
+ * Resolve dropped items into files, recursing into directories via the
+ * FileSystem entry API. Entries must be captured synchronously before the
+ * first await — the DataTransferItemList is invalidated once the drop
+ * handler yields.
+ */
+function collectDroppedFiles(items: DataTransferItemList): Promise<IncomingFile[]> {
+  const entries: FileSystemEntry[] = [];
+  const plainFiles: File[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (item.kind !== 'file') continue;
+    const entry = item.webkitGetAsEntry?.();
+    if (entry) entries.push(entry);
+    else {
+      const file = item.getAsFile();
+      if (file) plainFiles.push(file);
+    }
+  }
+
+  async function walkEntry(entry: FileSystemEntry, prefix: string, out: IncomingFile[]): Promise<void> {
+    if (out.length >= MAX_BATCH_FILES) return;
+    if (entry.isFile) {
+      const file = await new Promise<File>((resolve, reject) =>
+        (entry as FileSystemFileEntry).file(resolve, reject)
+      );
+      out.push({ file, relativePath: prefix + file.name });
+    } else if (entry.isDirectory) {
+      const reader = (entry as FileSystemDirectoryEntry).createReader();
+      let batch: FileSystemEntry[];
+      do {
+        batch = await new Promise<FileSystemEntry[]>((resolve, reject) =>
+          reader.readEntries(resolve, reject)
+        );
+        for (const child of batch) {
+          await walkEntry(child, `${prefix}${entry.name}/`, out);
+        }
+      } while (batch.length > 0 && out.length < MAX_BATCH_FILES);
+    }
+  }
+
+  return (async () => {
+    const out: IncomingFile[] = [];
+    for (const entry of entries) await walkEntry(entry, '', out);
+    for (const file of plainFiles) out.push({ file, relativePath: file.name });
+    return out;
+  })();
 }
 
 function formatBytes(bytes: number): string {
@@ -172,381 +234,392 @@ function DatasetRow({ dataset, onDelete }: { dataset: Dataset; onDelete: (datase
   );
 }
 
-function UploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
-  const [file, setFile] = useState<File | null>(null);
-  const [uploadState, setUploadState] = useState<UploadState>({
-    status: 'idle',
-    progress: null,
-    error: null,
-    canResume: false,
-  });
+function MultiUploadModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const [queue, setQueue] = useState<QueuedFile[]>([]);
+  const [skippedCount, setSkippedCount] = useState(0);
+  const [truncated, setTruncated] = useState(false);
+  const [phase, setPhase] = useState<'select' | 'uploading' | 'done'>('select');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const idRef = useRef(1);
 
-  const checkResumableUpload = async (selectedFile: File) => {
-    setUploadState(prev => ({ ...prev, status: 'checking-resume' }));
-    try {
-      const resumeState = await datasetsApi.getResumableUpload(selectedFile.name, selectedFile.size);
-      if (resumeState) {
-        const totalChunks = Math.ceil(selectedFile.size / (100 * 1024 * 1024));
-        setUploadState({
-          status: 'idle',
+  const addFiles = useCallback((incoming: IncomingFile[]) => {
+    setQueue((prev) => {
+      const existing = new Set(prev.map((q) => `${q.relativePath}:${q.file.size}`));
+      const additions: QueuedFile[] = [];
+      let skipped = 0;
+      for (const { file, relativePath } of incoming) {
+        const baseName = file.name;
+        if (baseName.startsWith('.') || !validateFile(file).valid) {
+          skipped++;
+          continue;
+        }
+        const key = `${relativePath}:${file.size}`;
+        if (existing.has(key)) continue;
+        existing.add(key);
+        additions.push({
+          id: idRef.current++,
+          file,
+          relativePath,
+          status: 'queued',
           progress: null,
-          error: null,
-          canResume: true,
-          resumeInfo: {
-            completedChunks: resumeState.completedParts.length,
-            totalChunks,
-          },
-        });
-      } else {
-        setUploadState({
-          status: 'idle',
-          progress: null,
-          error: null,
-          canResume: false,
         });
       }
-    } catch {
-      setUploadState({
-        status: 'idle',
-        progress: null,
-        error: null,
-        canResume: false,
-      });
-    }
+      const merged = [...prev, ...additions];
+      const capped = merged.slice(0, MAX_BATCH_FILES);
+      setTruncated((t) => t || merged.length > MAX_BATCH_FILES);
+      setSkippedCount((s) => s + skipped);
+      return capped;
+    });
+  }, []);
+
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault();
+      if (phase === 'uploading') return;
+      const incoming = await collectDroppedFiles(e.dataTransfer.items);
+      addFiles(incoming);
+    },
+    [addFiles, phase]
+  );
+
+  const onInputFiles = useCallback(
+    (list: FileList | null) => {
+      if (!list) return;
+      const incoming: IncomingFile[] = Array.from(list).map((file) => ({
+        file,
+        relativePath: (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name,
+      }));
+      addFiles(incoming);
+    },
+    [addFiles]
+  );
+
+  const removeFile = (id: number) => {
+    setQueue((prev) => prev.filter((q) => q.id !== id));
   };
 
-  // Check for resumable upload when file is selected
-  useEffect(() => {
-    if (file) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      checkResumableUpload(file);
-    }
-  }, [file]);
+  const startUpload = async () => {
+    abortRef.current = new AbortController();
+    const signal = abortRef.current.signal;
+    setPhase('uploading');
 
-  const handleFileSelect = useCallback((selectedFile: File) => {
-    const validation = validateFile(selectedFile);
-    if (!validation.valid) {
-      setUploadState({ 
-        status: 'error', 
-        progress: null, 
-        error: validation.error || 'Invalid file',
-        canResume: false,
-      });
+    const snapshot = queue;
+    const pendingIds = snapshot
+      .filter((q) => q.status === 'queued' || q.status === 'error')
+      .map((q) => q.id);
+    const byId = new Map(snapshot.map((q) => [q.id, q]));
+    const update = (id: number, patch: Partial<QueuedFile>) =>
+      setQueue((prev) => prev.map((q) => (q.id === id ? { ...q, ...patch } : q)));
+
+    let cursor = 0;
+    let succeeded = 0;
+    let failed = 0;
+
+    const worker = async () => {
+      while (!signal.aborted) {
+        const index = cursor++;
+        if (index >= pendingIds.length) return;
+        const id = pendingIds[index];
+        const item = byId.get(id);
+        if (!item) continue;
+        update(id, {
+          status: 'uploading',
+          error: undefined,
+          progress: { phase: 'preparing', totalBytes: item.file.size, uploadedBytes: 0, percentage: 0 },
+        });
+        try {
+          await datasetsApi.upload(item.file, (progress) => update(id, { progress }), signal);
+          succeeded++;
+          update(id, {
+            status: 'success',
+            progress: { phase: 'completing', totalBytes: item.file.size, uploadedBytes: item.file.size, percentage: 100 },
+          });
+        } catch (err) {
+          if (signal.aborted) {
+            update(id, { status: 'queued', progress: null });
+            return;
+          }
+          failed++;
+          update(id, {
+            status: 'error',
+            error: err instanceof Error ? err.message : 'Upload failed',
+            progress: null,
+          });
+        }
+      }
+    };
+
+    await Promise.all(
+      Array.from({ length: Math.min(UPLOAD_CONCURRENCY, pendingIds.length) }, () => worker())
+    );
+
+    if (succeeded > 0) onSuccess();
+    if (signal.aborted) {
+      setPhase('select');
+      if (succeeded > 0) toast.info('Upload paused', `${succeeded} of ${pendingIds.length} files uploaded before cancelling.`);
       return;
     }
-    setFile(selectedFile);
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile) {
-      handleFileSelect(droppedFile);
-    }
-  }, [handleFileSelect]);
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-  }, []);
-
-  const handleUpload = async () => {
-    if (!file) return;
-
-    abortControllerRef.current = new AbortController();
-    
-    try {
-      setUploadState(prev => ({ 
-        ...prev, 
-        status: 'preparing', 
-        error: null,
-        progress: { phase: 'preparing', totalBytes: file.size, uploadedBytes: 0, percentage: 0 },
-      }));
-
-      await datasetsApi.upload(
-        file,
-        (progress) => {
-          setUploadState(prev => ({
-            ...prev,
-            status: progress.phase === 'completing' ? 'completing' : 'uploading',
-            progress,
-          }));
-        },
-        abortControllerRef.current.signal
+    if (failed === 0) {
+      toast.success(
+        succeeded === 1 ? 'Dataset uploaded' : `${succeeded} datasets uploaded`,
+        succeeded === 1 ? undefined : 'Each file was created as its own dataset.'
       );
-
-      setUploadState({
-        status: 'success',
-        progress: { phase: 'completing', totalBytes: file.size, uploadedBytes: file.size, percentage: 100 },
-        error: null,
-        canResume: false,
-      });
-
-      setTimeout(() => {
-        onSuccess();
-        onClose();
-      }, 1500);
-
-    } catch (error) {
-      if (abortControllerRef.current?.signal.aborted) {
-        setUploadState(prev => ({
-          ...prev,
-          status: 'paused',
-          error: 'Upload paused. You can resume later.',
-          canResume: true,
-        }));
-      } else {
-        const message = error instanceof Error ? error.message : 'Upload failed. Please try again.';
-        setUploadState(prev => ({
-          ...prev,
-          status: 'error',
-          error: message,
-        }));
-      }
+      setPhase('done');
+      setTimeout(onClose, 1200);
+    } else {
+      toast.error(
+        `${failed} of ${pendingIds.length} uploads failed`,
+        succeeded > 0 ? `${succeeded} succeeded. Retry the failed files below.` : 'Retry the failed files below.'
+      );
+      setPhase('select');
     }
   };
 
-  const handlePause = () => {
-    abortControllerRef.current?.abort();
+  const handleCancel = () => {
+    abortRef.current?.abort();
   };
 
-  const handleCancelResume = async () => {
-    if (file) {
-      await datasetsApi.cancelResumableUpload(file.name);
-      setUploadState({
-        status: 'idle',
-        progress: null,
-        error: null,
-        canResume: false,
-      });
-    }
-  };
-
-  const isUploading = ['preparing', 'uploading', 'completing'].includes(uploadState.status);
-  const canPause = uploadState.status === 'uploading' && uploadState.progress?.totalChunks && uploadState.progress.totalChunks > 1;
+  const isUploading = phase === 'uploading';
+  const totalBytes = queue.reduce((sum, q) => sum + q.file.size, 0);
+  const uploadedBytes = queue.reduce((sum, q) => {
+    if (q.status === 'success') return sum + q.file.size;
+    if (q.status === 'uploading' && q.progress) return sum + q.progress.uploadedBytes;
+    return sum;
+  }, 0);
+  const aggregatePct = totalBytes > 0 ? Math.round((uploadedBytes / totalBytes) * 100) : 0;
+  const failedCount = queue.filter((q) => q.status === 'error').length;
+  const uploadableCount = queue.filter((q) => q.status === 'queued' || q.status === 'error').length;
+  const activeItem = queue.find((q) => q.status === 'uploading');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      
-      <div className="relative w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={isUploading ? undefined : onClose} />
+
+      <div className="relative w-full max-w-xl bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl flex flex-col max-h-[85vh]">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-zinc-800">
           <div>
-            <h2 className="text-lg font-semibold text-white">Upload Dataset</h2>
+            <h2 className="text-lg font-semibold text-white">Upload Datasets</h2>
             <p className="text-sm text-zinc-500 mt-0.5">
-              CSV, JSON, JSONL, Parquet, HDF5, Excel, TSV, Arrow, ORC, Avro (max 500 GB)
+              Add files or a whole folder — CSV, JSON, JSONL, Parquet, HDF5, Excel, TSV, Arrow, ORC, Avro, Pickle (max 500 GB each)
             </p>
           </div>
           <button
             onClick={onClose}
             disabled={isUploading}
+            aria-label="Close"
             className="p-2 text-zinc-500 hover:text-zinc-300 disabled:opacity-50 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
+        {/* Hidden inputs */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept={ALLOWED_EXTENSIONS.join(',')}
+          className="hidden"
+          onChange={(e) => {
+            onInputFiles(e.target.files);
+            e.target.value = '';
+          }}
+        />
+        <input
+          ref={folderInputRef}
+          type="file"
+          className="hidden"
+          {...({ webkitdirectory: '', directory: '' } as React.InputHTMLAttributes<HTMLInputElement>)}
+          onChange={(e) => {
+            onInputFiles(e.target.files);
+            e.target.value = '';
+          }}
+        />
+
         {/* Content */}
-        <div className="p-5">
-          {/* Drop Zone */}
-          <div
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onClick={() => !isUploading && fileInputRef.current?.click()}
-            className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${
-              uploadState.status === 'error'
-                ? 'border-rose-500/50 bg-rose-500/5'
-                : uploadState.status === 'success'
-                ? 'border-emerald-500/50 bg-emerald-500/5'
-                : file
-                ? 'border-violet-500/50 bg-violet-500/5'
-                : 'border-zinc-700 hover:border-zinc-600 bg-zinc-800/30'
-            } ${isUploading ? 'pointer-events-none' : ''}`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={ALLOWED_EXTENSIONS.join(',')}
-              onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
-              className="hidden"
-              disabled={isUploading}
-            />
+        <div className="p-5 overflow-y-auto flex-1" onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
+          {queue.length === 0 ? (
+            <div className="border-2 border-dashed border-zinc-700 hover:border-zinc-600 bg-zinc-800/30 rounded-xl p-10 text-center transition-colors">
+              <Upload className="w-12 h-12 mx-auto mb-3 text-zinc-400" />
+              <p className="font-medium text-white">Drop files or a folder here</p>
+              <p className="text-sm text-zinc-500 mt-1 mb-5">Multi-file datasets are uploaded as one dataset per file</p>
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  Browse files
+                </button>
+                <button
+                  onClick={() => folderInputRef.current?.click()}
+                  className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-medium rounded-lg border border-zinc-700 transition-colors flex items-center gap-2"
+                >
+                  <FolderOpen className="w-4 h-4" />
+                  Choose folder
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Add-more bar */}
+              {!isUploading && phase !== 'done' && (
+                <div className="flex items-center gap-2 mb-4">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-3 py-1.5 text-xs font-medium text-zinc-300 bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/60 rounded-lg transition-colors"
+                  >
+                    + Add files
+                  </button>
+                  <button
+                    onClick={() => folderInputRef.current?.click()}
+                    className="px-3 py-1.5 text-xs font-medium text-zinc-300 bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/60 rounded-lg transition-colors flex items-center gap-1.5"
+                  >
+                    <FolderOpen className="w-3.5 h-3.5" />
+                    Add folder
+                  </button>
+                  <span className="text-xs text-zinc-600 ml-auto">or drop more here</span>
+                </div>
+              )}
 
-            {uploadState.status === 'success' ? (
-              <div className="text-emerald-400">
-                <Check className="w-12 h-12 mx-auto mb-3" />
-                <p className="font-medium">Upload Complete!</p>
-              </div>
-            ) : uploadState.status === 'error' && !file ? (
-              <div className="text-rose-400">
-                <AlertCircle className="w-12 h-12 mx-auto mb-3" />
-                <p className="font-medium mb-1">Upload Failed</p>
-                <p className="text-sm text-rose-400/80">{uploadState.error}</p>
-              </div>
-            ) : uploadState.status === 'checking-resume' ? (
-              <div className="text-zinc-400">
-                <Loader2 className="w-12 h-12 mx-auto mb-3 animate-spin" />
-                <p className="font-medium text-white">Checking for resumable upload...</p>
-              </div>
-            ) : file ? (
-              <div>
-                <FileText className="w-12 h-12 mx-auto mb-3 text-violet-400" />
-                <p className="font-medium text-white">{file.name}</p>
-                <p className="text-sm text-zinc-500 mt-1">{formatBytes(file.size)}</p>
-                {uploadState.canResume && uploadState.resumeInfo && (
-                  <div className="mt-3 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                    <p className="text-xs text-amber-400 flex items-center justify-center gap-2">
-                      <RefreshCw className="w-3 h-3" />
-                      Resumable: {uploadState.resumeInfo.completedChunks}/{uploadState.resumeInfo.totalChunks} chunks uploaded
-                    </p>
+              {/* Aggregate progress */}
+              {(isUploading || phase === 'done') && (
+                <div className="mb-4">
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span className="text-zinc-400">
+                      {phase === 'done'
+                        ? 'All uploads complete'
+                        : activeItem
+                        ? `Uploading ${activeItem.relativePath}`
+                        : 'Uploading…'}
+                    </span>
+                    <span className="text-zinc-500 tabular-nums">{aggregatePct}%</span>
                   </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-zinc-400">
-                <Upload className="w-12 h-12 mx-auto mb-3" />
-                <p className="font-medium text-white">Drop your file here</p>
-                <p className="text-sm text-zinc-500 mt-1">or click to browse</p>
-              </div>
-            )}
-          </div>
-
-          {/* Progress */}
-          {(isUploading || uploadState.status === 'paused') && uploadState.progress && (
-            <div className="mt-5 space-y-3">
-              {/* Progress bar */}
-              <div>
-                <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="text-zinc-400">
-                    {uploadState.status === 'paused' ? 'Paused' : 
-                     uploadState.progress.phase === 'preparing' ? 'Preparing...' :
-                     uploadState.progress.phase === 'completing' ? 'Finalizing...' :
-                     uploadState.progress.totalChunks ? `Uploading chunk ${uploadState.progress.currentChunk || 0}/${uploadState.progress.totalChunks}` :
-                     'Uploading...'}
-                  </span>
-                  <span className="text-zinc-500">{uploadState.progress.percentage}%</span>
+                  <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-300 ${phase === 'done' ? 'bg-emerald-500' : 'bg-violet-500'}`}
+                      style={{ width: `${aggregatePct}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-zinc-500 mt-1.5">
+                    <span>
+                      {formatBytes(uploadedBytes)} / {formatBytes(totalBytes)}
+                    </span>
+                    {activeItem?.progress?.speed ? (
+                      <span className="flex items-center gap-3">
+                        <span>{formatSpeed(activeItem.progress.speed)}</span>
+                        {activeItem.progress.remainingTime !== undefined && (
+                          <span>{formatTime(activeItem.progress.remainingTime)} left on current file</span>
+                        )}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full transition-all duration-300 ${
-                      uploadState.status === 'paused' ? 'bg-amber-500' : 'bg-violet-500'
-                    }`}
-                    style={{ width: `${uploadState.progress.percentage}%` }}
-                  />
+              )}
+
+              {/* File list */}
+              <ul className="divide-y divide-zinc-800/50 border border-zinc-800/60 rounded-lg overflow-hidden">
+                {queue.map((item) => (
+                  <li key={item.id} className="flex items-center gap-3 px-3 py-2.5 bg-zinc-900/40">
+                    <FileText className="w-4 h-4 text-zinc-500 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-zinc-200 truncate" title={item.relativePath}>
+                        {item.relativePath}
+                      </p>
+                      <p className="text-[11px] text-zinc-600">
+                        {formatBytes(item.file.size)}
+                        {item.status === 'error' && item.error ? (
+                          <span className="text-rose-400 ml-2">{item.error}</span>
+                        ) : null}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {item.status === 'queued' && !isUploading && (
+                        <button
+                          onClick={() => removeFile(item.id)}
+                          aria-label={`Remove ${item.relativePath}`}
+                          className="p-1 text-zinc-600 hover:text-zinc-300 transition-colors"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {item.status === 'queued' && isUploading && (
+                        <span className="text-[11px] text-zinc-600">queued</span>
+                      )}
+                      {item.status === 'uploading' && (
+                        <span className="flex items-center gap-2 text-[11px] text-violet-400 tabular-nums">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          {item.progress?.percentage ?? 0}%
+                        </span>
+                      )}
+                      {item.status === 'success' && <Check className="w-4 h-4 text-emerald-400" />}
+                      {item.status === 'error' && <AlertCircle className="w-4 h-4 text-rose-400" />}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Notes */}
+              {(skippedCount > 0 || truncated) && (
+                <div className="mt-3 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400 space-y-0.5">
+                  {skippedCount > 0 && (
+                    <p>{skippedCount} file{skippedCount === 1 ? ' was' : 's were'} skipped (unsupported type, hidden, empty, or over 500 GB).</p>
+                  )}
+                  {truncated && <p>Batch capped at {MAX_BATCH_FILES} files — upload the rest in a second batch.</p>}
                 </div>
-              </div>
-
-              {/* Stats */}
-              <div className="flex items-center justify-between text-xs text-zinc-500">
-                <span>
-                  {formatBytes(uploadState.progress.uploadedBytes)} / {formatBytes(uploadState.progress.totalBytes)}
-                </span>
-                {uploadState.progress.speed && uploadState.progress.speed > 0 && (
-                  <span className="flex items-center gap-3">
-                    <span>{formatSpeed(uploadState.progress.speed)}</span>
-                    {uploadState.progress.remainingTime !== undefined && (
-                      <span>{formatTime(uploadState.progress.remainingTime)} remaining</span>
-                    )}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Error message */}
-          {uploadState.status === 'error' && file && (
-            <div className="mt-4 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20">
-              <p className="text-sm text-rose-400 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                {uploadState.error}
-              </p>
-            </div>
-          )}
-
-          {/* Paused message */}
-          {uploadState.status === 'paused' && (
-            <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-              <p className="text-sm text-amber-400">
-                Upload paused. Click &quot;Resume&quot; to continue or &quot;Cancel&quot; to start over.
-              </p>
-            </div>
+              )}
+            </>
           )}
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-between p-5 border-t border-zinc-800">
-          <div>
-            {uploadState.canResume && !isUploading && uploadState.status !== 'paused' && (
+          <p className="text-xs text-zinc-500">
+            {queue.length > 0 && (
+              <>
+                {queue.length} file{queue.length === 1 ? '' : 's'} • {formatBytes(totalBytes)}
+                {failedCount > 0 && <span className="text-rose-400 ml-2">{failedCount} failed</span>}
+              </>
+            )}
+          </p>
+          <div className="flex items-center gap-3">
+            {isUploading ? (
               <button
-                onClick={handleCancelResume}
-                className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                onClick={handleCancel}
+                className="px-4 py-2.5 text-sm font-medium text-zinc-400 hover:text-zinc-300 transition-colors"
               >
-                Clear saved progress
+                Cancel remaining
+              </button>
+            ) : (
+              <button
+                onClick={onClose}
+                className="px-4 py-2.5 text-sm font-medium text-zinc-400 hover:text-zinc-300 transition-colors"
+              >
+                {phase === 'done' ? 'Close' : 'Cancel'}
               </button>
             )}
-          </div>
-          <div className="flex items-center gap-3">
-            {uploadState.status === 'paused' ? (
-              <>
-                <button
-                  onClick={handleCancelResume}
-                  className="px-4 py-2.5 text-sm font-medium text-zinc-400 hover:text-zinc-300 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleUpload}
-                  className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
-                >
-                  <Play className="w-4 h-4" />
-                  Resume
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={onClose}
-                  disabled={isUploading}
-                  className="px-4 py-2.5 text-sm font-medium text-zinc-400 hover:text-zinc-300 disabled:opacity-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                {canPause && (
-                  <button
-                    onClick={handlePause}
-                    className="px-4 py-2.5 bg-zinc-700 hover:bg-zinc-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
-                  >
-                    <Pause className="w-4 h-4" />
-                    Pause
-                  </button>
+            {phase !== 'done' && (
+              <button
+                onClick={startUpload}
+                disabled={uploadableCount === 0 || isUploading}
+                className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:bg-violet-600/50 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Uploading…
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4" />
+                    {failedCount > 0 && uploadableCount === failedCount
+                      ? `Retry ${failedCount} failed`
+                      : `Upload ${uploadableCount} file${uploadableCount === 1 ? '' : 's'}`}
+                  </>
                 )}
-                <button
-                  onClick={handleUpload}
-                  disabled={!file || isUploading || uploadState.status === 'success'}
-                  className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:bg-violet-600/50 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      {uploadState.progress?.phase === 'preparing' ? 'Preparing...' :
-                       uploadState.progress?.phase === 'completing' ? 'Finalizing...' :
-                       'Uploading...'}
-                    </>
-                  ) : uploadState.canResume ? (
-                    <>
-                      <RefreshCw className="w-4 h-4" />
-                      Resume Upload
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-4 h-4" />
-                      Upload
-                    </>
-                  )}
-                </button>
-              </>
+              </button>
             )}
           </div>
         </div>
@@ -614,7 +687,7 @@ export default function DatasetsPage() {
           className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-lg transition-colors"
         >
           <Upload className="w-4 h-4" />
-          Upload Dataset
+          Upload Datasets
         </button>
       </div>
 
@@ -663,7 +736,7 @@ export default function DatasetsPage() {
               className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium rounded-lg transition-colors"
             >
               <Upload className="w-4 h-4" />
-              Upload Dataset
+              Upload Datasets
             </button>
           </div>
         ) : filteredDatasets.length === 0 ? (
@@ -727,7 +800,7 @@ export default function DatasetsPage() {
 
       {/* Upload Modal */}
       {showUploadModal && (
-        <UploadModal
+        <MultiUploadModal
           onClose={() => setShowUploadModal(false)}
           onSuccess={handleUploadSuccess}
         />

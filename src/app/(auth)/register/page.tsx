@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/providers/auth-provider';
 import { cn } from '@/lib/utils';
 import { apiClient } from '@/lib/api/client';
+import { Turnstile, TURNSTILE_ENABLED } from '@/components/ui/turnstile';
 import { Eye, EyeOff, AlertCircle, ArrowRight, Loader2, Check, Tag, ChevronDown, UserPlus } from 'lucide-react';
 
 const registerSchema = z.object({
@@ -86,6 +87,9 @@ function RegisterFormContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showPromoCode, setShowPromoCode] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  // Turnstile tokens are single-use; remount the widget after a failed submit
+  const [captchaKey, setCaptchaKey] = useState(0);
   const [promoValidation, setPromoValidation] = useState<{
     status: 'idle' | 'loading' | 'valid' | 'invalid';
     message?: string;
@@ -143,6 +147,7 @@ function RegisterFormContent() {
         password: data.password,
         company: data.company,
         invite_token: inviteToken || undefined,
+        turnstile_token: captchaToken || undefined,
       });
 
       if (inviteToken) {
@@ -159,14 +164,22 @@ function RegisterFormContent() {
         router.push(`/verify-email?email=${encodeURIComponent(data.email)}${promoParam}`);
       }
     } catch (err: unknown) {
+      const wrapped = err as Error & { code?: string; status?: number };
       const message = err instanceof Error ? err.message : '';
-      if (message.toLowerCase().includes('email') && message.toLowerCase().includes('exists')) {
+      if (wrapped.code === 'CAPTCHA_FAILED') {
+        setError('Verification challenge failed. Please complete the challenge below and try again.');
+      } else if (wrapped.status === 429 || wrapped.code === 'RATE_LIMITED') {
+        setError('Too many signup attempts from your network. Please wait a few minutes and try again.');
+      } else if (message.toLowerCase().includes('email') && message.toLowerCase().includes('exists')) {
         setError('An account with this email already exists. Please sign in instead.');
       } else if (message.toLowerCase().includes('required')) {
         setError('Please fill in all required fields: name, email, company, and password.');
       } else {
         setError('Something went wrong. Please check your details and try again.');
       }
+      // Tokens are consumed on use — force a fresh challenge for the retry
+      setCaptchaToken(null);
+      setCaptchaKey((k) => k + 1);
     } finally {
       setIsLoading(false);
     }
@@ -399,10 +412,13 @@ function RegisterFormContent() {
           </AnimatePresence>
         </div>
 
+        {/* Bot protection */}
+        <Turnstile key={captchaKey} onToken={setCaptchaToken} className="flex justify-center pt-1" />
+
         {/* Submit */}
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || (TURNSTILE_ENABLED && !captchaToken)}
           className={cn(
             "w-full py-2.5 px-4 rounded-lg font-medium text-[15px] mt-1",
             "bg-violet-600 text-white",
