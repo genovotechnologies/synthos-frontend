@@ -65,7 +65,7 @@ export default function DeveloperServicesPage() {
     <div className="space-y-10">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Service Status</h1>
+          <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Service Status</h1>
           <p className="text-sm text-zinc-500 mt-1">
             Health checks across all platform services. Auto-refreshes every 30 seconds.
           </p>
@@ -81,7 +81,7 @@ export default function DeveloperServicesPage() {
           <Loader2 className="w-5 h-5 animate-spin text-zinc-600" />
         </div>
       ) : isError ? (
-        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-10 text-center">
+        <div className="panel p-10 text-center">
           <div className="w-12 h-12 rounded-full bg-rose-500/10 flex items-center justify-center mx-auto mb-4">
             <AlertTriangle className="w-6 h-6 text-rose-400" />
           </div>
@@ -96,7 +96,7 @@ export default function DeveloperServicesPage() {
           </button>
         </div>
       ) : services.length === 0 ? (
-        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-10 text-center">
+        <div className="panel p-10 text-center">
           <p className="text-sm text-zinc-600">No services reported by the status endpoint.</p>
         </div>
       ) : (
@@ -106,7 +106,7 @@ export default function DeveloperServicesPage() {
             return (
               <div
                 key={svc.name}
-                className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6 flex flex-col gap-5 hover:border-zinc-700/50 transition-colors"
+                className="panel p-6 flex flex-col gap-5 hover:bg-white/[0.04] transition-colors"
               >
                 {/* Header: icon + name + status dot */}
                 <div className="flex items-start justify-between gap-3">
@@ -132,7 +132,7 @@ export default function DeveloperServicesPage() {
                 <p className="text-xs text-zinc-500 leading-relaxed">{serviceDescription(svc.name)}</p>
 
                 {/* Real telemetry: latency + last checked */}
-                <div className="grid grid-cols-2 gap-3 border-t border-zinc-800/50 pt-4">
+                <div className="grid grid-cols-2 gap-3 border-t border-white/[0.06] pt-4">
                   <div>
                     <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-zinc-500 mb-1">
                       <Zap size={10} /> Latency

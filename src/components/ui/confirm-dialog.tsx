@@ -68,7 +68,7 @@ export function ConfirmDialog({
         className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150"
         onClick={loading ? undefined : onClose}
       />
-      <div className="relative w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl shadow-black/50 animate-in fade-in zoom-in-95 duration-150">
+      <div className="relative w-full max-w-md surface p-6 animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-start gap-4">
           {variant === "danger" && (
             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-rose-500/10">

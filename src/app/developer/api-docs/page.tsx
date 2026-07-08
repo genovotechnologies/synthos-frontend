@@ -123,7 +123,7 @@ const sections: Section[] = [
 function EndpointCard({ endpoint }: { endpoint: Endpoint }) {
   const [expanded, setExpanded] = useState(false);
   return (
-    <div className="border-b border-zinc-800/30">
+    <div className="border-b border-white/[0.04]">
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center gap-3 py-3.5 hover:bg-zinc-900/20 transition-colors px-1 text-left"
@@ -141,12 +141,12 @@ function EndpointCard({ endpoint }: { endpoint: Endpoint }) {
           {endpoint.requestExample && (
             <div>
               <p className="text-[11px] font-medium text-zinc-600 uppercase tracking-wider mb-2">Request Body</p>
-              <pre className="bg-zinc-900/50 border border-zinc-800/50 rounded-lg p-4 text-sm text-zinc-300 font-mono overflow-x-auto">{endpoint.requestExample}</pre>
+              <pre className="bg-zinc-900/50 border border-white/[0.06] rounded-lg p-4 text-sm text-zinc-300 font-mono overflow-x-auto">{endpoint.requestExample}</pre>
             </div>
           )}
           <div>
             <p className="text-[11px] font-medium text-zinc-600 uppercase tracking-wider mb-2">Response</p>
-            <pre className="bg-zinc-900/50 border border-zinc-800/50 rounded-lg p-4 text-sm text-zinc-300 font-mono overflow-x-auto">{endpoint.responseExample}</pre>
+            <pre className="bg-zinc-900/50 border border-white/[0.06] rounded-lg p-4 text-sm text-zinc-300 font-mono overflow-x-auto">{endpoint.responseExample}</pre>
           </div>
         </div>
       )}
@@ -158,7 +158,7 @@ export default function DeveloperApiDocsPage() {
   return (
     <div className="space-y-12">
       <header>
-        <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">API Documentation</h1>
+        <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">API Documentation</h1>
         <p className="text-sm text-zinc-500 mt-1">Complete reference for all Synthos API endpoints</p>
       </header>
 
@@ -166,7 +166,7 @@ export default function DeveloperApiDocsPage() {
         {sections.map((section) => (
           <section key={section.name}>
             <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-4">{section.name}</p>
-            <div className="border-t border-zinc-800/50">
+            <div className="border-t border-white/[0.06]">
               {section.endpoints.map((ep, i) => (
                 <EndpointCard key={i} endpoint={ep} />
               ))}

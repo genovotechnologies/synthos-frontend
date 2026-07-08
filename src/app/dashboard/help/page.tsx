@@ -53,13 +53,13 @@ export default function DashboardHelpPage() {
   return (
     <div className="space-y-16">
       <header>
-        <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Help & Support</h1>
+        <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Help & Support</h1>
         <p className="text-sm text-zinc-500 mt-1">Submit a support ticket or view your existing requests</p>
       </header>
 
       <section>
         <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-6">Submit a Ticket</p>
-        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6 space-y-5">
+        <div className="panel p-6 space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-[11px] font-medium text-zinc-600 uppercase tracking-wider block mb-2">Subject</label>
@@ -68,7 +68,7 @@ export default function DashboardHelpPage() {
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="Brief description of your issue"
-                className="w-full bg-zinc-900/50 border border-zinc-800/50 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700"
+                className="w-full bg-zinc-900/50 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700"
               />
             </div>
             <div>
@@ -76,7 +76,7 @@ export default function DashboardHelpPage() {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-zinc-900/50 border border-zinc-800/50 rounded-lg px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:border-zinc-700 appearance-none cursor-pointer"
+                className="w-full bg-zinc-900/50 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:border-zinc-700 appearance-none cursor-pointer"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c} className="bg-zinc-900">{c.charAt(0).toUpperCase() + c.slice(1)}</option>
@@ -91,7 +91,7 @@ export default function DashboardHelpPage() {
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Describe your issue in detail..."
               rows={5}
-              className="w-full bg-zinc-900/50 border border-zinc-800/50 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700 resize-none"
+              className="w-full bg-zinc-900/50 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700 resize-none"
             />
           </div>
           <button
@@ -120,8 +120,8 @@ export default function DashboardHelpPage() {
         ) : tickets.length === 0 ? (
           <p className="text-sm text-zinc-600 py-8 text-center">No tickets yet</p>
         ) : (
-          <div className="border-t border-zinc-800/50">
-            <div className="grid grid-cols-12 gap-4 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-zinc-800/50">
+          <div className="border-t border-white/[0.06]">
+            <div className="grid grid-cols-12 gap-4 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-white/[0.06]">
               <div className="col-span-5">Subject</div>
               <div className="col-span-2">Status</div>
               <div className="col-span-2">Priority</div>
@@ -131,7 +131,7 @@ export default function DashboardHelpPage() {
               <Link
                 key={ticket.id}
                 href={`/dashboard/help/${ticket.id}`}
-                className="grid grid-cols-12 gap-4 py-3.5 border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors items-center group"
+                className="grid grid-cols-12 gap-4 py-3.5 border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors items-center group"
               >
                 <div className="col-span-5">
                   <span className="text-sm text-zinc-300 truncate group-hover:text-zinc-100 transition-colors">{ticket.subject}</span>

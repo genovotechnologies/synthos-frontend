@@ -34,10 +34,10 @@ export default function DeveloperMetricsPage() {
     return (
       <div className="space-y-16">
         <header>
-          <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Metrics</h1>
+          <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Metrics</h1>
           <p className="text-sm text-zinc-500 mt-1">API usage metrics and performance data</p>
         </header>
-        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-10 text-center">
+        <div className="panel p-10 text-center">
           <div className="w-12 h-12 rounded-full bg-rose-500/10 flex items-center justify-center mx-auto mb-4">
             <AlertTriangle className="w-6 h-6 text-rose-400" />
           </div>
@@ -68,7 +68,7 @@ export default function DeveloperMetricsPage() {
   return (
     <div className="space-y-16">
       <header>
-        <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Metrics</h1>
+        <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Metrics</h1>
         <p className="text-sm text-zinc-500 mt-1">API usage metrics and performance data</p>
       </header>
 
@@ -87,7 +87,7 @@ export default function DeveloperMetricsPage() {
       {endpointEntries.length > 0 && (
         <section>
           <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-6">Requests by Endpoint</p>
-          <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5">
+          <div className="panel p-5">
             <div className="space-y-3">
               {endpointEntries.map(([endpoint, count]) => (
                 <div key={endpoint} className="flex items-center justify-between py-1.5">

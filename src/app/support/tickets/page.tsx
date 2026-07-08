@@ -46,7 +46,7 @@ export default function SupportTicketsPage() {
   return (
     <div className="space-y-10">
       <header>
-        <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Ticket Queue</h1>
+        <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Ticket Queue</h1>
         <p className="text-sm text-zinc-500 mt-1">Manage and respond to customer support tickets</p>
       </header>
 
@@ -54,7 +54,7 @@ export default function SupportTicketsPage() {
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="bg-zinc-900/30 border border-zinc-800/50 rounded-lg px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:border-zinc-700 appearance-none cursor-pointer"
+          className="bg-zinc-900/30 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:border-zinc-700 appearance-none cursor-pointer"
         >
           {STATUS_OPTIONS.map((s) => (
             <option key={s} value={s} className="bg-zinc-900">
@@ -65,7 +65,7 @@ export default function SupportTicketsPage() {
         <select
           value={priorityFilter}
           onChange={(e) => { setPriorityFilter(e.target.value); setPage(1); }}
-          className="bg-zinc-900/30 border border-zinc-800/50 rounded-lg px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:border-zinc-700 appearance-none cursor-pointer"
+          className="bg-zinc-900/30 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:border-zinc-700 appearance-none cursor-pointer"
         >
           {PRIORITY_OPTIONS.map((p) => (
             <option key={p} value={p} className="bg-zinc-900">
@@ -80,7 +80,7 @@ export default function SupportTicketsPage() {
           <Loader2 className="w-5 h-5 animate-spin text-zinc-600" />
         </div>
       ) : isError ? (
-        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-10 text-center">
+        <div className="panel p-10 text-center">
           <div className="w-12 h-12 rounded-full bg-rose-500/10 flex items-center justify-center mx-auto mb-4">
             <AlertTriangle className="w-6 h-6 text-rose-400" />
           </div>
@@ -95,8 +95,8 @@ export default function SupportTicketsPage() {
           </button>
         </div>
       ) : (
-        <div className="border-t border-zinc-800/50 overflow-x-auto">
-          <div className="grid grid-cols-12 gap-4 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-zinc-800/50 min-w-[800px]">
+        <div className="border-t border-white/[0.06] overflow-x-auto">
+          <div className="grid grid-cols-12 gap-4 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-white/[0.06] min-w-[800px]">
             <div className="col-span-4">Subject</div>
             <div className="col-span-2">Customer</div>
             <div className="col-span-1">Priority</div>
@@ -111,7 +111,7 @@ export default function SupportTicketsPage() {
               <Link
                 key={ticket.id}
                 href={`/support/tickets/${ticket.id}`}
-                className="grid grid-cols-12 gap-4 py-3.5 border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors items-center group min-w-[800px]"
+                className="grid grid-cols-12 gap-4 py-3.5 border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors items-center group min-w-[800px]"
               >
                 <div className="col-span-4">
                   <span className="text-sm text-zinc-300 truncate group-hover:text-zinc-100 transition-colors">{ticket.subject}</span>
@@ -152,14 +152,14 @@ export default function SupportTicketsPage() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="p-2 rounded-md border border-zinc-800/50 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-2 rounded-md border border-white/[0.06] text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft size={14} />
             </button>
             <button
               onClick={() => setPage((p) => Math.min(pagination.total_pages, p + 1))}
               disabled={page >= pagination.total_pages}
-              className="p-2 rounded-md border border-zinc-800/50 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-2 rounded-md border border-white/[0.06] text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronRight size={14} />
             </button>

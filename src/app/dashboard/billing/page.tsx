@@ -160,7 +160,7 @@ export default function BillingPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Billing & Credits</h1>
+        <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Billing & Credits</h1>
         <p className="text-sm text-zinc-500 mt-1">Manage your credits, purchase packages, and view transaction history</p>
       </div>
 
@@ -194,7 +194,7 @@ export default function BillingPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-6"
+          className="panel p-6"
         >
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 rounded-lg bg-emerald-500/20">
@@ -211,7 +211,7 @@ export default function BillingPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-6"
+          className="panel p-6"
         >
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 rounded-lg bg-blue-500/20">
@@ -227,11 +227,11 @@ export default function BillingPage() {
 
       {/* Credit Costs Info */}
       {balance?.credit_costs && balance.credit_costs.length > 0 && (
-        <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-6">
+        <div className="panel p-6">
           <h3 className="text-sm font-medium text-zinc-400 mb-3">Credit Usage Per Operation</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {balance.credit_costs.map((cost) => (
-              <div key={cost.id} className="bg-zinc-950 rounded-lg p-3 border border-zinc-800/50">
+              <div key={cost.id} className="bg-zinc-950 rounded-lg p-3 border border-white/[0.06]">
                 <p className="text-xs text-zinc-500 mb-1">{cost.description}</p>
                 <p className="text-lg font-semibold text-white">{cost.credits_required} <span className="text-xs text-zinc-500">credits</span></p>
               </div>
@@ -241,7 +241,7 @@ export default function BillingPage() {
       )}
 
       {/* Promo Code */}
-      <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-6">
+      <div className="panel p-6">
         <div className="flex items-center gap-3 mb-4">
           <Gift size={20} className="text-violet-400" />
           <h3 className="text-lg font-medium text-white">Redeem Promo Code</h3>
@@ -402,7 +402,7 @@ export default function BillingPage() {
           <History size={20} className="text-zinc-400" />
           <h2 className="text-xl font-semibold text-white">Transaction History</h2>
         </div>
-        <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl overflow-hidden">
+        <div className="panel overflow-hidden">
           {!historyData ? (
             <div className="p-4 space-y-3 animate-pulse">
               {[...Array(5)].map((_, i) => (
@@ -433,7 +433,7 @@ export default function BillingPage() {
               </thead>
               <tbody>
                 {historyData?.transactions?.map((tx: CreditTransaction) => (
-                  <tr key={tx.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/20 transition-colors">
+                  <tr key={tx.id} className="border-b border-white/[0.06] hover:bg-zinc-800/20 transition-colors">
                     <td className="px-4 py-3">
                       <span className={cn(
                         "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium",

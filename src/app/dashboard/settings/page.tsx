@@ -93,7 +93,7 @@ function ProfileSettings() {
             type="email"
             value={user?.email || ''}
             disabled
-            className="w-full px-4 py-2.5 bg-zinc-900/30 border border-zinc-800/50 rounded-lg text-zinc-500 cursor-not-allowed"
+            className="w-full px-4 py-2.5 bg-zinc-900/30 border border-white/[0.06] rounded-lg text-zinc-500 cursor-not-allowed"
           />
           <p className="text-xs text-zinc-600 mt-1">Email cannot be changed</p>
         </div>
@@ -359,7 +359,7 @@ function ActiveSessions() {
   });
 
   return (
-    <div className="pt-8 border-t border-zinc-800/50">
+    <div className="pt-8 border-t border-white/[0.06]">
       <div className="mb-6">
         <h3 className="text-lg font-medium text-white mb-1">Active Sessions</h3>
         <p className="text-sm text-zinc-500">Manage your active sessions across devices.</p>
@@ -534,7 +534,7 @@ function NotificationSettings() {
         {notificationOptions.map((option) => (
           <div
             key={option.key}
-            className="flex items-center justify-between py-4 border-b border-zinc-800/50 last:border-0"
+            className="flex items-center justify-between py-4 border-b border-white/[0.06] last:border-0"
           >
             <div>
               <p className="text-sm font-medium text-white">{option.title}</p>
@@ -689,7 +689,7 @@ function ApiSettings() {
         />
       </div>
 
-      <div className="pt-6 border-t border-zinc-800/50">
+      <div className="pt-6 border-t border-white/[0.06]">
         <h4 className="text-sm font-medium text-white mb-3">API Documentation</h4>
         <p className="text-sm text-zinc-500 mb-4">
           Use the API to integrate Synthos with your workflows and applications.
@@ -830,7 +830,7 @@ function WebhookSettings() {
 
       {/* Create Form */}
       {showCreate && (
-        <div className="p-5 rounded-xl bg-zinc-900/50 border border-zinc-800/50 space-y-4">
+        <div className="p-5 rounded-xl bg-zinc-900/50 border border-white/[0.06] space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-medium text-white">New Webhook</h4>
             <button onClick={() => setShowCreate(false)} className="text-zinc-500 hover:text-zinc-300">
@@ -902,7 +902,7 @@ function WebhookSettings() {
         )}
 
         {webhooksData?.webhooks?.map((webhook) => (
-          <div key={webhook.id} className="rounded-xl bg-zinc-900/40 border border-zinc-800/50 overflow-hidden">
+          <div key={webhook.id} className="rounded-xl bg-zinc-900/40 border border-white/[0.06] overflow-hidden">
             <div className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
@@ -968,7 +968,7 @@ function WebhookSettings() {
 
             {/* Recent Deliveries */}
             {expandedId === webhook.id && (
-              <div className="border-t border-zinc-800/50 bg-zinc-950/30">
+              <div className="border-t border-white/[0.06] bg-zinc-950/30">
                 <div className="p-4">
                   <p className="text-xs font-medium text-zinc-400 mb-3">Recent Deliveries</p>
                   {!deliveriesData?.deliveries?.length ? (
@@ -1056,7 +1056,7 @@ function SettingsContent() {
     <div className="min-h-full">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Settings</h1>
+        <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Settings</h1>
         <p className="text-sm text-zinc-500 mt-1">Manage your account settings and preferences</p>
       </div>
 
@@ -1084,7 +1084,7 @@ function SettingsContent() {
 
         {/* Tab Content */}
         <div className="flex-1 min-w-0">
-          <div className="p-6 rounded-xl bg-zinc-900/30 border border-zinc-800/50">
+          <div className="p-6 rounded-xl bg-zinc-900/30 border border-white/[0.06]">
             {activeTab === 'profile' && <ProfileSettings />}
             {activeTab === 'security' && <SecuritySettings />}
             {activeTab === 'notifications' && <NotificationSettings />}

@@ -45,12 +45,12 @@ export default function AuditLogPage() {
     <div className="space-y-8">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Audit Log</h1>
+          <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Audit Log</h1>
           <p className="text-sm text-zinc-500 mt-1">Track all administrative actions on the platform</p>
         </div>
         <button
           onClick={() => refetch()}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm text-zinc-500 hover:text-zinc-300 border border-zinc-800/50 rounded-lg hover:border-zinc-700 transition-colors"
+          className="flex items-center gap-2 px-3 py-1.5 text-sm text-zinc-500 hover:text-zinc-300 border border-white/[0.06] rounded-lg hover:border-zinc-700 transition-colors"
         >
           <RefreshCw size={14} />
           Refresh
@@ -62,7 +62,7 @@ export default function AuditLogPage() {
           <Loader2 className="w-5 h-5 animate-spin text-zinc-600" />
         </div>
       ) : isError ? (
-        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-8 text-center">
+        <div className="panel p-8 text-center">
           <AlertCircle className="w-6 h-6 text-rose-400 mx-auto mb-3" />
           <p className="text-sm text-zinc-300 mb-1">Failed to load audit log</p>
           <p className="text-xs text-zinc-600 mb-4">{error instanceof Error ? error.message : 'An unexpected error occurred'}</p>
@@ -74,11 +74,11 @@ export default function AuditLogPage() {
           </button>
         </div>
       ) : (
-        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl overflow-hidden">
+        <div className="panel overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[700px]">
               <thead>
-                <tr className="text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-zinc-800/50">
+                <tr className="text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-white/[0.06]">
                   <th className="py-3 pl-5 pr-4 text-left">Time</th>
                   <th className="py-3 pr-4 text-left">Admin</th>
                   <th className="py-3 pr-4 text-left">Action</th>
@@ -96,7 +96,7 @@ export default function AuditLogPage() {
                   events.map((event, idx: number) => {
                     const { action, actor, time, target, ip, details } = readAuditEvent(event);
                     return (
-                      <tr key={event.id || idx} className="border-b border-zinc-800/30 last:border-b-0 hover:bg-zinc-900/30 transition-colors">
+                      <tr key={event.id || idx} className="border-b border-white/[0.04] last:border-b-0 hover:bg-white/[0.02] transition-colors">
                         <td className="py-3 pl-5 pr-4">
                           <span className="text-sm text-zinc-400 tabular-nums whitespace-nowrap">
                             {time
@@ -147,14 +147,14 @@ export default function AuditLogPage() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="p-2 rounded-md border border-zinc-800/50 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-2 rounded-md border border-white/[0.06] text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft size={14} />
             </button>
             <button
               onClick={() => setPage((p) => Math.min(pagination.total_pages, p + 1))}
               disabled={page >= pagination.total_pages}
-              className="p-2 rounded-md border border-zinc-800/50 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-2 rounded-md border border-white/[0.06] text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronRight size={14} />
             </button>

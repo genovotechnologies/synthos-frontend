@@ -91,7 +91,7 @@ export default function SupportOverviewPage() {
   return (
     <div className="space-y-16">
       <header>
-        <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Support Overview</h1>
+        <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Support Overview</h1>
         <p className="text-sm text-zinc-500 mt-1">Ticket queue and support performance metrics</p>
       </header>
 
@@ -167,7 +167,7 @@ export default function SupportOverviewPage() {
               <Link
                 key={ticket.id}
                 href={`/support/tickets/${ticket.id}`}
-                className="flex items-center gap-4 py-3 px-4 rounded-lg hover:bg-zinc-900/30 transition-colors group"
+                className="flex items-center gap-4 py-3 px-4 rounded-lg hover:bg-white/[0.02] transition-colors group"
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-zinc-300 truncate group-hover:text-zinc-100 transition-colors">{ticket.subject}</p>

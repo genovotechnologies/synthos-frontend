@@ -184,7 +184,7 @@ export default function NotificationsDropdown() {
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-blue-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+          <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-violet-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -192,15 +192,15 @@ export default function NotificationsDropdown() {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden z-50">
+        <div className="absolute right-0 top-full mt-2 w-80 surface overflow-hidden z-50">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.07]">
             <h3 className="text-sm font-semibold text-white">Notifications</h3>
             {unreadCount > 0 && (
               <button
                 onClick={() => markAllAsReadMutation.mutate()}
                 disabled={markAllAsReadMutation.isPending}
-                className="text-xs text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
+                className="text-xs text-violet-400 hover:text-violet-300 transition-colors flex items-center gap-1"
               >
                 {markAllAsReadMutation.isPending ? (
                   <Loader2 className="w-3 h-3 animate-spin" />
@@ -227,7 +227,7 @@ export default function NotificationsDropdown() {
                 </p>
               </div>
             ) : (
-              <div className="divide-y divide-zinc-800/50">
+              <div className="divide-y divide-white/[0.06]">
                 {notifications.map((notification) => (
                   <NotificationItem
                     key={notification.id}
@@ -242,7 +242,7 @@ export default function NotificationsDropdown() {
 
           {/* Footer */}
           {notifications.length > 0 && (
-            <div className="px-4 py-3 border-t border-zinc-800 bg-zinc-900/50">
+            <div className="px-4 py-3 border-t border-white/[0.07] bg-white/[0.02]">
               <Link
                 href="/dashboard/settings?tab=notifications"
                 onClick={() => setIsOpen(false)}

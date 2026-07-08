@@ -61,7 +61,7 @@ export default function CustomerTicketDetailPage({ params }: { params: Promise<{
         <Link href="/dashboard/help" className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-300 transition-colors">
           <ArrowLeft size={14} /> Back to Help
         </Link>
-        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-8 text-center">
+        <div className="panel p-8 text-center">
           <AlertCircle size={32} className="text-rose-400 mx-auto mb-3" />
           <p className="font-medium text-zinc-200">Failed to load ticket</p>
           <p className="text-sm text-zinc-500 mt-1">Something went wrong while fetching this ticket.</p>
@@ -99,7 +99,7 @@ export default function CustomerTicketDetailPage({ params }: { params: Promise<{
       </Link>
 
       <header className="space-y-3">
-        <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">{ticket.subject}</h1>
+        <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">{ticket.subject}</h1>
         <div className="flex items-center gap-3 flex-wrap">
           <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium', statusPill[ticket.status])}>
             {ticket.status.replace('_', ' ')}
@@ -127,7 +127,7 @@ export default function CustomerTicketDetailPage({ params }: { params: Promise<{
                     'rounded-xl px-4 py-3',
                     isSupport
                       ? 'bg-violet-500/10 border border-violet-500/20'
-                      : 'bg-zinc-900 border border-zinc-800/50'
+                      : 'bg-zinc-900 border border-white/[0.06]'
                   )}>
                     <p className="text-sm text-zinc-300 whitespace-pre-wrap">{msg.message}</p>
                   </div>
@@ -145,13 +145,13 @@ export default function CustomerTicketDetailPage({ params }: { params: Promise<{
         )}
       </div>
 
-      <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5 space-y-4">
+      <div className="panel p-5 space-y-4">
         <textarea
           value={replyMessage}
           onChange={(e) => setReplyMessage(e.target.value)}
           placeholder="Type your reply..."
           rows={4}
-          className="w-full bg-zinc-900/50 border border-zinc-800/50 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700 resize-none"
+          className="w-full bg-zinc-900/50 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700 resize-none"
         />
         <div className="flex justify-end">
           <button

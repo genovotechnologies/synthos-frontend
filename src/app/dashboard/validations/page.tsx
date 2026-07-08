@@ -48,7 +48,7 @@ function ValidationRow({
   const isCompleted = validation.status === 'completed';
 
   return (
-    <div className="grid grid-cols-12 gap-4 py-3.5 border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors group items-center">
+    <div className="grid grid-cols-12 gap-4 py-3.5 border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors group items-center">
       <div className="col-span-1 flex items-center justify-center">
         {isCompleted ? (
           <button
@@ -173,7 +173,7 @@ function CreateValidationModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
-      <div className="relative w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl">
+      <div className="relative w-full max-w-lg surface">
         <div className="flex items-center justify-between p-5 border-b border-zinc-800">
           <div>
             <h2 className="text-lg font-semibold text-white">New Validation</h2>
@@ -344,7 +344,7 @@ function ValidationsContent() {
     <div className="space-y-12">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Validations</h1>
+          <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Validations</h1>
           <p className="text-sm text-zinc-500 mt-1">Monitor and manage your data validation jobs</p>
         </div>
         <div className="flex items-center gap-3">
@@ -422,8 +422,8 @@ function ValidationsContent() {
 
           {/* Validation table */}
           <section>
-            <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl overflow-hidden">
-              <div className="grid grid-cols-12 gap-4 px-5 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-zinc-800/50">
+            <div className="panel overflow-hidden">
+              <div className="grid grid-cols-12 gap-4 px-5 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-white/[0.06]">
                 <div className="col-span-1"></div>
                 <div className="col-span-3">Dataset</div>
                 <div className="col-span-2">Type</div>

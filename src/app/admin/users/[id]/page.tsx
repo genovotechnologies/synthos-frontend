@@ -97,14 +97,14 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
       </Link>
 
       {/* Profile Header */}
-      <div className="p-6 rounded-xl bg-zinc-900/30 border border-zinc-800/50">
+      <div className="p-6 rounded-xl bg-zinc-900/30 border border-white/[0.06]">
         <div className="flex items-start gap-5">
           <div className="w-14 h-14 rounded-xl bg-zinc-800/80 flex items-center justify-center text-xl font-semibold text-zinc-300 shrink-0">
             {user.full_name?.charAt(0).toUpperCase() || 'U'}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">{user.full_name}</h1>
+              <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">{user.full_name}</h1>
               <span className={cn('text-[11px] font-medium px-2.5 py-0.5 rounded-full border', rolePillClass[user.role] || rolePillClass.user)}>
                 {user.role}
               </span>
@@ -136,7 +136,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
             value={pendingRole ?? user.role}
             onChange={(e) => setPendingRole(e.target.value)}
             disabled={roleMutation.isPending}
-            className="bg-zinc-900/30 border border-zinc-800/50 rounded-lg px-3 py-1.5 text-sm text-zinc-300 focus:outline-none focus:border-zinc-700 appearance-none cursor-pointer"
+            className="bg-zinc-900/30 border border-white/[0.06] rounded-lg px-3 py-1.5 text-sm text-zinc-300 focus:outline-none focus:border-zinc-700 appearance-none cursor-pointer"
           >
             {ROLES.map((r) => (
               <option key={r} value={r} className="bg-zinc-900">{r.charAt(0).toUpperCase() + r.slice(1)}</option>
@@ -169,15 +169,15 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
 
       {/* Credit Info */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 rounded-xl bg-zinc-900/30 border border-zinc-800/50">
+        <div className="p-4 rounded-xl bg-zinc-900/30 border border-white/[0.06]">
           <p className="text-xs text-zinc-600 uppercase tracking-wider mb-1">Credit Balance</p>
           <p className="text-xl font-semibold text-zinc-100 tabular-nums">{user.credit_balance?.toLocaleString() ?? 0}</p>
         </div>
-        <div className="p-4 rounded-xl bg-zinc-900/30 border border-zinc-800/50">
+        <div className="p-4 rounded-xl bg-zinc-900/30 border border-white/[0.06]">
           <p className="text-xs text-zinc-600 uppercase tracking-wider mb-1">Total Validations</p>
           <p className="text-xl font-semibold text-zinc-100 tabular-nums">{(user.validation_count ?? user.total_validations ?? 0).toLocaleString()}</p>
         </div>
-        <div className="p-4 rounded-xl bg-zinc-900/30 border border-zinc-800/50">
+        <div className="p-4 rounded-xl bg-zinc-900/30 border border-white/[0.06]">
           <p className="text-xs text-zinc-600 uppercase tracking-wider mb-1">Total Datasets</p>
           <p className="text-xl font-semibold text-zinc-100 tabular-nums">{(user.dataset_count ?? user.total_datasets ?? 0).toLocaleString()}</p>
         </div>
@@ -213,7 +213,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowDeleteModal(false)}>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 max-w-sm w-full mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
+          <div className="surface p-6 max-w-sm w-full mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-rose-500/15 flex items-center justify-center">
                 <ShieldAlert className="w-5 h-5 text-rose-400" />

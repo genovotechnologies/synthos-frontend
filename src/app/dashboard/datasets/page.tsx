@@ -216,7 +216,7 @@ function DatasetRow({ dataset, onDelete }: { dataset: Dataset; onDelete: (datase
   };
 
   return (
-    <div className="flex items-center justify-between py-4 border-b border-zinc-800/50 last:border-0 group">
+    <div className="flex items-center justify-between py-4 border-b border-white/[0.06] last:border-0 group">
       <div className="flex items-center gap-4 flex-1 min-w-0">
         <div className="w-10 h-10 rounded-lg bg-zinc-800/50 flex items-center justify-center flex-shrink-0">
           <FileKindIcon name={dataset.file_name || dataset.name} sizeClass="w-5 h-5" />
@@ -255,7 +255,7 @@ function DatasetRow({ dataset, onDelete }: { dataset: Dataset; onDelete: (datase
           {showMenu && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-              <div className="absolute right-0 top-full mt-1 w-36 py-1 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl z-20">
+              <div className="absolute right-0 top-full mt-1 w-36 py-1 surface !rounded-lg z-20">
                 <button
                   onClick={() => {
                     onDelete(dataset);
@@ -438,7 +438,7 @@ function MultiUploadModal({ onClose, onSuccess }: { onClose: () => void; onSucce
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={isUploading ? undefined : onClose} />
 
-      <div className="relative w-full max-w-xl bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl flex flex-col max-h-[85vh]">
+      <div className="relative w-full max-w-xl surface flex flex-col max-h-[85vh]">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-zinc-800">
           <div>
@@ -502,7 +502,7 @@ function MultiUploadModal({ onClose, onSuccess }: { onClose: () => void; onSucce
                   Choose folder
                 </button>
               </div>
-              <div className="mt-7 pt-5 border-t border-zinc-800/60 text-left max-w-md mx-auto space-y-1.5">
+              <div className="mt-7 pt-5 border-t border-white/[0.06] text-left max-w-md mx-auto space-y-1.5">
                 {FORMAT_GROUPS.map((group) => (
                   <p key={group.kind} className="text-[11px] leading-relaxed text-zinc-600">
                     <span className="text-zinc-500 font-medium">{group.label}:</span>{' '}
@@ -569,7 +569,7 @@ function MultiUploadModal({ onClose, onSuccess }: { onClose: () => void; onSucce
               )}
 
               {/* File list */}
-              <ul className="divide-y divide-zinc-800/50 border border-zinc-800/60 rounded-lg overflow-hidden">
+              <ul className="divide-y divide-white/[0.06] border border-white/[0.06] rounded-lg overflow-hidden">
                 {queue.map((item) => (
                   <li key={item.id} className="flex items-center gap-3 px-3 py-2.5 bg-zinc-900/40">
                     <FileKindIcon name={item.file.name} />
@@ -728,7 +728,7 @@ export default function DatasetsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Datasets</h1>
+          <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Datasets</h1>
           <p className="text-sm text-zinc-500 mt-1">Manage your uploaded datasets</p>
         </div>
         <button
@@ -766,7 +766,7 @@ export default function DatasetsPage() {
       )}
 
       {/* Content */}
-      <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl">
+      <div className="panel">
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
@@ -800,7 +800,7 @@ export default function DatasetsPage() {
           </div>
         ) : (
           <>
-            <div className="px-5 py-3 border-b border-zinc-800/50">
+            <div className="px-5 py-3 border-b border-white/[0.06]">
               <div className="flex items-center justify-between text-xs font-medium text-zinc-500 uppercase tracking-wider">
                 <span>Dataset</span>
                 <span className="mr-12">Status</span>

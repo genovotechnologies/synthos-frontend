@@ -28,7 +28,7 @@ export default function DeveloperLogsPage() {
   return (
     <div className="space-y-10">
       <header>
-        <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Logs</h1>
+        <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Logs</h1>
         <p className="text-sm text-zinc-500 mt-1">Recent API request logs. Auto-refreshes every 15 seconds.</p>
       </header>
 
@@ -37,7 +37,7 @@ export default function DeveloperLogsPage() {
           <Loader2 className="w-5 h-5 animate-spin text-zinc-600" />
         </div>
       ) : isError ? (
-        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-10 text-center">
+        <div className="panel p-10 text-center">
           <div className="w-12 h-12 rounded-full bg-rose-500/10 flex items-center justify-center mx-auto mb-4">
             <AlertTriangle className="w-6 h-6 text-rose-400" />
           </div>
@@ -52,8 +52,8 @@ export default function DeveloperLogsPage() {
           </button>
         </div>
       ) : (
-        <div className="border-t border-zinc-800/50 overflow-x-auto">
-          <div className="grid grid-cols-12 gap-4 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-zinc-800/50 min-w-[800px]">
+        <div className="border-t border-white/[0.06] overflow-x-auto">
+          <div className="grid grid-cols-12 gap-4 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-white/[0.06] min-w-[800px]">
             <div className="col-span-2">Time</div>
             <div className="col-span-1">Level</div>
             <div className="col-span-1">Method</div>
@@ -65,7 +65,7 @@ export default function DeveloperLogsPage() {
             <div className="py-12 text-center text-sm text-zinc-600">No logs found</div>
           ) : (
             logs.map((log) => (
-              <div key={log.id} className="grid grid-cols-12 gap-4 py-3 border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors items-center min-w-[800px]">
+              <div key={log.id} className="grid grid-cols-12 gap-4 py-3 border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors items-center min-w-[800px]">
                 <div className="col-span-2">
                   <span className="text-sm text-zinc-500 tabular-nums font-mono">
                     {new Date(log.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
@@ -110,14 +110,14 @@ export default function DeveloperLogsPage() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="p-2 rounded-md border border-zinc-800/50 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-2 rounded-md border border-white/[0.06] text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft size={14} />
             </button>
             <button
               onClick={() => setPage((p) => p + 1)}
               disabled={page >= Math.ceil(pagination.total_count / 50)}
-              className="p-2 rounded-md border border-zinc-800/50 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-2 rounded-md border border-white/[0.06] text-zinc-500 hover:text-zinc-300 hover:border-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronRight size={14} />
             </button>

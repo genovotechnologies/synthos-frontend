@@ -57,7 +57,7 @@ function WarrantyCard({ warranty }: { warranty: Warranty }) {
   }, [warranty.valid_until]);
 
   return (
-    <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6">
+    <div className="panel p-6">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className={cn("p-2.5 rounded-lg", config.bg)}>
@@ -78,7 +78,7 @@ function WarrantyCard({ warranty }: { warranty: Warranty }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 py-4 border-y border-zinc-800/50">
+      <div className="grid grid-cols-2 gap-4 py-4 border-y border-white/[0.06]">
         <div>
           <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Coverage</p>
           <p className="text-lg font-semibold text-zinc-100 mt-1 tabular-nums">{formatCurrency(warranty.coverage_amount)}</p>
@@ -145,7 +145,7 @@ export default function WarrantiesPage() {
   return (
     <div className="space-y-12">
       <div>
-        <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Warranties</h1>
+        <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Warranties</h1>
         <p className="text-sm text-zinc-500 mt-1">Manage your data quality warranties and coverage</p>
       </div>
 

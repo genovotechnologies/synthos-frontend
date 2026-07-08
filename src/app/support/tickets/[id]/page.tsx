@@ -129,7 +129,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
       <div className="flex flex-col lg:flex-row gap-8">
         <div className="flex-1 space-y-8">
           <header className="space-y-3">
-            <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">{ticket.subject}</h1>
+            <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">{ticket.subject}</h1>
             <div className="flex items-center gap-3 flex-wrap">
               <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium', statusPill[ticket.status])}>
                 {ticket.status.replace('_', ' ')}
@@ -149,7 +149,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
             </div>
           </header>
 
-          <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5 space-y-2">
+          <div className="panel p-5 space-y-2">
             <p className="text-[11px] font-medium text-zinc-600 uppercase tracking-wider">Customer</p>
             <p className="text-sm text-zinc-300">{ticket.user_name || 'Unknown'}</p>
             <p className="text-sm text-zinc-500">{ticket.user_email || '—'}</p>
@@ -173,7 +173,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
                           ? 'bg-amber-500/5 border border-dashed border-amber-500/30'
                           : isSupport
                             ? 'bg-amber-500/10 border border-amber-500/20'
-                            : 'bg-zinc-900 border border-zinc-800/50'
+                            : 'bg-zinc-900 border border-white/[0.06]'
                       )}>
                         {isInternalNote && (
                           <p className="text-[10px] font-medium text-amber-400 uppercase tracking-wider mb-1">Internal Note</p>
@@ -194,13 +194,13 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
             )}
           </div>
 
-          <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5 space-y-4">
+          <div className="panel p-5 space-y-4">
             <textarea
               value={replyMessage}
               onChange={(e) => setReplyMessage(e.target.value)}
               placeholder={isInternal ? 'Write an internal note...' : 'Type your reply...'}
               rows={4}
-              className="w-full bg-zinc-900/50 border border-zinc-800/50 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700 resize-none"
+              className="w-full bg-zinc-900/50 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700 resize-none"
             />
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
@@ -225,14 +225,14 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
         </div>
 
         <div className="w-full lg:w-64 space-y-5">
-          <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5 space-y-4">
+          <div className="panel p-5 space-y-4">
             <div>
               <label className="text-[11px] font-medium text-zinc-600 uppercase tracking-wider block mb-2">Status</label>
               <select
                 value={ticket.status}
                 onChange={(e) => statusMutation.mutate(e.target.value)}
                 disabled={statusMutation.isPending}
-                className="w-full bg-zinc-900/50 border border-zinc-800/50 rounded-lg px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:border-zinc-700 appearance-none cursor-pointer"
+                className="w-full bg-zinc-900/50 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:border-zinc-700 appearance-none cursor-pointer"
               >
                 {STATUS_OPTIONS.map((s) => (
                   <option key={s} value={s} className="bg-zinc-900">
@@ -248,7 +248,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
                 value={ticket.priority}
                 onChange={(e) => priorityMutation.mutate(e.target.value)}
                 disabled={priorityMutation.isPending}
-                className="w-full bg-zinc-900/50 border border-zinc-800/50 rounded-lg px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:border-zinc-700 appearance-none cursor-pointer"
+                className="w-full bg-zinc-900/50 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:border-zinc-700 appearance-none cursor-pointer"
               >
                 {PRIORITY_OPTIONS.map((p) => (
                   <option key={p} value={p} className="bg-zinc-900">{p.charAt(0).toUpperCase() + p.slice(1)}</option>
@@ -264,7 +264,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
                   value={assignTo}
                   onChange={(e) => { setAssignTo(e.target.value); setResolvedAssignee(null); }}
                   placeholder="User ID"
-                  className="min-w-0 flex-1 bg-zinc-900/50 border border-zinc-800/50 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700"
+                  className="min-w-0 flex-1 bg-zinc-900/50 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700"
                 />
                 <button
                   onClick={handleAssign}

@@ -76,7 +76,7 @@ export default function AdminPromosPage() {
     <div className="space-y-10">
       <div className="flex items-center justify-between">
         <header>
-          <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">Promo Codes</h1>
+          <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Promo Codes</h1>
           <p className="text-sm text-zinc-500 mt-1">Create and manage promotional credit codes</p>
         </header>
         <button
@@ -89,7 +89,7 @@ export default function AdminPromosPage() {
       </div>
 
       {showForm && (
-        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-6 space-y-5">
+        <div className="panel p-6 space-y-5">
           <p className="text-sm font-medium text-zinc-300">New Promo Code</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -99,7 +99,7 @@ export default function AdminPromosPage() {
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
                 placeholder="WELCOME50"
-                className="w-full bg-zinc-900/50 border border-zinc-800/50 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700"
+                className="w-full bg-zinc-900/50 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700"
               />
             </div>
             <div>
@@ -110,7 +110,7 @@ export default function AdminPromosPage() {
                 value={credits}
                 onChange={(e) => setCredits(e.target.value)}
                 placeholder="500"
-                className="w-full bg-zinc-900/50 border border-zinc-800/50 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700"
+                className="w-full bg-zinc-900/50 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700"
               />
             </div>
             <div>
@@ -121,7 +121,7 @@ export default function AdminPromosPage() {
                 value={maxUses}
                 onChange={(e) => setMaxUses(e.target.value)}
                 placeholder="Unlimited"
-                className="w-full bg-zinc-900/50 border border-zinc-800/50 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700"
+                className="w-full bg-zinc-900/50 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700"
               />
               <p className="text-xs text-zinc-600 mt-1.5">Leave empty for an unlimited-use code.</p>
             </div>
@@ -132,7 +132,7 @@ export default function AdminPromosPage() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Welcome bonus for new users"
-                className="w-full bg-zinc-900/50 border border-zinc-800/50 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700"
+                className="w-full bg-zinc-900/50 border border-white/[0.06] rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700"
               />
             </div>
           </div>
@@ -154,7 +154,7 @@ export default function AdminPromosPage() {
           <Loader2 className="w-5 h-5 animate-spin text-zinc-600" />
         </div>
       ) : isError ? (
-        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-8 text-center">
+        <div className="panel p-8 text-center">
           <AlertCircle className="w-6 h-6 text-rose-400 mx-auto mb-3" />
           <p className="text-sm text-zinc-300 mb-1">Failed to load promo codes</p>
           <p className="text-xs text-zinc-600 mb-4">{error instanceof Error ? error.message : 'An unexpected error occurred'}</p>
@@ -166,10 +166,10 @@ export default function AdminPromosPage() {
           </button>
         </div>
       ) : (
-        <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl overflow-hidden">
+        <div className="panel overflow-hidden">
           <div className="overflow-x-auto">
             <div className="min-w-[720px]">
-              <div className="grid grid-cols-12 gap-4 px-5 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-zinc-800/50">
+              <div className="grid grid-cols-12 gap-4 px-5 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-white/[0.06]">
                 <div className="col-span-2">Code</div>
                 <div className="col-span-2">Credits</div>
                 <div className="col-span-3">Description</div>
@@ -181,7 +181,7 @@ export default function AdminPromosPage() {
                 <div className="py-12 text-center text-sm text-zinc-600">No promo codes yet</div>
               ) : (
                 promos.map((promo) => (
-                  <div key={promo.id} className="grid grid-cols-12 gap-4 px-5 py-3.5 border-b border-zinc-800/30 last:border-b-0 hover:bg-zinc-900/30 transition-colors items-center">
+                  <div key={promo.id} className="grid grid-cols-12 gap-4 px-5 py-3.5 border-b border-white/[0.04] last:border-b-0 hover:bg-white/[0.02] transition-colors items-center">
                     <div className="col-span-2">
                       <span className="text-sm font-mono text-zinc-100">{promo.code}</span>
                     </div>

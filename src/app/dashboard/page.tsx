@@ -5,15 +5,18 @@ import { analyticsApi, validationsApi, datasetsApi, apiClient, type UsageAnalyti
 import { ArrowUpRight, ArrowDownRight, AlertCircle, Loader2, Upload, CheckCircle, Code, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useAuth } from '@/providers/auth-provider';
 
 function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-zinc-900 px-3 py-2 rounded-md border border-zinc-800">
-      <p className="text-[11px] text-zinc-500 uppercase tracking-wide">{label}</p>
-      <p className="text-sm font-medium text-zinc-100">{(payload[0]?.value ?? 0).toLocaleString()}</p>
+    <div className="surface px-3.5 py-2.5">
+      <p className="text-[10px] text-zinc-500 uppercase tracking-wider">{label}</p>
+      <p className="text-sm font-medium text-zinc-100 tabular-nums">
+        {(payload[0]?.value ?? 0).toLocaleString()}
+        <span className="text-zinc-500 font-normal"> % risk</span>
+      </p>
     </div>
   );
 }
@@ -116,11 +119,27 @@ export default function DashboardOverview() {
 
   return (
     <div className="space-y-16">
-      <header>
-        <h1 className="text-[22px] font-medium text-zinc-100 tracking-tight">
-          {greeting}{firstName ? `, ${firstName}` : ''}
-        </h1>
-        <p className="text-sm text-zinc-500 mt-1">Overview of your validation activity and system health</p>
+      <header className="flex flex-wrap items-end justify-between gap-6">
+        <div>
+          <h1 className="text-[26px] font-semibold text-zinc-100 tracking-tight">
+            {greeting}{firstName ? `, ${firstName}` : ''}
+          </h1>
+          <p className="text-sm text-zinc-500 mt-1">Overview of your validation activity and system health</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/dashboard/datasets"
+            className="px-4 py-2 rounded-full text-[13px] font-medium text-zinc-300 bg-white/[0.04] ring-1 ring-white/[0.08] hover:bg-white/[0.07] hover:text-zinc-100 transition-all"
+          >
+            Upload data
+          </Link>
+          <Link
+            href="/dashboard/validations"
+            className="px-4 py-2 rounded-full text-[13px] font-medium text-white bg-violet-600 hover:bg-violet-500 shadow-[0_0_28px_-10px_rgba(139,92,246,0.6)] hover:shadow-[0_0_32px_-8px_rgba(139,92,246,0.75)] transition-all"
+          >
+            New validation
+          </Link>
+        </div>
       </header>
 
       {(analyticsError || validationsError || datasetsError) ? (
@@ -181,7 +200,7 @@ export default function DashboardOverview() {
               <Link
                 key={step.title}
                 href={step.href}
-                className="group relative flex flex-col gap-3 p-5 rounded-lg border border-zinc-800/50 bg-zinc-900/30 hover:bg-zinc-800/30 hover:border-zinc-700/50 transition-all"
+                className="group relative flex flex-col gap-3 p-5 rounded-lg border border-white/[0.06] bg-zinc-900/30 hover:bg-zinc-800/30 hover:border-zinc-700/50 transition-all"
               >
                 <div className="flex items-center justify-between">
                   <div className={cn(
@@ -207,53 +226,49 @@ export default function DashboardOverview() {
       )}
 
       <section>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-16 gap-y-10">
-          <Link href="/dashboard/datasets" className="group block">
-            <p className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-y-10">
+          <Link href="/dashboard/datasets" className="group block lg:pr-10">
+            <p className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-3">
               Datasets
               <ArrowUpRight size={11} className="text-zinc-700 opacity-0 group-hover:opacity-100 group-hover:text-zinc-400 transition-all" />
             </p>
             <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-semibold text-zinc-100 tabular-nums tracking-tight">{stats.total_datasets}</span>
-              <span className="text-sm text-zinc-600">{readyDatasets} ready</span>
+              <span className="text-[34px] leading-none font-semibold text-zinc-100 tabular-nums tracking-tight">{stats.total_datasets}</span>
+              <span className="text-[13px] text-zinc-600">{readyDatasets} ready</span>
             </div>
-            <div className="h-px bg-zinc-800 mt-4 group-hover:bg-zinc-700 transition-colors" />
           </Link>
 
-          <Link href="/dashboard/validations" className="group block">
-            <p className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">
+          <Link href="/dashboard/validations" className="group block lg:border-l lg:border-white/[0.06] lg:px-10">
+            <p className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-3">
               Validations
               <ArrowUpRight size={11} className="text-zinc-700 opacity-0 group-hover:opacity-100 group-hover:text-zinc-400 transition-all" />
             </p>
             <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-semibold text-zinc-100 tabular-nums tracking-tight">{stats.total_validations}</span>
-              <span className="flex items-center gap-1 text-sm text-emerald-500">
+              <span className="text-[34px] leading-none font-semibold text-zinc-100 tabular-nums tracking-tight">{stats.total_validations}</span>
+              <span className="flex items-center gap-1 text-[13px] text-emerald-500">
                 <ArrowUpRight size={12} />{stats.validations_this_month} this month
               </span>
             </div>
-            <div className="h-px bg-zinc-800 mt-4 group-hover:bg-zinc-700 transition-colors" />
           </Link>
 
-          <div className="cursor-default">
-            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">Rows Processed</p>
+          <div className="cursor-default lg:border-l lg:border-white/[0.06] lg:px-10">
+            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-3">Rows Processed</p>
             <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-semibold text-zinc-100 tabular-nums tracking-tight">{(stats.total_rows_validated / 1000).toFixed(1)}k</span>
-              <span className="text-sm text-zinc-600">{(stats.rows_this_month / 1000).toFixed(1)}k this month</span>
+              <span className="text-[34px] leading-none font-semibold text-zinc-100 tabular-nums tracking-tight">{(stats.total_rows_validated / 1000).toFixed(1)}k</span>
+              <span className="text-[13px] text-zinc-600">{(stats.rows_this_month / 1000).toFixed(1)}k this month</span>
             </div>
-            <div className="h-px bg-zinc-800 mt-4" />
           </div>
 
-          <div className="cursor-default">
-            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-2">Quality Score</p>
+          <div className="cursor-default lg:border-l lg:border-white/[0.06] lg:pl-10">
+            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-3">Quality Score</p>
             <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-semibold text-zinc-100 tabular-nums tracking-tight">{qualityScore}%</span>
+              <span className="text-[34px] leading-none font-semibold text-zinc-100 tabular-nums tracking-tight">{qualityScore}%</span>
               {stats.avg_risk_score > 0 && (
-                <span className="flex items-center gap-1 text-sm text-rose-500">
+                <span className="flex items-center gap-1 text-[13px] text-rose-500">
                   <ArrowDownRight size={12} />{stats.avg_risk_score}% risk
                 </span>
               )}
             </div>
-            <div className="h-px bg-zinc-800 mt-4" />
           </div>
         </div>
       </section>
@@ -263,7 +278,7 @@ export default function DashboardOverview() {
           <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-6">Performance Benchmarks</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Your Performance */}
-            <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5">
+            <div className="panel p-5">
               <p className="text-xs text-zinc-500 mb-1">Your Average Risk Score</p>
               <p className="text-2xl font-semibold text-zinc-100 tabular-nums">
                 {benchmarksData.user_avg_risk_score?.toFixed(1) ?? stats.avg_risk_score?.toFixed(1) ?? '0'}%
@@ -271,7 +286,7 @@ export default function DashboardOverview() {
             </div>
 
             {/* Platform Average */}
-            <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5">
+            <div className="panel p-5">
               <p className="text-xs text-zinc-500 mb-1">Platform Average</p>
               <p className="text-2xl font-semibold text-zinc-100 tabular-nums">
                 {benchmarksData.platform_avg_risk_score?.toFixed(1) ?? '—'}%
@@ -279,7 +294,7 @@ export default function DashboardOverview() {
             </div>
 
             {/* Percentile */}
-            <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5">
+            <div className="panel p-5">
               <p className="text-xs text-zinc-500 mb-2">
                 Better than {benchmarksData.percentile ?? '—'}% of validated datasets
               </p>
@@ -297,7 +312,7 @@ export default function DashboardOverview() {
 
           {/* Dimension comparison */}
           {benchmarksData.dimensions && (
-            <div className="mt-4 bg-zinc-900/30 border border-zinc-800/50 rounded-xl p-5">
+            <div className="mt-4 panel p-5">
               <p className="text-xs text-zinc-500 mb-4">Dimension Comparison (You vs Platform Average)</p>
               <div className="space-y-3">
                 {(
@@ -364,23 +379,38 @@ export default function DashboardOverview() {
       <section className="grid grid-cols-1 lg:grid-cols-5 gap-16">
         <div className="lg:col-span-3">
           <div className="flex items-center justify-between mb-6">
-            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Validation Trend</p>
+            <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">Risk Score Trend</p>
             <span className="text-xs text-zinc-600">{chartData ? `Last ${chartData.length} data points` : 'Last 30 days'}</span>
           </div>
           <div className="h-56">
             {chartData ? (
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
+                <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: -12 }}>
                   <defs>
                     <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#a78bfa" stopOpacity={0.15} />
-                      <stop offset="100%" stopColor="#a78bfa" stopOpacity={0} />
+                      <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.18} />
+                      <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#52525b', fontSize: 11 }} dy={8} />
-                  <YAxis hide />
-                  <Tooltip content={<ChartTooltip />} cursor={false} />
-                  <Area type="monotone" dataKey="value" stroke="#a78bfa" strokeWidth={1.5} fill="url(#chartGradient)" />
+                  <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.05)" strokeDasharray="3 6" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#52525b', fontSize: 11 }} dy={8} interval="preserveStartEnd" />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#3f3f46', fontSize: 10 }}
+                    width={34}
+                    tickCount={4}
+                    tickFormatter={(v: number) => `${v}%`}
+                  />
+                  <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.12)', strokeWidth: 1 }} />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#8b5cf6"
+                    strokeWidth={2}
+                    fill="url(#chartGradient)"
+                    activeDot={{ r: 4, fill: '#8b5cf6', stroke: '#09090b', strokeWidth: 2 }}
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
@@ -411,7 +441,7 @@ export default function DashboardOverview() {
             )}
           </div>
           {validationsData?.validations?.length ? (
-            <div className="pt-4 mt-4 border-t border-zinc-800/50">
+            <div className="pt-4 mt-4 border-t border-white/[0.06]">
               <Link href="/dashboard/validations" className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">View all activity →</Link>
             </div>
           ) : null}
@@ -421,8 +451,8 @@ export default function DashboardOverview() {
       {validationsData?.validations?.length ? (
         <section>
           <p className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider mb-6">Validation History</p>
-          <div className="border-t border-zinc-800/50">
-            <div className="grid grid-cols-12 gap-4 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-zinc-800/50">
+          <div className="border-t border-white/[0.06]">
+            <div className="grid grid-cols-12 gap-4 py-3 text-[11px] font-medium text-zinc-600 uppercase tracking-wider border-b border-white/[0.06]">
               <div className="col-span-4">Dataset</div>
               <div className="col-span-2">Type</div>
               <div className="col-span-2 text-right">Risk Score</div>
@@ -430,7 +460,7 @@ export default function DashboardOverview() {
               <div className="col-span-2 text-right">Status</div>
             </div>
             {validationsData.validations.map((v) => (
-              <Link key={v.id} href={`/dashboard/validations/${v.id}`} className="grid grid-cols-12 gap-4 py-3.5 border-b border-zinc-800/30 hover:bg-zinc-900/30 transition-colors group">
+              <Link key={v.id} href={`/dashboard/validations/${v.id}`} className="grid grid-cols-12 gap-4 py-3.5 border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors group">
                 <div className="col-span-4 flex items-center gap-3">
                   <div className="w-7 h-7 rounded-md bg-zinc-800/80 flex items-center justify-center text-xs font-medium text-zinc-400 group-hover:bg-zinc-800 transition-colors">{v.dataset_name?.charAt(0).toUpperCase() || 'D'}</div>
                   <span className="text-sm text-zinc-300 truncate group-hover:text-zinc-100 transition-colors">{v.dataset_name || 'Untitled'}</span>
