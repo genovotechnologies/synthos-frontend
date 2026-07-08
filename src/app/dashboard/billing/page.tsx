@@ -139,6 +139,13 @@ export default function BillingPage() {
   useEffect(() => {
     if (promoAttempted.current) return;
     const params = new URLSearchParams(window.location.search);
+    // Set by verify-email after it has already redeemed the registration promo
+    if (params.get('promo_applied')) {
+      promoAttempted.current = true;
+      setPromoMessage({ type: 'success', text: 'Promo code applied to your account' });
+      window.history.replaceState({}, '', '/dashboard/billing');
+      return;
+    }
     const promo = params.get('promo');
     if (promo && balance && balance.lifetime_purchased === 0) {
       promoAttempted.current = true;

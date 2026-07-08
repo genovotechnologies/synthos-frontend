@@ -78,7 +78,8 @@ function VerifyEmailContent() {
           try {
             await creditsApi.redeemPromo(promoCode);
             sessionStorage.removeItem('pending_promo');
-            router.push('/dashboard/billing?promo=applied');
+            // promo_applied (not ?promo=) so billing's auto-redeem doesn't re-run a code
+            router.push('/dashboard/billing?promo_applied=1');
             return;
           } catch {
             toast.error('Could not apply promo code', 'You can redeem it later from Billing.');
