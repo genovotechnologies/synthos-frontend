@@ -145,6 +145,20 @@ const organizationJsonLd = {
   },
 };
 
+// Tells search engines the site's canonical name for brand queries.
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Synthos",
+  alternateName: "SynthOS",
+  url: "https://synthos.dev",
+  publisher: {
+    "@type": "Organization",
+    name: "Genovo Technologies",
+    url: "https://genovotech.com",
+  },
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -162,6 +176,10 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
         />
       </head>
       <body
