@@ -54,15 +54,31 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     headline: post.title,
     description: post.description,
     datePublished: `${post.date}T00:00:00Z`,
-    author: { '@type': 'Organization', name: post.author, url: 'https://synthos.dev' },
+    author: {
+      '@type': 'Person',
+      name: post.author,
+      jobTitle: post.authorRole,
+      worksFor: { '@type': 'Organization', name: 'Genovo Technologies', url: 'https://genovotech.com' },
+    },
     publisher: { '@type': 'Organization', name: 'Genovo Technologies', url: 'https://genovotech.com' },
     mainEntityOfPage: `https://synthos.dev/blog/${post.slug}`,
     keywords: post.keywords.join(', '),
   };
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://synthos.dev' },
+      { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://synthos.dev/blog' },
+      { '@type': 'ListItem', position: 3, name: post.title, item: `https://synthos.dev/blog/${post.slug}` },
+    ],
+  };
+
   return (
     <main className="min-h-screen bg-[#09090b] text-zinc-100 flex flex-col">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <MarketingNav />
 
       <article className="container mx-auto px-4 flex-1 w-full max-w-2xl pb-20">
@@ -74,7 +90,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             {post.title}
           </h1>
           <p className="text-[13px] text-zinc-600 mt-5 tabular-nums">
-            {formatDate(post.date)} · {post.readingMinutes} min read · {post.author}
+            {formatDate(post.date)} · {post.readingMinutes} min read
+          </p>
+          <p className="text-[13px] text-zinc-500 mt-2">
+            By <span className="text-zinc-300">{post.author}</span>, {post.authorRole} at Genovo Technologies
           </p>
         </header>
 

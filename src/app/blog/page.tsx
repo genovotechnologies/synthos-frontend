@@ -39,7 +39,7 @@ export default function BlogIndexPage() {
           <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">Blog</h1>
           <p className="text-zinc-500 mt-3 max-w-xl">
             Notes on model collapse, synthetic data validation, and keeping AI training data quality
-            high enough to bet a training run on.
+            high enough to bet a training run on — written by the Genovo Technologies team that builds Synthos.
           </p>
         </header>
 
@@ -55,6 +55,10 @@ export default function BlogIndexPage() {
                 </p>
                 <h2 className="text-xl font-semibold text-zinc-100 mt-2 leading-snug">{post.title}</h2>
                 <p className="text-sm text-zinc-500 mt-2 leading-relaxed">{post.description}</p>
+                <p className="text-[13px] text-zinc-500 mt-3">
+                  <span className="text-zinc-400">{post.author}</span>
+                  <span className="text-zinc-600"> · {post.authorRole}</span>
+                </p>
                 <span className="inline-block text-[13px] text-violet-400 mt-3">Read the post →</span>
               </Link>
             </article>
